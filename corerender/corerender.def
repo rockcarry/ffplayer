@@ -1,0 +1,11 @@
+EXPORTS
+
+renderopen
+renderclose
+renderaudiowrite
+rendervideowrite
+rendersetrect
+renderstart
+renderpause
+renderflush
+
