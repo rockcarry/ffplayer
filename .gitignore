@@ -1,0 +1,7 @@
+!.gitignore
+Release
+release
+Debug
+debug
+*.ncb
+*.user
