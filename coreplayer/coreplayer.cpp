@@ -26,10 +26,12 @@ inline void TRACE(LPCSTR lpszFormat, ...)
 typedef struct
 {
     AVFormatContext *pAVFormatContext;
-    AVCodecContext  *pVideoCodecContext;
     AVCodecContext  *pAudioCodecContext;
-    int              iVideoStreamIndex;
     int              iAudioStreamIndex;
+    double           dAudioTimeBase;
+    AVCodecContext  *pVideoCodecContext;
+    int              iVideoStreamIndex;
+    double           dVideoTimeBase;
     int              nRenderMode;
     HWND             hRenderWnd;
     HANDLE           hCoreRender;
@@ -87,7 +89,7 @@ static DWORD WINAPI PlayThreadProc(PLAYER *player)
             LeaveCriticalSection(&(player->cs));
 
             if (gotaudio) {
-                aframe->pts = packet.pts;
+                aframe->pts = (int64_t)(packet.pts * player->dAudioTimeBase);
                 renderaudiowrite(player->hCoreRender, aframe);
                 TRACE("apts = %lld\n", aframe->pts);
             }
@@ -101,7 +103,7 @@ static DWORD WINAPI PlayThreadProc(PLAYER *player)
             LeaveCriticalSection(&(player->cs));
 
             if (gotvideo) {
-                vframe->pts = packet.pts;
+                vframe->pts = (int64_t)(packet.pts * player->dVideoTimeBase);
                 rendervideowrite(player->hCoreRender, vframe);
                 TRACE("vpts = %lld\n", vframe->pts);
             }
@@ -161,11 +163,13 @@ HANDLE playeropen(char *file, HWND hwnd)
         case AVMEDIA_TYPE_AUDIO:
             player->iAudioStreamIndex  = i;
             player->pAudioCodecContext = player->pAVFormatContext->streams[i]->codec;
+            player->dAudioTimeBase     = av_q2d(player->pAVFormatContext->streams[i]->time_base) * 1000;
             break;
 
         case AVMEDIA_TYPE_VIDEO:
             player->iVideoStreamIndex  = i;
             player->pVideoCodecContext = player->pAVFormatContext->streams[i]->codec;
+            player->dVideoTimeBase     = av_q2d(player->pAVFormatContext->streams[i]->time_base) * 1000;
             vrate = player->pAVFormatContext->streams[i]->r_frame_rate;
             break;
         }
