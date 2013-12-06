@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2011-2012 Michael Niedermayer (michaelni@gmx.at)
+ * Copyright (C) 2011-2013 Michael Niedermayer (michaelni@gmx.at)
  *
  * This file is part of libswresample
  *
@@ -44,8 +44,8 @@
  * matrix):
  * @code
  * SwrContext *swr = swr_alloc();
- * av_opt_set_int(swr, "in_channel_layout",  AV_CH_LAYOUT_5POINT1, 0);
- * av_opt_set_int(swr, "out_channel_layout", AV_CH_LAYOUT_STEREO,  0);
+ * av_opt_set_channel_layout(swr, "in_channel_layout",  AV_CH_LAYOUT_5POINT1, 0);
+ * av_opt_set_channel_layout(swr, "out_channel_layout", AV_CH_LAYOUT_STEREO,  0);
  * av_opt_set_int(swr, "in_sample_rate",     48000,                0);
  * av_opt_set_int(swr, "out_sample_rate",    44100,                0);
  * av_opt_set_sample_fmt(swr, "in_sample_fmt",  AV_SAMPLE_FMT_FLTP, 0);
@@ -84,8 +84,8 @@
  *                                      input, in_samples);
  *     handle_output(output, out_samples);
  *     av_freep(&output);
- *  }
- *  @endcode
+ * }
+ * @endcode
  *
  * When the conversion is finished, the conversion
  * context and everything associated with it must be freed with swr_free().
@@ -111,6 +111,15 @@ enum SwrDitherType {
     SWR_DITHER_RECTANGULAR,
     SWR_DITHER_TRIANGULAR,
     SWR_DITHER_TRIANGULAR_HIGHPASS,
+
+    SWR_DITHER_NS = 64,         ///< not part of API/ABI
+    SWR_DITHER_NS_LIPSHITZ,
+    SWR_DITHER_NS_F_WEIGHTED,
+    SWR_DITHER_NS_MODIFIED_E_WEIGHTED,
+    SWR_DITHER_NS_IMPROVED_E_WEIGHTED,
+    SWR_DITHER_NS_SHIBATA,
+    SWR_DITHER_NS_LOW_SHIBATA,
+    SWR_DITHER_NS_HIGH_SHIBATA,
     SWR_DITHER_NB,              ///< not part of API/ABI
 };
 
