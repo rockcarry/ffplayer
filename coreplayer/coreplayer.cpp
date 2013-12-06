@@ -82,6 +82,7 @@ static DWORD WINAPI PlayThreadProc(PLAYER *player)
             int consumed = 0;
 
             while (packet.size > 0) {
+                if (player->nPlayerStatus == PLAYER_SEEK) goto seek_handler;
                 EnterCriticalSection(&(player->cs));
                 consumed = avcodec_decode_audio(player->pAudioCodecContext, aframe, &gotaudio, &packet);
                 LeaveCriticalSection(&(player->cs));
@@ -104,6 +105,7 @@ static DWORD WINAPI PlayThreadProc(PLAYER *player)
         // video
         if (packet.stream_index == player->iVideoStreamIndex)
         {
+            if (player->nPlayerStatus == PLAYER_SEEK) goto seek_handler;
             EnterCriticalSection(&(player->cs));
             avcodec_decode_video(player->pVideoCodecContext, vframe, &gotvideo, &packet);
             LeaveCriticalSection(&(player->cs));
@@ -117,6 +119,9 @@ static DWORD WINAPI PlayThreadProc(PLAYER *player)
 
         // free packet
         av_free_packet(&packet);
+
+seek_handler:
+        if (player->nPlayerStatus == PLAYER_SEEK) Sleep(10);
     }
 
 exit:
@@ -322,12 +327,14 @@ void playerseek(HANDLE hplayer, DWORD sec)
     if (!hplayer) return;
     PLAYER *player = (PLAYER*)hplayer;
 
+    player->nPlayerStatus = PLAYER_SEEK;
     EnterCriticalSection(&(player->cs));
     av_seek_frame(player->pAVFormatContext, -1, sec * AV_TIME_BASE, 0);
     if (player->iAudioStreamIndex != -1) avcodec_flush_buffers(player->pAudioCodecContext);
     if (player->iVideoStreamIndex != -1) avcodec_flush_buffers(player->pVideoCodecContext);
     LeaveCriticalSection(&(player->cs));
     renderflush(player->hCoreRender);
+    player->nPlayerStatus = PLAYER_PLAY;
 }
 
 void playersetparam(HANDLE hplayer, DWORD id, DWORD param)
