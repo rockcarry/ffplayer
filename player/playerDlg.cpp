@@ -15,6 +15,9 @@ extern "C" {
 #define SCREEN_WIDTH   800
 #define SCREEN_HEIGHT  480
 
+#define TIMER_ID_FIRST_DIALOG  1
+#define TIMER_ID_PROGRESS      2
+
 // 全局变量定义
 static HANDLE g_hplayer = NULL;
 
@@ -37,6 +40,9 @@ void CplayerDlg::PlayerOpenFile(void)
     CFileDialog dlg(TRUE);
     TCHAR       path[MAX_PATH];
     char        str [MAX_PATH];
+
+    // kill player progress timer
+    KillTimer(TIMER_ID_PROGRESS);
 
     // stop player first
     if (g_hplayer)
@@ -68,6 +74,7 @@ void CplayerDlg::PlayerOpenFile(void)
         playergetparam(g_hplayer, PARAM_GET_DURATION, &m_nTimeTotal);
         playersetrect(g_hplayer, 0, 0, SCREEN_WIDTH, SCREEN_HEIGHT - 2);
         playerplay(g_hplayer);
+        SetTimer(TIMER_ID_PROGRESS, 500, NULL);
     }
 }
 
@@ -103,7 +110,7 @@ BOOL CplayerDlg::OnInitDialog()
     MoveWindow(0, 0, w, h);
 
     m_pDrawDC = GetDC();
-    SetTimer(1, 50, NULL);
+    SetTimer(TIMER_ID_FIRST_DIALOG, 100, NULL);
 	return TRUE;  // return TRUE  unless you set the focus to a control
 }
 
@@ -151,12 +158,25 @@ void CplayerDlg::OnDestroy()
 
 void CplayerDlg::OnTimer(UINT_PTR nIDEvent)
 {
+    RECT fill;
+    int  pos;
+
     switch (nIDEvent)
     {
-    case 1:
+    case TIMER_ID_FIRST_DIALOG:
         // kill timer first
-        KillTimer(1);
+        KillTimer(TIMER_ID_FIRST_DIALOG);
         PlayerOpenFile();
+        break;
+
+    case TIMER_ID_PROGRESS:
+        playergetparam(g_hplayer, PARAM_GET_POSITION, &pos);
+        fill.left   = 0;
+        fill.right  = (LONG)(SCREEN_WIDTH * pos / m_nTimeTotal);
+        fill.top    = SCREEN_HEIGHT - 2;
+        fill.bottom = SCREEN_HEIGHT;
+        m_nPosXCur  = fill.right;
+        m_pDrawDC->FillSolidRect(&fill, RGB(250, 200, 0));
         break;
 
     default:
@@ -205,23 +225,10 @@ HBRUSH CplayerDlg::OnCtlColor(CDC* pDC, CWnd* pWnd, UINT nCtlColor)
 
 BOOL CplayerDlg::PreTranslateMessage(MSG *pMsg) 
 {
-    RECT fill;
     if (pMsg->message == MSG_COREPLAYER)
     {
         switch (pMsg->wParam)
         {
-        case PLAYER_PLAY:
-            fill.left   = 0;
-            fill.right  = (LONG)(SCREEN_WIDTH * pMsg->lParam / m_nTimeTotal);
-            fill.top    = SCREEN_HEIGHT - 2;
-            fill.bottom = SCREEN_HEIGHT;
-            m_nPosXCur  = fill.right;
-            m_pDrawDC->FillSolidRect(&fill, RGB(250, 200, 0));
-            break;
-
-        case PLAYER_PAUSE:
-            break;
-
         case PLAYER_STOP:
             PlayerOpenFile();
             break;

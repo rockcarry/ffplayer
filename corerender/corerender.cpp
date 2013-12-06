@@ -21,9 +21,11 @@ inline void TRACE(LPCSTR lpszFormat, ...)
 }
 
 // 内部常量定义
-#define RENDER_STOP    0
-#define RENDER_PLAY    1
-#define RENDER_PAUSE   2
+enum {
+    RENDER_STOP,
+    RENDER_PLAY,
+    RENDER_PAUSE,
+};
 
 #define WAVE_BUF_SIZE  8192
 #define WAVE_BUF_NUM   32

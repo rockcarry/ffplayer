@@ -49,7 +49,6 @@ static DWORD WINAPI PlayThreadProc(PLAYER *player)
     AVFrame  *vframe;
     int       gotaudio;
     int       gotvideo;
-    int       time;
     int       retv;
 
     aframe = avcodec_alloc_frame();
@@ -72,13 +71,9 @@ static DWORD WINAPI PlayThreadProc(PLAYER *player)
 
         // 播放进度控制
         if (packet.dts > 0) {
-            time = (int)(packet.dts
+            player->nPlayerTime = (int)(packet.dts
                 * player->pAVFormatContext->streams[packet.stream_index]->time_base.num
                 / player->pAVFormatContext->streams[packet.stream_index]->time_base.den);
-            if (time != player->nPlayerTime) {
-                PostMessage(player->hRenderWnd, MSG_COREPLAYER, player->nPlayerStatus, time);
-                player->nPlayerTime = time;
-            }
         }
 
         // audio todo..
@@ -357,6 +352,11 @@ void playergetparam(HANDLE hplayer, DWORD id, void *param)
     case PARAM_GET_DURATION:
         if (!player->pAVFormatContext) *(DWORD*)param = 0;
         else *(DWORD*)param = (DWORD)(player->pAVFormatContext->duration / AV_TIME_BASE);
+        break;
+
+    case PARAM_GET_POSITION:
+        if (!player->pAVFormatContext) *(DWORD*)param = 0;
+        else *(int*)param = player->nPlayerTime;
         break;
 
     case PARAM_RENDER_MODE:
