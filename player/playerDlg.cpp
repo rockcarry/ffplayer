@@ -192,7 +192,7 @@ void CplayerDlg::OnLButtonDown(UINT nFlags, CPoint point)
     {
         if (point.x < m_nPosXCur) {
             fill.left   = point.x;
-            fill.right  = m_nPosXCur;
+            fill.right  = SCREEN_WIDTH;
             fill.top    = SCREEN_HEIGHT - 2;
             fill.bottom = SCREEN_HEIGHT;
             m_nPosXCur  = point.x;
