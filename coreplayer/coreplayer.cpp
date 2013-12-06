@@ -76,17 +76,28 @@ static DWORD WINAPI PlayThreadProc(PLAYER *player)
                 / player->pAVFormatContext->streams[packet.stream_index]->time_base.den);
         }
 
-        // audio todo..
+        // audio
         if (packet.stream_index == player->iAudioStreamIndex)
         {
-            EnterCriticalSection(&(player->cs));
-            avcodec_decode_audio(player->pAudioCodecContext, aframe, &gotaudio, &packet);
-            LeaveCriticalSection(&(player->cs));
+            int consumed = 0;
 
-            if (gotaudio) {
-                aframe->pts = (int64_t)(packet.pts * player->dAudioTimeBase);
-                renderaudiowrite(player->hCoreRender, aframe);
-                TRACE("apts = %lld\n", aframe->pts);
+            while (packet.size > 0) {
+                EnterCriticalSection(&(player->cs));
+                consumed = avcodec_decode_audio(player->pAudioCodecContext, aframe, &gotaudio, &packet);
+                LeaveCriticalSection(&(player->cs));
+
+                if (consumed < 0) {
+                    TRACE("an error occurred during decoding audio.\n");
+                    break;
+                }
+
+                if (gotaudio) {
+                    aframe->pts = (int64_t)(packet.pts * player->dAudioTimeBase);
+                    renderaudiowrite(player->hCoreRender, aframe);
+                    TRACE("apts = %lld\n", aframe->pts);
+                }
+                packet.data += consumed;
+                packet.size -= consumed;
             }
         }
 

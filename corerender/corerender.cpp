@@ -27,7 +27,7 @@ enum {
     RENDER_PAUSE,
 };
 
-#define WAVE_BUF_SIZE  8192
+#define WAVE_BUF_SIZE  4096
 #define WAVE_BUF_NUM   32
 #define VIDEO_BUF_NUM  32
 
@@ -236,17 +236,36 @@ void renderaudiowrite(HANDLE hrender, AVFrame *audio)
     BYTE   *wavebuf;
     int     sampnum;
 
-    WaitForSingleObject(render->hWaveSem, -1);
-    wavebuf = render->wavebuf[render->nWaveCur];
-    sampnum = WAVE_BUF_SIZE / 4; /* 2-channel, 16bit */
-    // todo
-    sampnum = swr_convert(render->pSWRContext, &wavebuf, sampnum,
-        (const uint8_t**)audio->extended_data, audio->nb_samples);
-    sampnum = audio->nb_samples;
-    render->wavehdr[render->nWaveCur].dwBufferLength = sampnum * 4;
-    waveOutWrite(render->hWaveOut, &(render->wavehdr[render->nWaveCur]), sizeof(WAVEHDR));
-    render->nWaveCur++;
-    render->nWaveCur %= WAVE_BUF_NUM;
+    do {
+        //++ wait & get waveout audio buffer ++//
+        WaitForSingleObject(render->hWaveSem, -1);
+        wavebuf = render->wavebuf[render->nWaveCur];
+        //-- wait & get waveout audio buffer --//
+
+        //++ do resample audio data ++//
+        sampnum = swr_convert(render->pSWRContext, &wavebuf, WAVE_BUF_SIZE / 4,
+            (const uint8_t**)audio->extended_data, audio->nb_samples);
+        audio->extended_data = NULL;
+        audio->nb_samples    = 0;
+        //-- do resample audio data --//
+
+        //++ post or release waveout audio buffer ++//
+        if (sampnum > 0) {
+            render->wavehdr[render->nWaveCur].dwBufferLength = sampnum * 4;
+            waveOutWrite(render->hWaveOut, &(render->wavehdr[render->nWaveCur]), sizeof(WAVEHDR));
+            render->nWaveCur++;
+            render->nWaveCur %= WAVE_BUF_NUM;
+        }
+        else {
+            // we must release semaphore
+            ReleaseSemaphore(render->hWaveSem, 1, NULL);
+        }
+        //-- post or release waveout audio buffer --//
+    } while (sampnum > 0);
+
+    if (sampnum < 0) {
+        TRACE("failed to resample audio data.\n");
+    }
 }
 
 void rendervideowrite(HANDLE hrender, AVFrame *video)
