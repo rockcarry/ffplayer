@@ -54,7 +54,7 @@ void CplayerDlg::PlayerOpenFile(void)
     // open file dialog
     if (dlg.DoModal() == IDOK)
     {
-        wcscpy(path, dlg.GetPathName());
+        wcscpy_s(path, dlg.GetPathName());
         WideCharToMultiByte(CP_ACP, 0, path, -1, str, MAX_PATH, NULL, NULL);
     }
     else

@@ -183,11 +183,19 @@
 			UniqueIdentifier="{4FC737F1-C7A5-4376-A066-2A32D752A2FF}"
 			>
 			<File
+				RelativePath=".\bmpbufqueue.c"
+				>
+			</File>
+			<File
 				RelativePath=".\corerender.cpp"
 				>
 			</File>
 			<File
 				RelativePath=".\corerender.def"
+				>
+			</File>
+			<File
+				RelativePath=".\wavbufqueue.c"
 				>
 			</File>
 		</Filter>
@@ -197,7 +205,15 @@
 			UniqueIdentifier="{93995380-89BD-4b04-88EB-625FBE52EBFB}"
 			>
 			<File
+				RelativePath=".\bmpbufqueue.h"
+				>
+			</File>
+			<File
 				RelativePath=".\corerender.h"
+				>
+			</File>
+			<File
+				RelativePath=".\wavbufqueue.h"
 				>
 			</File>
 		</Filter>

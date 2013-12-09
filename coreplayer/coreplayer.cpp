@@ -9,13 +9,15 @@ extern "C" {
 
 inline void TRACE(LPCSTR lpszFormat, ...)
 {
+#ifdef _DEBUG
     va_list args;
     char    buf[512];
 
     va_start(args, lpszFormat);
-    _vsnprintf(buf, sizeof(buf), lpszFormat, args);
+    _vsnprintf_s(buf, sizeof(buf), lpszFormat, args);
     OutputDebugStringA(buf);
     va_end(args);
+#endif
 }
 
 // 内部常量定义
@@ -123,6 +125,8 @@ seek_handler:
         if (player->nPlayerStatus == PLAYER_SEEK) Sleep(10);
     }
 
+    av_frame_unref(&aframe);
+    av_frame_unref(&vframe);
     return TRUE;
 }
 
