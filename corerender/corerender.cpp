@@ -66,7 +66,7 @@ typedef struct
 // 内部函数实现
 static void CALLBACK waveOutProc(HWAVEOUT hwo, UINT uMsg, DWORD dwInstance, DWORD dwParam1, DWORD dwParam2)
 {
-    RENDER  *render  = (RENDER*)dwInstance;
+    RENDER *render = (RENDER*)dwInstance;
     switch (uMsg)
     {
     case WOM_DONE:
