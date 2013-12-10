@@ -330,7 +330,7 @@ void playerseek(HANDLE hplayer, DWORD sec)
 
     player->nPlayerStatus = PLAYER_SEEK;
     EnterCriticalSection(&(player->cs));
-    av_seek_frame(player->pAVFormatContext, -1, sec * AV_TIME_BASE, 0);
+    av_seek_frame(player->pAVFormatContext, -1, (int64_t)sec * AV_TIME_BASE, 0);
 //  if (player->iAudioStreamIndex != -1) avcodec_flush_buffers(player->pAudioCodecContext);
 //  if (player->iVideoStreamIndex != -1) avcodec_flush_buffers(player->pVideoCodecContext);
     LeaveCriticalSection(&(player->cs));
