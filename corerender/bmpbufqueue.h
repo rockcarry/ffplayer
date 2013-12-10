@@ -21,7 +21,7 @@ typedef struct {
 // 函数声明
 BOOL bmpbufqueue_create (BMPBUFQUEUE *pbq, HDC hdc, int w, int h, int cdepth);
 void bmpbufqueue_destroy(BMPBUFQUEUE *pbq);
-void bmpbufqueue_clear  (BMPBUFQUEUE *pbq);
+void bmpbufqueue_flush  (BMPBUFQUEUE *pbq);
 
 //++ 以下三个接口函数用于空闲可写 bitmap 的管理 ++//
 // bmpbufqueue_write_request 取得当前可写的空闲 bitmap

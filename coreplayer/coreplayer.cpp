@@ -46,15 +46,16 @@ typedef struct
 // 内部函数实现
 static DWORD WINAPI PlayThreadProc(PLAYER *player)
 {
-    AVPacket  packet;
-    AVFrame   aframe;
-    AVFrame   vframe;
+    AVPacket  packet = {0};
+    AVFrame  *aframe = NULL;
+    AVFrame  *vframe = NULL;
     int       gotaudio;
     int       gotvideo;
     int       retv;
 
-    avcodec_get_frame_defaults(&aframe);
-    avcodec_get_frame_defaults(&vframe);
+    aframe = avcodec_alloc_frame();
+    vframe = avcodec_alloc_frame();
+    if (!aframe || !vframe) goto exit;
 
     while (player->nPlayerStatus != PLAYER_STOP)
     {
@@ -67,7 +68,7 @@ static DWORD WINAPI PlayThreadProc(PLAYER *player)
         {
             player->nPlayerStatus = PLAYER_STOP;
             PostMessage(player->hRenderWnd, MSG_COREPLAYER, player->nPlayerStatus, 0);
-            break;
+            goto exit;
         }
 
         // 播放进度控制
@@ -85,7 +86,7 @@ static DWORD WINAPI PlayThreadProc(PLAYER *player)
             while (packet.size > 0) {
                 if (player->nPlayerStatus == PLAYER_SEEK) goto seek_handler;
                 EnterCriticalSection(&(player->cs));
-                consumed = avcodec_decode_audio(player->pAudioCodecContext, &aframe, &gotaudio, &packet);
+                consumed = avcodec_decode_audio(player->pAudioCodecContext, aframe, &gotaudio, &packet);
                 LeaveCriticalSection(&(player->cs));
 
                 if (consumed < 0) {
@@ -94,9 +95,9 @@ static DWORD WINAPI PlayThreadProc(PLAYER *player)
                 }
 
                 if (gotaudio) {
-                    aframe.pts = (int64_t)(packet.pts * player->dAudioTimeBase);
-                    renderaudiowrite(player->hCoreRender, &aframe);
-                    TRACE("apts = %lld\n", aframe.pts);
+                    aframe->pts = (int64_t)(packet.pts * player->dAudioTimeBase);
+                    renderaudiowrite(player->hCoreRender, aframe);
+                    TRACE("apts = %lld\n", aframe->pts);
                 }
                 packet.data += consumed;
                 packet.size -= consumed;
@@ -108,13 +109,13 @@ static DWORD WINAPI PlayThreadProc(PLAYER *player)
         {
             if (player->nPlayerStatus == PLAYER_SEEK) goto seek_handler;
             EnterCriticalSection(&(player->cs));
-            avcodec_decode_video(player->pVideoCodecContext, &vframe, &gotvideo, &packet);
+            avcodec_decode_video(player->pVideoCodecContext, vframe, &gotvideo, &packet);
             LeaveCriticalSection(&(player->cs));
 
             if (gotvideo) {
-                vframe.pts = (int64_t)(packet.pts * player->dVideoTimeBase);
-                rendervideowrite(player->hCoreRender, &vframe);
-                TRACE("vpts = %lld\n", vframe.pts);
+                vframe->pts = (int64_t)(packet.pts * player->dVideoTimeBase);
+                rendervideowrite(player->hCoreRender, vframe);
+                TRACE("vpts = %lld\n", vframe->pts);
             }
         }
 
@@ -125,9 +126,10 @@ seek_handler:
         if (player->nPlayerStatus == PLAYER_SEEK) Sleep(10);
     }
 
-    av_frame_unref(&aframe);
-    av_frame_unref(&vframe);
-    return TRUE;
+exit:
+    avcodec_free_frame(&aframe);
+    avcodec_free_frame(&vframe);
+    return 0;
 }
 
 // 函数实现
@@ -293,7 +295,6 @@ void playerstop(HANDLE hplayer)
         player->hPlayerThread = NULL;
     }
     renderpause(player->hCoreRender);
-    playerseek(player, 0);
 }
 
 void playersetrect(HANDLE hplayer, int x, int y, int w, int h)
@@ -330,8 +331,8 @@ void playerseek(HANDLE hplayer, DWORD sec)
     player->nPlayerStatus = PLAYER_SEEK;
     EnterCriticalSection(&(player->cs));
     av_seek_frame(player->pAVFormatContext, -1, sec * AV_TIME_BASE, 0);
-    if (player->iAudioStreamIndex != -1) avcodec_flush_buffers(player->pAudioCodecContext);
-    if (player->iVideoStreamIndex != -1) avcodec_flush_buffers(player->pVideoCodecContext);
+//  if (player->iAudioStreamIndex != -1) avcodec_flush_buffers(player->pAudioCodecContext);
+//  if (player->iVideoStreamIndex != -1) avcodec_flush_buffers(player->pVideoCodecContext);
     LeaveCriticalSection(&(player->cs));
     renderflush(player->hCoreRender);
     player->nPlayerStatus = PLAYER_PLAY;

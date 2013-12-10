@@ -68,11 +68,11 @@ void bmpbufqueue_destroy(BMPBUFQUEUE *pbq)
     memset(pbq, 0, sizeof(BMPBUFQUEUE));
 }
 
-void bmpbufqueue_clear(BMPBUFQUEUE *pbq)
+void bmpbufqueue_flush(BMPBUFQUEUE *pbq)
 {
-    while (pbq->curnum > 0) {
-        wavbufqueue_read_request(pbq, NULL);
-        wavbufqueue_read_done(pbq);
+    while (pbq->curnum > 1) {
+        bmpbufqueue_read_request(pbq, NULL);
+        bmpbufqueue_read_done(pbq);
     }
 }
 

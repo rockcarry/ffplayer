@@ -103,7 +103,7 @@ static DWORD WINAPI VideoRenderThreadProc(RENDER *render)
         // -- frame rate control -- //
     }
 
-    return TRUE;
+    return 0;
 }
 
 // º¯ÊýÊµÏÖ
@@ -161,12 +161,19 @@ void renderclose(HANDLE hrender)
     if (!hrender) return;
     RENDER *render = (RENDER*)hrender;
 
+    //++ audio ++//
+    // destroy wave buffer queue
     wavbufqueue_destroy(&(render->WavBufQueue));
+
+    // wave out close
     if (render->hWaveOut) waveOutClose(render->hWaveOut);
 
     // free swr context
     swr_free(&(render->pSWRContext));
+    //-- audio --//
 
+    //++ video ++//
+    // set nVideoStatus to RENDER_STOP
     render->nVideoStatus = RENDER_STOP;
     bmpbufqueue_write_request(&(render->BmpBufQueue), NULL, NULL);
     bmpbufqueue_write_done   (&(render->BmpBufQueue));
@@ -181,7 +188,9 @@ void renderclose(HANDLE hrender)
 
     // destroy bmp buffer queue
     bmpbufqueue_destroy(&(render->BmpBufQueue));
+    //-- video --//
 
+    // free context
     free(render);
 }
 
@@ -287,7 +296,7 @@ void renderflush(HANDLE hrender)
     if (!hrender) return;
     RENDER *render = (RENDER*)hrender;
     waveOutReset(render->hWaveOut);
-    wavbufqueue_clear(&(render->WavBufQueue));
-    bmpbufqueue_clear(&(render->BmpBufQueue));
+    wavbufqueue_flush(&(render->WavBufQueue));
+    bmpbufqueue_flush(&(render->BmpBufQueue));
 }
 
