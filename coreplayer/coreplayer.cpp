@@ -1,8 +1,9 @@
 // 包含头文件
 #include <windows.h>
-extern "C" {
 #include "coreplayer.h"
 #include "../corerender/corerender.h"
+
+extern "C" {
 #include "libavformat/avformat.h"
 #include "libavcodec/avcodec.h"
 }

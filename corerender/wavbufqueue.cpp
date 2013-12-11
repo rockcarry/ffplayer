@@ -12,7 +12,7 @@ BOOL wavbufqueue_create(WAVBUFQUEUE *pwq, HWAVEOUT h)
     if (pwq->size == 0) pwq->size = DEF_WAVBUF_QUEUE_SIZE;
 
     // alloc buffer & semaphore
-    pwq->pwhdrs  = malloc(pwq->size * (sizeof(WAVEHDR) + DEF_WAVBUF_BUFFER_SIZE));
+    pwq->pwhdrs  = (WAVEHDR*)malloc(pwq->size * (sizeof(WAVEHDR) + DEF_WAVBUF_BUFFER_SIZE));
     pwq->semr    = CreateSemaphore(NULL, 0        , pwq->size, NULL);
     pwq->semw    = CreateSemaphore(NULL, pwq->size, pwq->size, NULL);
     pwq->hwavout = h;
@@ -29,7 +29,7 @@ BOOL wavbufqueue_create(WAVBUFQUEUE *pwq, HWAVEOUT h)
     // init
     pwavbuf = (BYTE*)(pwq->pwhdrs + pwq->size);
     for (i=0; i<pwq->size; i++) {
-        pwq->pwhdrs[i].lpData         = (pwavbuf + i * DEF_WAVBUF_BUFFER_SIZE);
+        pwq->pwhdrs[i].lpData         = (LPSTR)(pwavbuf + i * DEF_WAVBUF_BUFFER_SIZE);
         pwq->pwhdrs[i].dwBufferLength = DEF_WAVBUF_BUFFER_SIZE;
         pwq->pwhdrs[i].dwUser         = DEF_WAVBUF_BUFFER_SIZE;
         waveOutPrepareHeader(pwq->hwavout, &(pwq->pwhdrs[i]), sizeof(WAVEHDR));
@@ -65,7 +65,7 @@ void wavbufqueue_flush(WAVBUFQUEUE *pwq)
 void wavbufqueue_write_request(WAVBUFQUEUE *pwq, PWAVEHDR *pwhdr)
 {
     WaitForSingleObject(pwq->semw, -1);
-    if (pwhdr) *(WAVEHDR**)pwhdr = &(pwq->pwhdrs[pwq->tail]);
+    if (pwhdr) *pwhdr = &(pwq->pwhdrs[pwq->tail]);
 }
 
 void wavbufqueue_write_release(WAVBUFQUEUE *pwq)
@@ -84,7 +84,7 @@ void wavbufqueue_write_done(WAVBUFQUEUE *pwq)
 void wavbufqueue_read_request(WAVBUFQUEUE *pwq, PWAVEHDR *pwhdr)
 {
     WaitForSingleObject(pwq->semr, -1);
-    if (pwhdr) *(WAVEHDR**)pwhdr = &(pwq->pwhdrs[pwq->head]);
+    if (pwhdr) *pwhdr = &(pwq->pwhdrs[pwq->head]);
 }
 
 void wavbufqueue_read_release(WAVBUFQUEUE *pwq)

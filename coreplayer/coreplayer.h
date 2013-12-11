@@ -4,6 +4,10 @@
 // 包含头文件
 #include <windows.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 // 常量定义
 // message
 #define MSG_COREPLAYER  (WM_APP + 1)
@@ -42,8 +46,11 @@ void   playersetrect (HANDLE hplayer, int x, int y, int w, int h);
 void   playersetparam(HANDLE hplayer, DWORD id, DWORD param);
 void   playergetparam(HANDLE hplayer, DWORD id, void *param);
 
+#ifdef __cplusplus
+}
 #endif
 
+#endif
 
 
 

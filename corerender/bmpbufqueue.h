@@ -4,6 +4,10 @@
 // 包含头文件
 #include <windows.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 // 常量定义
 #define DEF_BMPBUF_QUEUE_SIZE   32
 
@@ -45,8 +49,11 @@ void bmpbufqueue_read_release(BMPBUFQUEUE *pbq);
 void bmpbufqueue_read_done   (BMPBUFQUEUE *pbq);
 //-- 以上三个接口函数用于空闲可读 bitmap 的管理 --//
 
+#ifdef __cplusplus
+}
 #endif
 
+#endif
 
 
 

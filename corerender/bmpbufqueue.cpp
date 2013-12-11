@@ -14,8 +14,8 @@ BOOL bmpbufqueue_create(BMPBUFQUEUE *pbq, HDC hdc, int w, int h, int cdepth)
     if (pbq->size == 0) pbq->size = DEF_BMPBUF_QUEUE_SIZE;
 
     // alloc buffer & semaphore
-    pbq->hbitmaps = malloc(pbq->size * sizeof(HBITMAP));
-    pbq->pbmpbufs = malloc(pbq->size * sizeof(BYTE*  ));
+    pbq->hbitmaps = (HBITMAP*)malloc(pbq->size * sizeof(HBITMAP));
+    pbq->pbmpbufs = (BYTE**  )malloc(pbq->size * sizeof(BYTE*  ));
     pbq->semr     = CreateSemaphore(NULL, 0        , pbq->size, NULL);
     pbq->semw     = CreateSemaphore(NULL, pbq->size, pbq->size, NULL);
 

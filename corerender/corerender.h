@@ -3,9 +3,13 @@
 
 // 包含头文件
 #include <windows.h>
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #include "libavformat/avformat.h"
 #include "libavcodec/avcodec.h"
-#include "libswscale/swscale.h"
 
 // 类型定义
 typedef struct
@@ -26,8 +30,11 @@ void renderstart     (HANDLE hrender);
 void renderpause     (HANDLE hrender);
 void renderflush     (HANDLE hrender);
 
+#ifdef __cplusplus
+}
 #endif
 
+#endif
 
 
 

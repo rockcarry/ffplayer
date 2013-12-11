@@ -4,6 +4,10 @@
 // 包含头文件
 #include <windows.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 // 常量定义
 #define DEF_WAVBUF_QUEUE_SIZE   32
 #define DEF_WAVBUF_BUFFER_SIZE  4096
@@ -46,8 +50,11 @@ void wavbufqueue_read_release(WAVBUFQUEUE *pwq);
 void wavbufqueue_read_done   (WAVBUFQUEUE *pwq);
 //-- 以下三个接口函数用于空闲可读 wavehdr 的管理 --//
 
+#ifdef __cplusplus
+}
 #endif
 
+#endif
 
 
 

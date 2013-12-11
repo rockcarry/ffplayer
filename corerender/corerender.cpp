@@ -1,14 +1,15 @@
 // 包含头文件
 #include <windows.h>
 #include <mmsystem.h>
-extern "C" {
 #include "corerender.h"
-#include "libavformat/avformat.h"
-#include "libavcodec/avcodec.h"
-#include "libswresample/swresample.h"
-#include "libswscale/swscale.h"
 #include "wavbufqueue.h"
 #include "bmpbufqueue.h"
+
+extern "C" {
+#include "libavformat/avformat.h"
+#include "libavcodec/avcodec.h"
+#include "libswscale/swscale.h"
+#include "libswresample/swresample.h"
 }
 
 inline void TRACE(LPCSTR lpszFormat, ...)
@@ -30,9 +31,6 @@ enum {
     RENDER_PLAY,
     RENDER_PAUSE,
 };
-
-#define AUDIO_BUF_NUM   32
-#define VIDEO_BUF_NUM   32
 
 // 内部类型定义
 typedef struct
