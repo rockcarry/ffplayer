@@ -10,7 +10,7 @@ extern "C" {
 #endif
 
 // 常量定义
-#define DEF_BMPBUF_QUEUE_SIZE   32
+#define DEF_BMPBUF_QUEUE_SIZE   3
 
 typedef struct {
     long      head;

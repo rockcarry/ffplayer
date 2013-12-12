@@ -8,9 +8,9 @@ BOOL pktqueue_create(PKTQUEUE *ppq)
     int i;
 
     // default size
-    if (ppq->fsize == 0) ppq->fsize = DEF_PKT_QUEUE_FSIZE;
     if (ppq->asize == 0) ppq->asize = DEF_PKT_QUEUE_ASIZE;
     if (ppq->vsize == 0) ppq->vsize = DEF_PKT_QUEUE_VSIZE;
+    ppq->fsize = ppq->asize + ppq->vsize;
 
     // alloc buffer & semaphore
     ppq->bpkts = (AVPacket* )malloc(ppq->fsize * sizeof(AVPacket ));

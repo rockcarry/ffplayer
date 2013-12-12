@@ -10,7 +10,7 @@ extern "C" {
 #endif
 
 // 常量定义
-#define DEF_WAVBUF_QUEUE_SIZE   32
+#define DEF_WAVBUF_QUEUE_SIZE   64
 #define DEF_WAVBUF_BUFFER_SIZE  4096
 
 typedef struct {
