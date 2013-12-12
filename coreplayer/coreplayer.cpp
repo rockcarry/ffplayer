@@ -109,9 +109,7 @@ static DWORD WINAPI PlayThreadProc(PLAYER *player)
 #if !USE_AV_DECODE_THREAD
             int consumed = 0;
             while (packet->size > 0) {
-                EnterCriticalSection(&(player->cs));
                 consumed = avcodec_decode_audio(player->pAudioCodecContext, aframe, &gotaudio, packet);
-                LeaveCriticalSection(&(player->cs));
 
                 if (consumed < 0) {
                     TRACE("an error occurred during decoding audio.\n");
@@ -135,9 +133,7 @@ static DWORD WINAPI PlayThreadProc(PLAYER *player)
         if (packet->stream_index == player->iVideoStreamIndex)
         {
 #if !USE_AV_DECODE_THREAD
-            EnterCriticalSection(&(player->cs));
             avcodec_decode_video(player->pVideoCodecContext, vframe, &gotvideo, packet);
-            LeaveCriticalSection(&(player->cs));
 
             if (gotvideo) {
                 vframe->pts = (int64_t)(packet->pts * player->dVideoTimeBase);
@@ -193,9 +189,7 @@ static DWORD WINAPI AudioDecodeThreadProc(PLAYER *player)
 
         consumed = gotaudio = 0;
         while (packet->size > 0) {
-            EnterCriticalSection(&(player->cs));
             consumed = avcodec_decode_audio(player->pAudioCodecContext, aframe, &gotaudio, packet);
-            LeaveCriticalSection(&(player->cs));
 
             if (consumed < 0) {
                 TRACE("an error occurred during decoding audio.\n");
@@ -238,9 +232,7 @@ static DWORD WINAPI VideoDecodeThreadProc(PLAYER *player)
         }
 
         gotvideo = 0;
-        EnterCriticalSection(&(player->cs));
         avcodec_decode_video(player->pVideoCodecContext, vframe, &gotvideo, packet);
-        LeaveCriticalSection(&(player->cs));
 
         if (gotvideo) {
             vframe->pts = (int64_t)(packet->pts * player->dVideoTimeBase);
