@@ -190,6 +190,10 @@
 				RelativePath=".\coreplayer.def"
 				>
 			</File>
+			<File
+				RelativePath=".\pktqueue.cpp"
+				>
+			</File>
 		</Filter>
 		<Filter
 			Name="Header Files"
@@ -198,6 +202,10 @@
 			>
 			<File
 				RelativePath=".\coreplayer.h"
+				>
+			</File>
+			<File
+				RelativePath=".\pktqueue.h"
 				>
 			</File>
 		</Filter>

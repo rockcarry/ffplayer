@@ -17,7 +17,6 @@ enum {
     PLAYER_STOP,
     PLAYER_PLAY,
     PLAYER_PAUSE,
-    PLAYER_SEEK,
 };
 
 // render mode
