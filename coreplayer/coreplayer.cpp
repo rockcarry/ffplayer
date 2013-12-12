@@ -9,8 +9,6 @@ extern "C" {
 #include "libavcodec/avcodec.h"
 }
 
-#define USE_AV_DECODE_THREAD  TRUE
-
 inline void TRACE(LPCSTR lpszFormat, ...)
 {
 #ifdef _DEBUG
@@ -43,123 +41,57 @@ typedef struct
     HANDLE           hCoreRender;
     int              nPlayerStatus;
     HANDLE           hPlayerThread;
-#if USE_AV_DECODE_THREAD
     HANDLE           hADecodeThread;
     HANDLE           hVDecodeThread;
     PKTQUEUE         PacketQueue;
-#endif
     CRITICAL_SECTION cs;
 } PLAYER;
 
 // 内部函数实现
 static DWORD WINAPI PlayThreadProc(PLAYER *player)
 {
-#if !USE_AV_DECODE_THREAD
-    AVPacket *packet   = NULL;
-    AVFrame  *aframe   = NULL;
-    AVFrame  *vframe   = NULL;
-    int       gotaudio = 0;
-    int       gotvideo = 0;
-    int       retv     = 0;
-
-    packet = (AVPacket*)malloc(sizeof(AVPacket));
-    aframe = avcodec_alloc_frame();
-    vframe = avcodec_alloc_frame();
-    if (!packet || !aframe || !vframe) goto exit;
-#else
     AVPacket *packet = NULL;
     int       retv   = 0;
-#endif
 
     while (player->nPlayerStatus != PLAYER_STOP)
     {
-#if !USE_AV_DECODE_THREAD
-        EnterCriticalSection(&(player->cs));
-        retv = av_read_frame(player->pAVFormatContext, packet);
-        LeaveCriticalSection(&(player->cs));
-#else
         pktqueue_write_request(&(player->PacketQueue), &packet);
         EnterCriticalSection(&(player->cs));
         retv = av_read_frame(player->pAVFormatContext, packet);
         LeaveCriticalSection(&(player->cs));
-#endif
 
         // handle stop
         if (retv < 0)
         {
-#if USE_AV_DECODE_THREAD
             pktqueue_write_release(&(player->PacketQueue));
-#endif
             player->nPlayerStatus = PLAYER_STOP;
             PostMessage(player->hRenderWnd, MSG_COREPLAYER, player->nPlayerStatus, 0);
-            goto exit;
+            break;
         }
 
         // audio
         if (packet->stream_index == player->iAudioStreamIndex)
         {
-#if !USE_AV_DECODE_THREAD
-            int consumed = 0;
-            while (packet->size > 0) {
-                consumed = avcodec_decode_audio(player->pAudioCodecContext, aframe, &gotaudio, packet);
-
-                if (consumed < 0) {
-                    TRACE("an error occurred during decoding audio.\n");
-                    break;
-                }
-
-                if (gotaudio) {
-                    aframe->pts = (int64_t)(packet->pts * player->dAudioTimeBase);
-                    renderaudiowrite(player->hCoreRender, aframe);
-                    TRACE("apts = %lld\n", aframe->pts);
-                }
-                packet->data += consumed;
-                packet->size -= consumed;
-            }
-#else
             pktqueue_write_done_a(&(player->PacketQueue));
-#endif
         }
 
         // video
         if (packet->stream_index == player->iVideoStreamIndex)
         {
-#if !USE_AV_DECODE_THREAD
-            avcodec_decode_video(player->pVideoCodecContext, vframe, &gotvideo, packet);
-
-            if (gotvideo) {
-                vframe->pts = (int64_t)(packet->pts * player->dVideoTimeBase);
-                rendervideowrite(player->hCoreRender, vframe);
-                TRACE("vpts = %lld\n", vframe->pts);
-            }
-#else
             pktqueue_write_done_v(&(player->PacketQueue));
-#endif
         }
 
-#if !USE_AV_DECODE_THREAD
-        // free packet
-        av_free_packet(packet);
-#else
         if (  packet->stream_index != player->iAudioStreamIndex
            && packet->stream_index != player->iVideoStreamIndex )
         {
             av_free_packet(packet); // free packet
             pktqueue_write_release(&(player->PacketQueue));
         }
-#endif
     }
 
-exit:
-#if !USE_AV_DECODE_THREAD
-    if (packet) free(packet);
-    avcodec_free_frame(&aframe);
-    avcodec_free_frame(&vframe);
-#endif
     return 0;
 }
 
-#if USE_AV_DECODE_THREAD
 static DWORD WINAPI AudioDecodeThreadProc(PLAYER *player)
 {
     AVPacket *packet   = NULL;
@@ -239,7 +171,6 @@ static DWORD WINAPI VideoDecodeThreadProc(PLAYER *player)
     avcodec_free_frame(&vframe);
     return 0;
 }
-#endif
 
 // 函数实现
 HANDLE playeropen(char *file, HWND hwnd)
@@ -265,10 +196,8 @@ HANDLE playeropen(char *file, HWND hwnd)
     // init critical section
     InitializeCriticalSection(&(player->cs));
 
-#if USE_AV_DECODE_THREAD
     // create packet queue
     pktqueue_create(&(player->PacketQueue));
-#endif
 
     // open input file
     if (avformat_open_input(&(player->pAVFormatContext), file, NULL, 0) != 0) {
@@ -372,10 +301,8 @@ void playerclose(HANDLE hplayer)
     if (player->pAudioCodecContext) avcodec_close(player->pAudioCodecContext);
     if (player->pAVFormatContext  ) avformat_close_input(&(player->pAVFormatContext));
 
-#if USE_AV_DECODE_THREAD
     // destroy packet queue
     pktqueue_destroy(&(player->PacketQueue));
-#endif
 
     DeleteCriticalSection(&(player->cs));
     free(player);
@@ -390,14 +317,12 @@ void playerplay(HANDLE hplayer)
         player->hPlayerThread = CreateThread(0, 0, (LPTHREAD_START_ROUTINE)PlayThreadProc, player, 0, 0);
     }
 
-#if USE_AV_DECODE_THREAD
     if (!player->hADecodeThread) {
         player->hADecodeThread = CreateThread(0, 0, (LPTHREAD_START_ROUTINE)AudioDecodeThreadProc, player, 0, 0);
     }
     if (!player->hVDecodeThread) {
         player->hVDecodeThread = CreateThread(0, 0, (LPTHREAD_START_ROUTINE)VideoDecodeThreadProc, player, 0, 0);
     }
-#endif
 
     renderstart(player->hCoreRender);
 }
@@ -424,7 +349,6 @@ void playerstop(HANDLE hplayer)
         player->hPlayerThread = NULL;
     }
 
-#if USE_AV_DECODE_THREAD
     if (pktqueue_isempty_a(&(player->PacketQueue))) {
         pktqueue_write_request(&(player->PacketQueue), NULL);
         pktqueue_write_done_a(&(player->PacketQueue));
@@ -445,7 +369,6 @@ void playerstop(HANDLE hplayer)
         CloseHandle(player->hVDecodeThread);
         player->hVDecodeThread = NULL;
     }
-#endif
 
     renderpause(player->hCoreRender);
 }
@@ -483,12 +406,9 @@ void playerseek(HANDLE hplayer, DWORD sec)
 
     EnterCriticalSection(&(player->cs));
     av_seek_frame(player->pAVFormatContext, -1, (int64_t)sec * AV_TIME_BASE, 0);
-//  if (player->iAudioStreamIndex != -1) avcodec_flush_buffers(player->pAudioCodecContext);
-//  if (player->iVideoStreamIndex != -1) avcodec_flush_buffers(player->pVideoCodecContext);
     LeaveCriticalSection(&(player->cs));
-#if USE_AV_DECODE_THREAD
+
     pktqueue_flush(&(player->PacketQueue));
-#endif
     renderflush(player->hCoreRender);
 }
 
