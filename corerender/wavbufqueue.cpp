@@ -12,18 +12,20 @@ BOOL wavbufqueue_create(WAVBUFQUEUE *pwq, HWAVEOUT h)
     if (pwq->size == 0) pwq->size = DEF_WAVBUF_QUEUE_SIZE;
 
     // alloc buffer & semaphore
+    pwq->ppts    = (int64_t*)malloc(pwq->size * sizeof(int64_t));
     pwq->pwhdrs  = (WAVEHDR*)malloc(pwq->size * (sizeof(WAVEHDR) + DEF_WAVBUF_BUFFER_SIZE));
     pwq->semr    = CreateSemaphore(NULL, 0        , pwq->size, NULL);
     pwq->semw    = CreateSemaphore(NULL, pwq->size, pwq->size, NULL);
     pwq->hwavout = h;
 
     // check invalid
-    if (!pwq->pwhdrs || !pwq->semr || !pwq->semw) {
+    if (!pwq->ppts || !pwq->pwhdrs || !pwq->semr || !pwq->semw) {
         wavbufqueue_destroy(pwq);
         return FALSE;
     }
 
-    // clear wave headers
+    // clear
+    memset(pwq->ppts  , 0, pwq->size * sizeof(int64_t));
     memset(pwq->pwhdrs, 0, pwq->size * sizeof(WAVEHDR));
 
     // init
@@ -46,6 +48,7 @@ void wavbufqueue_destroy(WAVBUFQUEUE *pwq)
         waveOutUnprepareHeader(pwq->hwavout, &(pwq->pwhdrs[i]), sizeof(WAVEHDR));
     }
 
+    if (pwq->ppts  ) free(pwq->ppts  );
     if (pwq->pwhdrs) free(pwq->pwhdrs);
     if (pwq->semr  ) CloseHandle(pwq->semr);
     if (pwq->semw  ) CloseHandle(pwq->semw);
@@ -57,7 +60,7 @@ void wavbufqueue_destroy(WAVBUFQUEUE *pwq)
 void wavbufqueue_flush(WAVBUFQUEUE *pwq)
 {
     while (pwq->curnum > 1) {
-        wavbufqueue_read_request(pwq, NULL);
+        wavbufqueue_read_request(pwq, NULL, NULL);
         wavbufqueue_read_done(pwq);
     }
 }
@@ -67,9 +70,10 @@ BOOL wavbufqueue_isempty(WAVBUFQUEUE *pwq)
     return (pwq->curnum <= 0);
 }
 
-void wavbufqueue_write_request(WAVBUFQUEUE *pwq, PWAVEHDR *pwhdr)
+void wavbufqueue_write_request(WAVBUFQUEUE *pwq, int64_t **ppts, PWAVEHDR *pwhdr)
 {
     WaitForSingleObject(pwq->semw, -1);
+    if (ppts ) *ppts  = &(pwq->ppts[pwq->tail]);
     if (pwhdr) *pwhdr = &(pwq->pwhdrs[pwq->tail]);
 }
 
@@ -86,9 +90,10 @@ void wavbufqueue_write_done(WAVBUFQUEUE *pwq)
     ReleaseSemaphore(pwq->semr, 1, NULL);
 }
 
-void wavbufqueue_read_request(WAVBUFQUEUE *pwq, PWAVEHDR *pwhdr)
+void wavbufqueue_read_request(WAVBUFQUEUE *pwq, int64_t **ppts, PWAVEHDR *pwhdr)
 {
     WaitForSingleObject(pwq->semr, -1);
+    if (ppts ) *ppts  = &(pwq->ppts[pwq->head]);
     if (pwhdr) *pwhdr = &(pwq->pwhdrs[pwq->head]);
 }
 

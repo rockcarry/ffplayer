@@ -56,6 +56,7 @@ typedef struct
     DWORD       dwLastTick;
     int         iFrameTick;
     int         iSleepTick;
+    int64_t     u64CurTime;
 
     HWAVEOUT    hWaveOut;
     WAVBUFQUEUE WavBufQueue;
@@ -64,11 +65,12 @@ typedef struct
 // 内部函数实现
 static void CALLBACK waveOutProc(HWAVEOUT hwo, UINT uMsg, DWORD dwInstance, DWORD dwParam1, DWORD dwParam2)
 {
-    RENDER *render = (RENDER*)dwInstance;
+    RENDER  *render = (RENDER*)dwInstance;
+    int64_t *ppts   = NULL;
     switch (uMsg)
     {
     case WOM_DONE:
-        wavbufqueue_read_request(&(render->WavBufQueue), NULL);
+        wavbufqueue_read_request(&(render->WavBufQueue), &ppts, NULL);
         wavbufqueue_read_done(&(render->WavBufQueue));
         break;
     }
@@ -79,12 +81,16 @@ static DWORD WINAPI VideoRenderThreadProc(RENDER *render)
     while (render->nVideoStatus != RENDER_STOP)
     {
         HBITMAP hbitmap = NULL;
-        bmpbufqueue_read_request(&(render->BmpBufQueue), &hbitmap);
+        int64_t *ppts   = NULL;
+        bmpbufqueue_read_request(&(render->BmpBufQueue), &ppts, &hbitmap);
         SelectObject(render->hBufferDC, hbitmap);
         BitBlt(render->hRenderDC, render->nRenderPosX, render->nRenderPosY,
             render->nRenderWidth, render->nRenderHeight,
             render->hBufferDC, 0, 0, SRCCOPY);
         bmpbufqueue_read_done(&(render->BmpBufQueue));
+
+        // the current play time
+        render->u64CurTime = *ppts;
 
         // ++ frame rate control ++ //
         render->dwLastTick = render->dwCurTick;
@@ -174,7 +180,7 @@ void renderclose(HANDLE hrender)
     // set nVideoStatus to RENDER_STOP
     render->nVideoStatus = RENDER_STOP;
     if (bmpbufqueue_isempty(&(render->BmpBufQueue))) {
-        bmpbufqueue_write_request(&(render->BmpBufQueue), NULL, NULL);
+        bmpbufqueue_write_request(&(render->BmpBufQueue), NULL, NULL, NULL);
         bmpbufqueue_write_done   (&(render->BmpBufQueue));
     }
     WaitForSingleObject(render->hVideoThread, -1);
@@ -200,9 +206,13 @@ void renderaudiowrite(HANDLE hrender, AVFrame *audio)
     RENDER  *render = (RENDER*)hrender;
     WAVEHDR *wavehdr;
     int      sampnum;
+    int64_t *ppts;
 
     do {
-        wavbufqueue_write_request(&(render->WavBufQueue), &wavehdr);
+        wavbufqueue_write_request(&(render->WavBufQueue), &ppts, &wavehdr);
+
+        // record audio pts
+        *ppts = audio->pts;
 
         //++ do resample audio data ++//
         sampnum = swr_convert(render->pSWRContext, (uint8_t **)&(wavehdr->lpData),
@@ -237,8 +247,10 @@ void rendervideowrite(HANDLE hrender, AVFrame *video)
     AVPicture picture = {0};
     BYTE     *bmpbuf  = NULL;
     int       stride  = 0;
+    int64_t  *ppts    = NULL;
 
-    bmpbufqueue_write_request(&(render->BmpBufQueue), &bmpbuf, &stride);
+    bmpbufqueue_write_request(&(render->BmpBufQueue), &ppts, &bmpbuf, &stride);
+    *ppts               = video->pts;
     picture.data[0]     = bmpbuf;
     picture.linesize[0] = stride;
     sws_scale(render->pSWSContext, video->data, video->linesize, 0, render->nVideoHeight, picture.data, picture.linesize);
@@ -298,5 +310,12 @@ void renderflush(HANDLE hrender)
     waveOutReset(render->hWaveOut);
     wavbufqueue_flush(&(render->WavBufQueue));
     bmpbufqueue_flush(&(render->BmpBufQueue));
+}
+
+void renderplaytime(HANDLE hrender, DWORD *time)
+{
+    if (!hrender) return;
+    RENDER *render = (RENDER*)hrender;
+    if (time) *time = (DWORD)(render->u64CurTime / 1000);
 }
 

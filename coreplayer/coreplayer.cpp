@@ -41,7 +41,6 @@ typedef struct
     int              nRenderMode;
     HWND             hRenderWnd;
     HANDLE           hCoreRender;
-    int              nPlayerTime;
     int              nPlayerStatus;
     HANDLE           hPlayerThread;
 #if USE_AV_DECODE_THREAD
@@ -94,13 +93,6 @@ static DWORD WINAPI PlayThreadProc(PLAYER *player)
             player->nPlayerStatus = PLAYER_STOP;
             PostMessage(player->hRenderWnd, MSG_COREPLAYER, player->nPlayerStatus, 0);
             goto exit;
-        }
-
-        // 播放进度控制
-        if (packet->dts > 0) {
-            player->nPlayerTime = (int)(packet->dts
-                * player->pAVFormatContext->streams[packet->stream_index]->time_base.num
-                / player->pAVFormatContext->streams[packet->stream_index]->time_base.den);
         }
 
         // audio
@@ -536,8 +528,7 @@ void playergetparam(HANDLE hplayer, DWORD id, void *param)
         break;
 
     case PARAM_GET_POSITION:
-        if (!player->pAVFormatContext) *(DWORD*)param = 0;
-        else *(int*)param = player->nPlayerTime;
+        renderplaytime(player->hCoreRender, (DWORD*)param);
         break;
 
     case PARAM_RENDER_MODE:

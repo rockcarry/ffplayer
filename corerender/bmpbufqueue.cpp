@@ -14,13 +14,14 @@ BOOL bmpbufqueue_create(BMPBUFQUEUE *pbq, HDC hdc, int w, int h, int cdepth)
     if (pbq->size == 0) pbq->size = DEF_BMPBUF_QUEUE_SIZE;
 
     // alloc buffer & semaphore
+    pbq->ppts     = (int64_t*)malloc(pbq->size * sizeof(int64_t));
     pbq->hbitmaps = (HBITMAP*)malloc(pbq->size * sizeof(HBITMAP));
     pbq->pbmpbufs = (BYTE**  )malloc(pbq->size * sizeof(BYTE*  ));
     pbq->semr     = CreateSemaphore(NULL, 0        , pbq->size, NULL);
     pbq->semw     = CreateSemaphore(NULL, pbq->size, pbq->size, NULL);
 
     // check invalid
-    if (!pbq->hbitmaps || !pbq->pbmpbufs || !pbq->semr || !pbq->semw) {
+    if (!pbq->ppts || !pbq->hbitmaps || !pbq->pbmpbufs || !pbq->semr || !pbq->semw) {
         bmpbufqueue_destroy(pbq);
         return FALSE;
     }
@@ -37,8 +38,9 @@ BOOL bmpbufqueue_create(BMPBUFQUEUE *pbq, HDC hdc, int w, int h, int cdepth)
     quad[2] = 0x001F;
 
     // clear
-    memset(pbq->hbitmaps, 0, pbq->size);
-    memset(pbq->pbmpbufs, 0, pbq->size);
+    memset(pbq->ppts    , 0, pbq->size * sizeof(int64_t));
+    memset(pbq->hbitmaps, 0, pbq->size * sizeof(HBITMAP));
+    memset(pbq->pbmpbufs, 0, pbq->size * sizeof(BYTE*  ));
 
     // init
     for (i=0; i<pbq->size; i++) {
@@ -59,6 +61,7 @@ void bmpbufqueue_destroy(BMPBUFQUEUE *pbq)
         if (pbq->hbitmaps[i]) DeleteObject(pbq->hbitmaps[i]);
     }
 
+    if (pbq->ppts    ) free(pbq->ppts    );
     if (pbq->hbitmaps) free(pbq->hbitmaps);
     if (pbq->pbmpbufs) free(pbq->pbmpbufs);
     if (pbq->semr    ) CloseHandle(pbq->semr);
@@ -71,7 +74,7 @@ void bmpbufqueue_destroy(BMPBUFQUEUE *pbq)
 void bmpbufqueue_flush(BMPBUFQUEUE *pbq)
 {
     while (pbq->curnum > 1) {
-        bmpbufqueue_read_request(pbq, NULL);
+        bmpbufqueue_read_request(pbq, NULL, NULL);
         bmpbufqueue_read_done(pbq);
     }
 }
@@ -81,15 +84,18 @@ BOOL bmpbufqueue_isempty(BMPBUFQUEUE *pbq)
     return (pbq->curnum <= 0);
 }
 
-void bmpbufqueue_write_request(BMPBUFQUEUE *pbq, BYTE **pbuf, int *stride)
+void bmpbufqueue_write_request(BMPBUFQUEUE *pbq, int64_t **ppts, BYTE **pbuf, int *stride)
 {
-    BITMAP bitmap = {0};
     WaitForSingleObject(pbq->semw, -1);
-    if (pbq->hbitmaps) {
+
+    if (ppts) *ppts = &(pbq->ppts[pbq->tail]);
+    if (pbuf) *pbuf = pbq->pbmpbufs[pbq->tail];
+
+    if (stride && pbq->hbitmaps) {
+        BITMAP bitmap = {0};
         GetObject(pbq->hbitmaps[pbq->tail], sizeof(BITMAP), &bitmap);
+        *stride = bitmap.bmWidthBytes;
     }
-    if (pbuf  ) *pbuf   = pbq->pbmpbufs[pbq->tail];
-    if (stride) *stride = bitmap.bmWidthBytes;
 }
 
 void bmpbufqueue_write_release(BMPBUFQUEUE *pbq)
@@ -105,9 +111,10 @@ void bmpbufqueue_write_done(BMPBUFQUEUE *pbq)
     ReleaseSemaphore(pbq->semr, 1, NULL);
 }
 
-void bmpbufqueue_read_request(BMPBUFQUEUE *pbq, HBITMAP *hbitmap)
+void bmpbufqueue_read_request(BMPBUFQUEUE *pbq, int64_t **ppts, HBITMAP *hbitmap)
 {
     WaitForSingleObject(pbq->semr, -1);
+    if (ppts   ) *ppts    = &(pbq->ppts[pbq->head]);
     if (hbitmap) *hbitmap = pbq->hbitmaps[pbq->head];
 }
 

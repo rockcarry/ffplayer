@@ -3,6 +3,7 @@
 
 // 包含头文件
 #include <windows.h>
+#include <inttypes.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -19,6 +20,7 @@ typedef struct {
     long      curnum;
     HANDLE    semr;
     HANDLE    semw;
+    int64_t  *ppts;
     WAVEHDR  *pwhdrs;
     HWAVEOUT  hwavout;
 } WAVBUFQUEUE;
@@ -40,13 +42,13 @@ BOOL wavbufqueue_isempty(WAVBUFQUEUE *pwq);
 //     wavbufqueue_write_post
 // 如果填充失败，则执行
 //     wavbufqueue_write_release
-void wavbufqueue_write_request(WAVBUFQUEUE *pwq, PWAVEHDR *pwhdr);
+void wavbufqueue_write_request(WAVBUFQUEUE *pwq, int64_t **ppts, PWAVEHDR *pwhdr);
 void wavbufqueue_write_release(WAVBUFQUEUE *pwq);
 void wavbufqueue_write_done   (WAVBUFQUEUE *pwq);
 //-- 以下三个接口函数用于空闲可写 wavehdr 的管理 --//
 
 //++ 以下三个接口函数用于空闲可读 wavehdr 的管理 ++//
-void wavbufqueue_read_request(WAVBUFQUEUE *pwq, PWAVEHDR *pwhdr);
+void wavbufqueue_read_request(WAVBUFQUEUE *pwq, int64_t **ppts, PWAVEHDR *pwhdr);
 void wavbufqueue_read_release(WAVBUFQUEUE *pwq);
 void wavbufqueue_read_done   (WAVBUFQUEUE *pwq);
 //-- 以下三个接口函数用于空闲可读 wavehdr 的管理 --//

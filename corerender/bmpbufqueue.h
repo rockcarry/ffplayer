@@ -3,6 +3,7 @@
 
 // 包含头文件
 #include <windows.h>
+#include <inttypes.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -18,6 +19,7 @@ typedef struct {
     long      curnum;
     HANDLE    semr;
     HANDLE    semw;
+    int64_t  *ppts;
     HBITMAP  *hbitmaps;
     BYTE    **pbmpbufs;
 } BMPBUFQUEUE;
@@ -39,13 +41,13 @@ BOOL bmpbufqueue_isempty(BMPBUFQUEUE *pbq);
 //     bmpbufqueue_write_post
 // 如果填充失败，则执行
 //     bmpbufqueue_write_release
-void bmpbufqueue_write_request(BMPBUFQUEUE *pbq, BYTE **pbuf, int *stride);
+void bmpbufqueue_write_request(BMPBUFQUEUE *pbq, int64_t **ppts, BYTE **pbuf, int *stride);
 void bmpbufqueue_write_release(BMPBUFQUEUE *pbq);
 void bmpbufqueue_write_done   (BMPBUFQUEUE *pbq);
 //-- 以上三个接口函数用于空闲可写 bitmap 的管理 --//
 
 //++ 以下三个接口函数用于空闲可读 bitmap 的管理 ++//
-void bmpbufqueue_read_request(BMPBUFQUEUE *pbq, HBITMAP *hbitmap);
+void bmpbufqueue_read_request(BMPBUFQUEUE *pbq, int64_t **ppts, HBITMAP *hbitmap);
 void bmpbufqueue_read_release(BMPBUFQUEUE *pbq);
 void bmpbufqueue_read_done   (BMPBUFQUEUE *pbq);
 //-- 以上三个接口函数用于空闲可读 bitmap 的管理 --//
