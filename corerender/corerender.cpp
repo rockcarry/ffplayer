@@ -173,8 +173,10 @@ void renderclose(HANDLE hrender)
     //++ video ++//
     // set nVideoStatus to RENDER_STOP
     render->nVideoStatus = RENDER_STOP;
-    bmpbufqueue_write_request(&(render->BmpBufQueue), NULL, NULL);
-    bmpbufqueue_write_done   (&(render->BmpBufQueue));
+    if (bmpbufqueue_isempty(&(render->BmpBufQueue))) {
+        bmpbufqueue_write_request(&(render->BmpBufQueue), NULL, NULL);
+        bmpbufqueue_write_done   (&(render->BmpBufQueue));
+    }
     WaitForSingleObject(render->hVideoThread, -1);
     CloseHandle(render->hVideoThread);
 

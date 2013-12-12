@@ -51,6 +51,8 @@ void pktqueue_write_request(PKTQUEUE *ppq, AVPacket **pppkt);
 void pktqueue_write_release(PKTQUEUE *ppq);
 void pktqueue_write_done_a(PKTQUEUE *ppq);
 void pktqueue_write_done_v(PKTQUEUE *ppq);
+BOOL pktqueue_isempty_a(PKTQUEUE *ppq);
+BOOL pktqueue_isempty_v(PKTQUEUE *ppq);
 
 void pktqueue_read_request_a(PKTQUEUE *ppq, AVPacket **pppkt);
 void pktqueue_read_done_a  (PKTQUEUE *ppq);

@@ -335,7 +335,7 @@ HANDLE playeropen(char *file, HWND hwnd)
         }
         else player->iVideoStreamIndex = -1;
     }
-    
+
     // for video
     if (player->iVideoStreamIndex != -1)
     {
@@ -431,10 +431,14 @@ void playerstop(HANDLE hplayer)
     }
 
 #if USE_AV_DECODE_THREAD
-    pktqueue_write_request(&(player->PacketQueue), NULL);
-    pktqueue_write_done_a(&(player->PacketQueue));
-    pktqueue_write_request(&(player->PacketQueue), NULL);
-    pktqueue_write_done_v(&(player->PacketQueue));
+    if (pktqueue_isempty_a(&(player->PacketQueue))) {
+        pktqueue_write_request(&(player->PacketQueue), NULL);
+        pktqueue_write_done_a(&(player->PacketQueue));
+    }
+    if (pktqueue_isempty_v(&(player->PacketQueue))) {
+        pktqueue_write_request(&(player->PacketQueue), NULL);
+        pktqueue_write_done_v(&(player->PacketQueue));
+    }
     if (player->hADecodeThread)
     {
         WaitForSingleObject(player->hADecodeThread, -1);

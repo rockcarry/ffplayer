@@ -27,6 +27,7 @@ typedef struct {
 BOOL wavbufqueue_create (WAVBUFQUEUE *pwq, HWAVEOUT h);
 void wavbufqueue_destroy(WAVBUFQUEUE *pwq);
 void wavbufqueue_flush  (WAVBUFQUEUE *pwq);
+BOOL wavbufqueue_isempty(WAVBUFQUEUE *pwq);
 
 //++ 以下三个接口函数用于空闲可写 wavehdr 的管理 ++//
 // wavbufqueue_write_request 取得当前可写的空闲 wavehdr

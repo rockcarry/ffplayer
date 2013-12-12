@@ -76,6 +76,11 @@ void bmpbufqueue_flush(BMPBUFQUEUE *pbq)
     }
 }
 
+BOOL bmpbufqueue_isempty(BMPBUFQUEUE *pbq)
+{
+    return (pbq->curnum <= 0);
+}
+
 void bmpbufqueue_write_request(BMPBUFQUEUE *pbq, BYTE **pbuf, int *stride)
 {
     BITMAP bitmap = {0};

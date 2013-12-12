@@ -62,6 +62,11 @@ void wavbufqueue_flush(WAVBUFQUEUE *pwq)
     }
 }
 
+BOOL wavbufqueue_isempty(WAVBUFQUEUE *pwq)
+{
+    return (pwq->curnum <= 0);
+}
+
 void wavbufqueue_write_request(WAVBUFQUEUE *pwq, PWAVEHDR *pwhdr)
 {
     WaitForSingleObject(pwq->semw, -1);

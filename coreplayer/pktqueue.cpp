@@ -45,10 +45,13 @@ BOOL pktqueue_create(PKTQUEUE *ppq)
 
 void pktqueue_destroy(PKTQUEUE *ppq)
 {
+    // free
     if (ppq->bpkts) free(ppq->bpkts);
     if (ppq->fpkts) free(ppq->fpkts);
     if (ppq->apkts) free(ppq->apkts);
     if (ppq->vpkts) free(ppq->vpkts);
+
+    // close
     if (ppq->fsemr) CloseHandle(ppq->fsemr);
     if (ppq->asemr) CloseHandle(ppq->asemr);
     if (ppq->asemw) CloseHandle(ppq->asemw);
@@ -112,6 +115,16 @@ void pktqueue_write_done_v(PKTQUEUE *ppq)
     InterlockedIncrement(&(ppq->vpktnum));
 
     ReleaseSemaphore(ppq->vsemr, 1, NULL);
+}
+
+BOOL pktqueue_isempty_a(PKTQUEUE *ppq)
+{
+    return (ppq->apktnum <= 0);
+}
+
+BOOL pktqueue_isempty_v(PKTQUEUE *ppq)
+{
+    return (ppq->vpktnum <= 0);
 }
 
 void pktqueue_read_request_a(PKTQUEUE *ppq, AVPacket **pppkt)
