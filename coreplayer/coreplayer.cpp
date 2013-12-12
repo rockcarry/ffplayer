@@ -182,9 +182,14 @@ static DWORD WINAPI AudioDecodeThreadProc(PLAYER *player)
     aframe = avcodec_alloc_frame();
     if (!aframe) return 0;
 
-    while (player->nPlayerStatus != PLAYER_STOP)
+    while (1)
     {
         pktqueue_read_request_a(&(player->PacketQueue), &packet);
+        if (player->nPlayerStatus == PLAYER_STOP) {
+            // make this thread safely exit
+            pktqueue_read_done_a(&(player->PacketQueue));
+            break;
+        }
 
         consumed = gotaudio = 0;
         while (packet->size > 0) {
@@ -223,9 +228,14 @@ static DWORD WINAPI VideoDecodeThreadProc(PLAYER *player)
     vframe = avcodec_alloc_frame();
     if (!vframe) return 0;
 
-    while (player->nPlayerStatus != PLAYER_STOP)
+    while (1)
     {
         pktqueue_read_request_v(&(player->PacketQueue), &packet);
+        if (player->nPlayerStatus == PLAYER_STOP) {
+            // make this thread safely exit
+            pktqueue_read_done_v(&(player->PacketQueue));
+            break;
+        }
 
         gotvideo = 0;
         EnterCriticalSection(&(player->cs));
