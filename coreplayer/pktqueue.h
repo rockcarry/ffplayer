@@ -42,7 +42,6 @@ typedef struct {
 // º¯ÊýÉùÃ÷
 BOOL pktqueue_create (PKTQUEUE *ppq);
 void pktqueue_destroy(PKTQUEUE *ppq);
-void pktqueue_flush  (PKTQUEUE *ppq);
 
 void pktqueue_write_request(PKTQUEUE *ppq, AVPacket **pppkt);
 void pktqueue_write_release(PKTQUEUE *ppq);

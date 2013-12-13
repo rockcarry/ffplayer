@@ -30,6 +30,7 @@ enum {
     RENDER_STOP,
     RENDER_PLAY,
     RENDER_PAUSE,
+    RENDER_SEEK,
 };
 
 // 内部类型定义
@@ -37,6 +38,14 @@ typedef struct
 {
     int         nVideoWidth;
     int         nVideoHeight;
+    PixelFormat PixelFormat;
+    SwrContext *pSWRContext;
+    SwsContext *pSWSContext;
+
+    HWAVEOUT    hWaveOut;
+    WAVBUFQUEUE WavBufQueue;
+
+    int         nRenderStatus;
     int         nRenderPosX;
     int         nRenderPosY;
     int         nRenderWidth;
@@ -44,22 +53,14 @@ typedef struct
     HWND        hRenderWnd;
     HDC         hRenderDC;
     HDC         hBufferDC;
-    BMPBUFQUEUE BmpBufQueue;
-    SwrContext *pSWRContext;
-    SwsContext *pSWSContext;
-    PixelFormat PixelFormat;
-
-    int         nVideoStatus;
     HANDLE      hVideoThread;
+    BMPBUFQUEUE BmpBufQueue;
 
     DWORD       dwCurTick;
     DWORD       dwLastTick;
     int         iFrameTick;
     int         iSleepTick;
     int64_t     u64CurTime;
-
-    HWAVEOUT    hWaveOut;
-    WAVBUFQUEUE WavBufQueue;
 } RENDER;
 
 // 内部函数实现
@@ -78,19 +79,24 @@ static void CALLBACK waveOutProc(HWAVEOUT hwo, UINT uMsg, DWORD dwInstance, DWOR
 
 static DWORD WINAPI VideoRenderThreadProc(RENDER *render)
 {
-    while (render->nVideoStatus != RENDER_STOP)
+    while (render->nRenderStatus != RENDER_STOP)
     {
+        if (render->nRenderStatus == RENDER_PAUSE) {
+            Sleep(50);
+            continue;
+        }
+
         HBITMAP hbitmap = NULL;
         int64_t *ppts   = NULL;
         bmpbufqueue_read_request(&(render->BmpBufQueue), &ppts, &hbitmap);
-        SelectObject(render->hBufferDC, hbitmap);
-        BitBlt(render->hRenderDC, render->nRenderPosX, render->nRenderPosY,
-            render->nRenderWidth, render->nRenderHeight,
-            render->hBufferDC, 0, 0, SRCCOPY);
+        if (render->nRenderStatus == RENDER_PLAY) {
+            render->u64CurTime = *ppts; // the current play time
+            SelectObject(render->hBufferDC, hbitmap);
+            BitBlt(render->hRenderDC, render->nRenderPosX, render->nRenderPosY,
+                render->nRenderWidth, render->nRenderHeight,
+                render->hBufferDC, 0, 0, SRCCOPY);
+        }
         bmpbufqueue_read_done(&(render->BmpBufQueue));
-
-        // the current play time
-        render->u64CurTime = *ppts;
 
         // ++ frame rate control ++ //
         render->dwLastTick = render->dwCurTick;
@@ -155,8 +161,8 @@ HANDLE renderopen(HWND hwnd, AVRational frate, int pixfmt, int w, int h,
     GetClientRect(hwnd, &rect);
     bmpbufqueue_create(&(render->BmpBufQueue), render->hBufferDC, rect.right, rect.bottom, 16);
 
-    render->nVideoStatus = RENDER_PLAY;
-    render->hVideoThread = CreateThread(NULL, 0, (LPTHREAD_START_ROUTINE)VideoRenderThreadProc, render, 0, NULL);
+    render->nRenderStatus = RENDER_PLAY;
+    render->hVideoThread  = CreateThread(NULL, 0, (LPTHREAD_START_ROUTINE)VideoRenderThreadProc, render, 0, NULL);
     return (HANDLE)render;
 }
 
@@ -177,8 +183,8 @@ void renderclose(HANDLE hrender)
     //-- audio --//
 
     //++ video ++//
-    // set nVideoStatus to RENDER_STOP
-    render->nVideoStatus = RENDER_STOP;
+    // set nRenderStatus to RENDER_STOP
+    render->nRenderStatus = RENDER_STOP;
     if (bmpbufqueue_isempty(&(render->BmpBufQueue))) {
         bmpbufqueue_write_request(&(render->BmpBufQueue), NULL, NULL, NULL);
         bmpbufqueue_write_done   (&(render->BmpBufQueue));
@@ -208,6 +214,7 @@ void renderaudiowrite(HANDLE hrender, AVFrame *audio)
     int      sampnum;
     int64_t *ppts;
 
+    if (render->nRenderStatus != RENDER_PLAY) return;
     do {
         wavbufqueue_write_request(&(render->WavBufQueue), &ppts, &wavehdr);
 
@@ -249,6 +256,7 @@ void rendervideowrite(HANDLE hrender, AVFrame *video)
     int       stride  = 0;
     int64_t  *ppts    = NULL;
 
+    if (render->nRenderStatus != RENDER_PLAY) return;
     bmpbufqueue_write_request(&(render->BmpBufQueue), &ppts, &bmpbuf, &stride);
     *ppts               = video->pts;
     picture.data[0]     = bmpbuf;
@@ -292,7 +300,7 @@ void renderstart(HANDLE hrender)
     if (!hrender) return;
     RENDER *render = (RENDER*)hrender;
     waveOutRestart(render->hWaveOut);
-    render->nVideoStatus = RENDER_PLAY;
+    render->nRenderStatus = RENDER_PLAY;
 }
 
 void renderpause(HANDLE hrender)
@@ -300,16 +308,20 @@ void renderpause(HANDLE hrender)
     if (!hrender) return;
     RENDER *render = (RENDER*)hrender;
     waveOutPause(render->hWaveOut);
-    render->nVideoStatus = RENDER_PAUSE;
+    render->nRenderStatus = RENDER_PAUSE;
 }
 
 void renderflush(HANDLE hrender)
 {
     if (!hrender) return;
     RENDER *render = (RENDER*)hrender;
-    waveOutReset(render->hWaveOut);
-    wavbufqueue_flush(&(render->WavBufQueue));
-    bmpbufqueue_flush(&(render->BmpBufQueue));
+
+    render->u64CurTime = 0; // set it to 0
+    render->nRenderStatus = RENDER_SEEK;
+    waveOutReset(render->hWaveOut); // wave out reset
+    while (!wavbufqueue_isempty(&(render->WavBufQueue))) Sleep(50);
+    while (!bmpbufqueue_isempty(&(render->BmpBufQueue))) Sleep(50);
+    render->nRenderStatus = RENDER_PLAY;
 }
 
 void renderplaytime(HANDLE hrender, DWORD *time)

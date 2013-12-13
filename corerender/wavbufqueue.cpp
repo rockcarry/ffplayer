@@ -57,14 +57,6 @@ void wavbufqueue_destroy(WAVBUFQUEUE *pwq)
     memset(pwq, 0, sizeof(WAVBUFQUEUE));
 }
 
-void wavbufqueue_flush(WAVBUFQUEUE *pwq)
-{
-    while (pwq->curnum > 1) {
-        wavbufqueue_read_request(pwq, NULL, NULL);
-        wavbufqueue_read_done(pwq);
-    }
-}
-
 BOOL wavbufqueue_isempty(WAVBUFQUEUE *pwq)
 {
     return (pwq->curnum <= 0);

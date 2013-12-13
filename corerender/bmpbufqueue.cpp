@@ -71,14 +71,6 @@ void bmpbufqueue_destroy(BMPBUFQUEUE *pbq)
     memset(pbq, 0, sizeof(BMPBUFQUEUE));
 }
 
-void bmpbufqueue_flush(BMPBUFQUEUE *pbq)
-{
-    while (pbq->curnum > 1) {
-        bmpbufqueue_read_request(pbq, NULL, NULL);
-        bmpbufqueue_read_done(pbq);
-    }
-}
-
 BOOL bmpbufqueue_isempty(BMPBUFQUEUE *pbq)
 {
     return (pbq->curnum <= 0);

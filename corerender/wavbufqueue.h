@@ -10,7 +10,7 @@ extern "C" {
 #endif
 
 // 常量定义
-#define DEF_WAVBUF_QUEUE_SIZE   64
+#define DEF_WAVBUF_QUEUE_SIZE   32
 #define DEF_WAVBUF_BUFFER_SIZE  4096
 
 typedef struct {
@@ -28,7 +28,6 @@ typedef struct {
 // 函数声明
 BOOL wavbufqueue_create (WAVBUFQUEUE *pwq, HWAVEOUT h);
 void wavbufqueue_destroy(WAVBUFQUEUE *pwq);
-void wavbufqueue_flush  (WAVBUFQUEUE *pwq);
 BOOL wavbufqueue_isempty(WAVBUFQUEUE *pwq);
 
 //++ 以下三个接口函数用于空闲可写 wavehdr 的管理 ++//

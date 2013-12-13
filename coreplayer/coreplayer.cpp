@@ -44,7 +44,6 @@ typedef struct
     HANDLE           hADecodeThread;
     HANDLE           hVDecodeThread;
     PKTQUEUE         PacketQueue;
-    CRITICAL_SECTION cs;
 } PLAYER;
 
 // 内部函数实现
@@ -55,10 +54,15 @@ static DWORD WINAPI PlayThreadProc(PLAYER *player)
 
     while (player->nPlayerStatus != PLAYER_STOP)
     {
+        //++ for playerseek ++//
+        if (player->nPlayerStatus == PLAYER_SEEK) {
+            Sleep(50);
+            continue;
+        }
+        //-- for playerseek --//
+
         pktqueue_write_request(&(player->PacketQueue), &packet);
-        EnterCriticalSection(&(player->cs));
         retv = av_read_frame(player->pAVFormatContext, packet);
-        LeaveCriticalSection(&(player->cs));
 
         // handle stop
         if (retv < 0)
@@ -102,34 +106,33 @@ static DWORD WINAPI AudioDecodeThreadProc(PLAYER *player)
     aframe = avcodec_alloc_frame();
     if (!aframe) return 0;
 
-    while (1)
+    while (player->nPlayerStatus != PLAYER_STOP)
     {
         pktqueue_read_request_a(&(player->PacketQueue), &packet);
-        if (player->nPlayerStatus == PLAYER_STOP) {
-            // make this thread safely exit
-            pktqueue_read_done_a(&(player->PacketQueue));
-            break;
-        }
 
-        consumed = gotaudio = 0;
-        while (packet->size > 0) {
-            consumed = avcodec_decode_audio(player->pAudioCodecContext, aframe, &gotaudio, packet);
+        if (player->nPlayerStatus == PLAYER_PLAY) {
+            consumed = gotaudio = 0;
+            while (packet->size > 0) {
+                consumed = avcodec_decode_audio(player->pAudioCodecContext, aframe, &gotaudio, packet);
 
-            if (consumed < 0) {
-                TRACE("an error occurred during decoding audio.\n");
-                break;
+                if (consumed < 0) {
+                    TRACE("an error occurred during decoding audio.\n");
+                    break;
+                }
+
+                if (gotaudio) {
+                    aframe->pts = (int64_t)(packet->pts * player->dAudioTimeBase);
+                    renderaudiowrite(player->hCoreRender, aframe);
+                    TRACE("apts = %lld\n", aframe->pts);
+                }
+                packet->data += consumed;
+                packet->size -= consumed;
             }
 
-            if (gotaudio) {
-                aframe->pts = (int64_t)(packet->pts * player->dAudioTimeBase);
-                renderaudiowrite(player->hCoreRender, aframe);
-                TRACE("apts = %lld\n", aframe->pts);
-            }
-            packet->data += consumed;
-            packet->size -= consumed;
+            // free packet
+            av_free_packet(packet);
         }
 
-        av_free_packet(packet); // free packet
         pktqueue_read_done_a(&(player->PacketQueue));
     }
 
@@ -146,25 +149,24 @@ static DWORD WINAPI VideoDecodeThreadProc(PLAYER *player)
     vframe = avcodec_alloc_frame();
     if (!vframe) return 0;
 
-    while (1)
+    while (player->nPlayerStatus != PLAYER_STOP)
     {
         pktqueue_read_request_v(&(player->PacketQueue), &packet);
-        if (player->nPlayerStatus == PLAYER_STOP) {
-            // make this thread safely exit
-            pktqueue_read_done_v(&(player->PacketQueue));
-            break;
+
+        if (player->nPlayerStatus == PLAYER_PLAY) {
+            gotvideo = 0;
+            avcodec_decode_video(player->pVideoCodecContext, vframe, &gotvideo, packet);
+
+            if (gotvideo) {
+                vframe->pts = (int64_t)(packet->pts * player->dVideoTimeBase);
+                rendervideowrite(player->hCoreRender, vframe);
+                TRACE("vpts = %lld\n", vframe->pts);
+            }
+
+            // free packet
+            av_free_packet(packet);
         }
 
-        gotvideo = 0;
-        avcodec_decode_video(player->pVideoCodecContext, vframe, &gotvideo, packet);
-
-        if (gotvideo) {
-            vframe->pts = (int64_t)(packet->pts * player->dVideoTimeBase);
-            rendervideowrite(player->hCoreRender, vframe);
-            TRACE("vpts = %lld\n", vframe->pts);
-        }
-
-        av_free_packet(packet); // free packet
         pktqueue_read_done_v(&(player->PacketQueue));
     }
 
@@ -192,9 +194,6 @@ HANDLE playeropen(char *file, HWND hwnd)
     // alloc player context
     player = (PLAYER*)malloc(sizeof(PLAYER));
     memset(player, 0, sizeof(PLAYER));
-
-    // init critical section
-    InitializeCriticalSection(&(player->cs));
 
     // create packet queue
     pktqueue_create(&(player->PacketQueue));
@@ -304,7 +303,6 @@ void playerclose(HANDLE hplayer)
     // destroy packet queue
     pktqueue_destroy(&(player->PacketQueue));
 
-    DeleteCriticalSection(&(player->cs));
     free(player);
 }
 
@@ -404,12 +402,18 @@ void playerseek(HANDLE hplayer, DWORD sec)
     if (!hplayer) return;
     PLAYER *player = (PLAYER*)hplayer;
 
-    EnterCriticalSection(&(player->cs));
-    av_seek_frame(player->pAVFormatContext, -1, (int64_t)sec * AV_TIME_BASE, 0);
-    LeaveCriticalSection(&(player->cs));
+    player->nPlayerStatus = PLAYER_SEEK;
+    while (pktqueue_isempty_a(&(player->PacketQueue))) Sleep(50);
+    while (pktqueue_isempty_v(&(player->PacketQueue))) Sleep(50);
 
-    pktqueue_flush(&(player->PacketQueue));
+    // seek frame
+    av_seek_frame(player->pAVFormatContext, -1, (int64_t)sec * AV_TIME_BASE, 0);
+
+    // flush render
     renderflush(player->hCoreRender);
+
+    // return to PLAYER_PLAY status
+    player->nPlayerStatus = PLAYER_PLAY;
 }
 
 void playersetparam(HANDLE hplayer, DWORD id, DWORD param)

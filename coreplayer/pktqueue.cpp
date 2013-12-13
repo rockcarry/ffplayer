@@ -62,18 +62,6 @@ void pktqueue_destroy(PKTQUEUE *ppq)
     memset(ppq, 0, sizeof(PKTQUEUE));
 }
 
-void pktqueue_flush(PKTQUEUE *ppq)
-{
-    while (ppq->apktnum > 0) {
-        pktqueue_read_request_a(ppq, NULL);
-        pktqueue_read_done_a(ppq);
-    }
-    while (ppq->vpktnum > 0) {
-        pktqueue_read_request_v(ppq, NULL);
-        pktqueue_read_done_v(ppq);
-    }
-}
-
 void pktqueue_write_request(PKTQUEUE *ppq, AVPacket **pppkt)
 {
     WaitForSingleObject(ppq->fsemr, -1);
