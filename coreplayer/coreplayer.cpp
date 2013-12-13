@@ -110,7 +110,9 @@ static DWORD WINAPI AudioDecodeThreadProc(PLAYER *player)
         if (player->nPlayerStatus != PLAYER_SEEK) {
             consumed = gotaudio = 0;
             while (packet->size > 0) {
-                consumed = avcodec_decode_audio(player->pAudioCodecContext, aframe, &gotaudio, packet);
+                if (player->iAudioStreamIndex != -1) {
+                    consumed = avcodec_decode_audio(player->pAudioCodecContext, aframe, &gotaudio, packet);
+                }
 
                 if (consumed < 0) {
                     TRACE("an error occurred during decoding audio.\n");
@@ -151,7 +153,9 @@ static DWORD WINAPI VideoDecodeThreadProc(PLAYER *player)
 
         if (player->nPlayerStatus != PLAYER_SEEK) {
             gotvideo = 0;
-            avcodec_decode_video(player->pVideoCodecContext, vframe, &gotvideo, packet);
+            if (player->iVideoStreamIndex != -1) {
+                avcodec_decode_video(player->pVideoCodecContext, vframe, &gotvideo, packet);
+            }
 
             if (gotvideo) {
                 vframe->pts = (int64_t)(packet->pts * player->dVideoTimeBase);
