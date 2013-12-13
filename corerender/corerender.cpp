@@ -352,8 +352,10 @@ void renderplaytime(HANDLE hrender, DWORD *time)
     if (!hrender) return;
     RENDER *render = (RENDER*)hrender;
     if (time) {
-        DWORD atime = (DWORD)(render->i64CurTimeA / 1000);;
-        DWORD vtime = (DWORD)(render->i64CurTimeV / 1000);;
+        if (render->i64CurTimeA < 0) render->i64CurTimeA = 0;
+        if (render->i64CurTimeV < 0) render->i64CurTimeV = 0;
+        DWORD atime = (DWORD)(render->i64CurTimeA / 1000);
+        DWORD vtime = (DWORD)(render->i64CurTimeV / 1000);
         *time = atime > vtime ? atime : vtime;
     }
 }
