@@ -401,8 +401,8 @@ void playerseek(HANDLE hplayer, DWORD sec)
     PLAYER *player = (PLAYER*)hplayer;
 
     player->nPlayerStatus = PLAYER_SEEK;
-    while (pktqueue_isempty_a(&(player->PacketQueue))) Sleep(50);
-    while (pktqueue_isempty_v(&(player->PacketQueue))) Sleep(50);
+    while (!pktqueue_isempty_a(&(player->PacketQueue))) Sleep(50);
+    while (!pktqueue_isempty_v(&(player->PacketQueue))) Sleep(50);
 
     // seek frame
     av_seek_frame(player->pAVFormatContext, -1, (int64_t)sec * AV_TIME_BASE, 0);
