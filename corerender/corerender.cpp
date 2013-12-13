@@ -85,11 +85,6 @@ static DWORD WINAPI VideoRenderThreadProc(RENDER *render)
 {
     while (render->nRenderStatus != RENDER_STOP)
     {
-        if (render->nRenderStatus == RENDER_PAUSE) {
-            Sleep(50);
-            continue;
-        }
-
         HBITMAP hbitmap = NULL;
         int64_t *ppts   = NULL;
         bmpbufqueue_read_request(&(render->BmpBufQueue), &ppts, &hbitmap);
@@ -103,17 +98,6 @@ static DWORD WINAPI VideoRenderThreadProc(RENDER *render)
         }
         bmpbufqueue_read_done(&(render->BmpBufQueue));
 
-        // ++ av sync control ++ //
-        if (render->i64CurTimeV - render->i64CurTimeA >  300) {
-            render->iSleepTick += 5;
-            goto dosleep;
-        }
-        if (render->i64CurTimeV - render->i64CurTimeA < -300) {
-            render->iSleepTick -= 5;
-            goto dosleep;
-        }
-        // -- av sync control -- //
-
         // ++ frame rate control ++ //
         render->dwLastTick = render->dwCurTick;
         render->dwCurTick  = GetTickCount();
@@ -125,7 +109,22 @@ static DWORD WINAPI VideoRenderThreadProc(RENDER *render)
         }
         // -- frame rate control -- //
 
-dosleep:
+        // ++ av sync control ++ //
+        int64_t curdt = render->i64CurTimeV - render->i64CurTimeA;
+        int64_t absdt = curdt > 0 ? curdt : -curdt;
+        if (absdt > 100) {
+            int dd = 2;
+            if (absdt > 500) {
+                dd = 20;
+            }
+            else if (absdt > 200) {
+                dd = 10;
+            }
+            if (curdt > 0) render->iSleepTick += dd;
+            if (curdt < 0) render->iSleepTick -= dd;
+        }
+        // -- av sync control -- //
+
         if (render->iSleepTick <= 0) render->iSleepTick = 1;
         Sleep(render->iSleepTick);
     }
