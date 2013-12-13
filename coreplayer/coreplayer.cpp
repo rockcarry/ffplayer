@@ -408,7 +408,7 @@ void playerseek(HANDLE hplayer, DWORD sec)
     av_seek_frame(player->pAVFormatContext, -1, (int64_t)sec * AV_TIME_BASE, 0);
 
     // flush render
-    renderflush(player->hCoreRender);
+    renderflush(player->hCoreRender, sec);
 
     // return to PLAYER_PLAY status
     player->nPlayerStatus = PLAYER_PLAY;

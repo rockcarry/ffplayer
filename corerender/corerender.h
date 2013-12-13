@@ -28,7 +28,7 @@ void rendervideowrite(HANDLE hrender, AVFrame *video);
 void rendersetrect   (HANDLE hrender, int x, int y, int w, int h);
 void renderstart     (HANDLE hrender);
 void renderpause     (HANDLE hrender);
-void renderflush     (HANDLE hrender);
+void renderflush     (HANDLE hrender, DWORD  time);
 void renderplaytime  (HANDLE hrender, DWORD *time);
 
 #ifdef __cplusplus

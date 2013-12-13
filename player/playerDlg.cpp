@@ -79,9 +79,9 @@ void CplayerDlg::PlayerOpenFile(void)
 }
 
 BEGIN_MESSAGE_MAP(CplayerDlg, CDialog)
-	ON_WM_PAINT()
-	ON_WM_QUERYDRAGICON()
-	//}}AFX_MSG_MAP
+    ON_WM_PAINT()
+    ON_WM_QUERYDRAGICON()
+    //}}AFX_MSG_MAP
     ON_WM_DESTROY()
     ON_WM_TIMER()
     ON_WM_LBUTTONDOWN()
@@ -93,14 +93,14 @@ END_MESSAGE_MAP()
 
 BOOL CplayerDlg::OnInitDialog()
 {
-	CDialog::OnInitDialog();
+    CDialog::OnInitDialog();
 
-	// Set the icon for this dialog.  The framework does this automatically
-	//  when the application's main window is not a dialog
-	SetIcon(m_hIcon, TRUE);			// Set big icon
-	SetIcon(m_hIcon, FALSE);		// Set small icon
+    // Set the icon for this dialog.  The framework does this automatically
+    //  when the application's main window is not a dialog
+    SetIcon(m_hIcon, TRUE);         // Set big icon
+    SetIcon(m_hIcon, FALSE);        // Set small icon
 
-	// TODO: Add extra initialization here
+    // TODO: Add extra initialization here
     RECT rect;
     int  w, h;
     MoveWindow(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT);
@@ -111,7 +111,7 @@ BOOL CplayerDlg::OnInitDialog()
 
     m_pDrawDC = GetDC();
     SetTimer(TIMER_ID_FIRST_DIALOG, 100, NULL);
-	return TRUE;  // return TRUE  unless you set the focus to a control
+    return TRUE;  // return TRUE  unless you set the focus to a control
 }
 
 // If you add a minimize button to your dialog, you will need the code below
@@ -120,34 +120,45 @@ BOOL CplayerDlg::OnInitDialog()
 
 void CplayerDlg::OnPaint()
 {
-	if (IsIconic())
-	{
-		CPaintDC dc(this); // device context for painting
+    if (IsIconic())
+    {
+        CPaintDC dc(this); // device context for painting
 
-		SendMessage(WM_ICONERASEBKGND, reinterpret_cast<WPARAM>(dc.GetSafeHdc()), 0);
+        SendMessage(WM_ICONERASEBKGND, reinterpret_cast<WPARAM>(dc.GetSafeHdc()), 0);
 
-		// Center icon in client rectangle
-		int cxIcon = GetSystemMetrics(SM_CXICON);
-		int cyIcon = GetSystemMetrics(SM_CYICON);
-		CRect rect;
-		GetClientRect(&rect);
-		int x = (rect.Width() - cxIcon + 1) / 2;
-		int y = (rect.Height() - cyIcon + 1) / 2;
+        // Center icon in client rectangle
+        int cxIcon = GetSystemMetrics(SM_CXICON);
+        int cyIcon = GetSystemMetrics(SM_CYICON);
+        CRect rect;
+        GetClientRect(&rect);
+        int x = (rect.Width() - cxIcon + 1) / 2;
+        int y = (rect.Height() - cyIcon + 1) / 2;
 
-		// Draw the icon
-		dc.DrawIcon(x, y, m_hIcon);
-	}
-	else
-	{
-		CDialog::OnPaint();
-	}
+        // Draw the icon
+        dc.DrawIcon(x, y, m_hIcon);
+    }
+    else
+    {
+        CPaintDC dc(this);
+
+        RECT fill   = {0};
+        fill.right  = m_nPosXCur;
+        fill.top    = SCREEN_HEIGHT - 2;
+        fill.bottom = SCREEN_HEIGHT;
+        dc.FillSolidRect(&fill, RGB(250, 200, 0));
+        fill.left   = fill.right;
+        fill.right  = SCREEN_WIDTH;
+        dc.FillSolidRect(&fill, RGB(0, 0, 0));
+
+        CDialog::OnPaint();
+    }
 }
 
 // The system calls this function to obtain the cursor to display while the user drags
 //  the minimized window.
 HCURSOR CplayerDlg::OnQueryDragIcon()
 {
-	return static_cast<HCURSOR>(m_hIcon);
+    return static_cast<HCURSOR>(m_hIcon);
 }
 
 void CplayerDlg::OnDestroy()
@@ -158,7 +169,6 @@ void CplayerDlg::OnDestroy()
 
 void CplayerDlg::OnTimer(UINT_PTR nIDEvent)
 {
-    RECT fill;
     int  pos;
 
     switch (nIDEvent)
@@ -171,12 +181,8 @@ void CplayerDlg::OnTimer(UINT_PTR nIDEvent)
 
     case TIMER_ID_PROGRESS:
         playergetparam(g_hplayer, PARAM_GET_POSITION, &pos);
-        fill.left   = 0;
-        fill.right  = (LONG)(SCREEN_WIDTH * pos / m_nTimeTotal);
-        fill.top    = SCREEN_HEIGHT - 2;
-        fill.bottom = SCREEN_HEIGHT;
-        m_nPosXCur  = fill.right;
-        m_pDrawDC->FillSolidRect(&fill, RGB(250, 200, 0));
+        m_nPosXCur = (LONG)(SCREEN_WIDTH * pos / m_nTimeTotal);
+        InvalidateRect(NULL, FALSE);
         break;
 
     default:
@@ -187,27 +193,11 @@ void CplayerDlg::OnTimer(UINT_PTR nIDEvent)
 
 void CplayerDlg::OnLButtonDown(UINT nFlags, CPoint point)
 {
-    RECT fill;
     if (point.y > SCREEN_HEIGHT - 5)
     {
-        if (point.x < m_nPosXCur) {
-            fill.left   = point.x;
-            fill.right  = SCREEN_WIDTH;
-            fill.top    = SCREEN_HEIGHT - 2;
-            fill.bottom = SCREEN_HEIGHT;
-            m_nPosXCur  = point.x;
-            m_pDrawDC->FillSolidRect(&fill, 0);
-        }
-        else
-        {
-            fill.left   = m_nPosXCur;
-            fill.right  = point.x;
-            fill.top    = SCREEN_HEIGHT - 2;
-            fill.bottom = SCREEN_HEIGHT;
-            m_nPosXCur  = point.x;
-            m_pDrawDC->FillSolidRect(&fill, RGB(250, 200, 0));
-        }
         playerseek(g_hplayer, m_nTimeTotal * point.x / SCREEN_WIDTH);
+        m_nPosXCur  = point.x;
+        InvalidateRect(NULL, FALSE);
     }
 
     CDialog::OnLButtonDown(nFlags, point);

@@ -328,17 +328,17 @@ void renderpause(HANDLE hrender)
     render->nRenderStatus = RENDER_PAUSE;
 }
 
-void renderflush(HANDLE hrender)
+void renderflush(HANDLE hrender, DWORD time)
 {
     if (!hrender) return;
     RENDER *render = (RENDER*)hrender;
 
-    render->i64CurTimeA   = 0; // set it to 0
-    render->i64CurTimeV   = 0; // set it to 0
     render->nRenderStatus = RENDER_SEEK;
     waveOutReset(render->hWaveOut); // wave out reset
     while (!wavbufqueue_isempty(&(render->WavBufQueue))) Sleep(50);
     while (!bmpbufqueue_isempty(&(render->BmpBufQueue))) Sleep(50);
+    render->i64CurTimeA   = time * 1000;
+    render->i64CurTimeV   = time * 1000;
     render->nRenderStatus = RENDER_PLAY;
 }
 
@@ -347,10 +347,8 @@ void renderplaytime(HANDLE hrender, DWORD *time)
     if (!hrender) return;
     RENDER *render = (RENDER*)hrender;
     if (time) {
-        DWORD atime;
-        DWORD vtime;
-        atime = (DWORD)(render->i64CurTimeA / 1000);
-        vtime = (DWORD)(render->i64CurTimeV / 1000);
+        DWORD atime = (DWORD)(render->i64CurTimeA / 1000);;
+        DWORD vtime = (DWORD)(render->i64CurTimeV / 1000);;
         *time = atime > vtime ? atime : vtime;
     }
 }
