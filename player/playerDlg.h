@@ -35,6 +35,7 @@ private:
     CDC  *m_pDrawDC;
     DWORD m_nTimeTotal;
     LONG  m_nPosXCur;
+    BOOL  m_bPlayPause;
 
 public:
     afx_msg void OnDestroy();

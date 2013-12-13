@@ -71,6 +71,8 @@ void CplayerDlg::PlayerOpenFile(void)
     g_hplayer = playeropen(str, GetSafeHwnd());
     if (g_hplayer)
     {
+        m_nPosXCur   = 0;
+        m_bPlayPause = FALSE;
         playergetparam(g_hplayer, PARAM_GET_DURATION, &m_nTimeTotal);
         playersetrect(g_hplayer, 0, 0, SCREEN_WIDTH, SCREEN_HEIGHT - 2);
         playerplay(g_hplayer);
@@ -198,6 +200,11 @@ void CplayerDlg::OnLButtonDown(UINT nFlags, CPoint point)
         playerseek(g_hplayer, m_nTimeTotal * point.x / SCREEN_WIDTH);
         m_nPosXCur  = point.x;
         InvalidateRect(NULL, FALSE);
+    }
+    else {
+        if (!m_bPlayPause) playerpause(g_hplayer);
+        else playerplay(g_hplayer);
+        m_bPlayPause = !m_bPlayPause;
     }
 
     CDialog::OnLButtonDown(nFlags, point);
