@@ -85,9 +85,7 @@ static DWORD WINAPI VideoRenderThreadProc(RENDER *render)
 {
     while (render->nRenderStatus != RENDER_STOP)
     {
-        while (render->nRenderStatus == RENDER_PAUSE) {
-            Sleep(50);
-        }
+        while (render->nRenderStatus == RENDER_PAUSE) Sleep(50);
 
         HBITMAP hbitmap = NULL;
         int64_t *ppts   = NULL;
@@ -234,7 +232,7 @@ void renderaudiowrite(HANDLE hrender, AVFrame *audio)
     int      sampnum;
     int64_t *ppts;
 
-    if (render->nRenderStatus != RENDER_PLAY) return;
+    if (render->nRenderStatus == RENDER_SEEK) return;
     do {
         wavbufqueue_write_request(&(render->WavBufQueue), &ppts, &wavehdr);
 
@@ -276,7 +274,7 @@ void rendervideowrite(HANDLE hrender, AVFrame *video)
     int       stride  = 0;
     int64_t  *ppts    = NULL;
 
-    if (render->nRenderStatus != RENDER_PLAY) return;
+    if (render->nRenderStatus == RENDER_SEEK) return;
     bmpbufqueue_write_request(&(render->BmpBufQueue), &ppts, &bmpbuf, &stride);
     *ppts               = video->pts;
     picture.data[0]     = bmpbuf;
@@ -320,6 +318,8 @@ void renderstart(HANDLE hrender)
     if (!hrender) return;
     RENDER *render = (RENDER*)hrender;
     waveOutRestart(render->hWaveOut);
+    render->dwCurTick     = GetTickCount();
+    render->dwLastTick    = GetTickCount();
     render->nRenderStatus = RENDER_PLAY;
 }
 
@@ -342,6 +342,8 @@ void renderflush(HANDLE hrender, DWORD time)
     while (!bmpbufqueue_isempty(&(render->BmpBufQueue))) Sleep(50);
     render->i64CurTimeA   = time * 1000;
     render->i64CurTimeV   = time * 1000;
+    render->dwCurTick     = GetTickCount();
+    render->dwLastTick    = GetTickCount();
     render->nRenderStatus = RENDER_PLAY;
 }
 

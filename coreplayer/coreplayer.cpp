@@ -55,10 +55,7 @@ static DWORD WINAPI PlayThreadProc(PLAYER *player)
     while (player->nPlayerStatus != PLAYER_STOP)
     {
         //++ for playerseek ++//
-        if (player->nPlayerStatus == PLAYER_SEEK) {
-            Sleep(50);
-            continue;
-        }
+        while (player->nPlayerStatus == PLAYER_SEEK) Sleep(50);
         //-- for playerseek --//
 
         pktqueue_write_request(&(player->PacketQueue), &packet);
@@ -110,7 +107,7 @@ static DWORD WINAPI AudioDecodeThreadProc(PLAYER *player)
     {
         pktqueue_read_request_a(&(player->PacketQueue), &packet);
 
-        if (player->nPlayerStatus == PLAYER_PLAY) {
+        if (player->nPlayerStatus != PLAYER_SEEK) {
             consumed = gotaudio = 0;
             while (packet->size > 0) {
                 consumed = avcodec_decode_audio(player->pAudioCodecContext, aframe, &gotaudio, packet);
@@ -152,7 +149,7 @@ static DWORD WINAPI VideoDecodeThreadProc(PLAYER *player)
     {
         pktqueue_read_request_v(&(player->PacketQueue), &packet);
 
-        if (player->nPlayerStatus == PLAYER_PLAY) {
+        if (player->nPlayerStatus != PLAYER_SEEK) {
             gotvideo = 0;
             avcodec_decode_video(player->pVideoCodecContext, vframe, &gotvideo, packet);
 
