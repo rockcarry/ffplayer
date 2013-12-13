@@ -328,6 +328,7 @@ void playerpause(HANDLE hplayer)
     if (!hplayer) return;
     PLAYER *player = (PLAYER*)hplayer;
     renderpause(player->hCoreRender);
+    player->nPlayerStatus = PLAYER_PAUSE;
 }
 
 void playerstop(HANDLE hplayer)
@@ -399,6 +400,9 @@ void playerseek(HANDLE hplayer, DWORD sec)
     if (!hplayer) return;
     PLAYER *player = (PLAYER*)hplayer;
 
+    BOOL ispaused = (player->nPlayerStatus == PLAYER_PAUSE);
+    if (ispaused) playerplay(hplayer);
+
     player->nPlayerStatus = PLAYER_SEEK;
     while (!pktqueue_isempty_a(&(player->PacketQueue))) Sleep(50);
     while (!pktqueue_isempty_v(&(player->PacketQueue))) Sleep(50);
@@ -411,6 +415,8 @@ void playerseek(HANDLE hplayer, DWORD sec)
 
     // return to PLAYER_PLAY status
     player->nPlayerStatus = PLAYER_PLAY;
+
+    if (ispaused) playerpause(hplayer);
 }
 
 void playersetparam(HANDLE hplayer, DWORD id, DWORD param)
