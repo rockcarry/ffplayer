@@ -123,7 +123,6 @@ static DWORD WINAPI AudioDecodeThreadProc(PLAYER *player)
                 if (gotaudio) {
                     aframe->pts = (int64_t)(packet->pts * player->dAudioTimeBase);
                     renderaudiowrite(player->hCoreRender, aframe);
-                    TRACE("apts = %lld\n", aframe->pts);
                 }
                 packet->data += consumed;
                 packet->size -= consumed;
@@ -160,7 +159,6 @@ static DWORD WINAPI VideoDecodeThreadProc(PLAYER *player)
             if (gotvideo) {
                 vframe->pts = (int64_t)(packet->pts * player->dVideoTimeBase);
                 rendervideowrite(player->hCoreRender, vframe);
-                TRACE("vpts = %lld\n", vframe->pts);
             }
 
             // free packet

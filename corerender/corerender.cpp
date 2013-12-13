@@ -60,18 +60,22 @@ typedef struct
     DWORD       dwLastTick;
     int         iFrameTick;
     int         iSleepTick;
-    int64_t     u64CurTime;
+    int64_t     i64CurTimeA;
+    int64_t     i64CurTimeV;
 } RENDER;
 
 // 内部函数实现
 static void CALLBACK waveOutProc(HWAVEOUT hwo, UINT uMsg, DWORD dwInstance, DWORD dwParam1, DWORD dwParam2)
 {
     RENDER  *render = (RENDER*)dwInstance;
+    WAVEHDR *pwhdr  = NULL;
     int64_t *ppts   = NULL;
     switch (uMsg)
     {
     case WOM_DONE:
-        wavbufqueue_read_request(&(render->WavBufQueue), &ppts, NULL);
+        wavbufqueue_read_request(&(render->WavBufQueue), &ppts, &pwhdr);
+        render->i64CurTimeA = *ppts + 1000 * pwhdr->dwBytesRecorded / (44100 * 4);
+        TRACE("i64CurTimeA = %d\n", render->i64CurTimeA);
         wavbufqueue_read_done(&(render->WavBufQueue));
         break;
     }
@@ -90,13 +94,25 @@ static DWORD WINAPI VideoRenderThreadProc(RENDER *render)
         int64_t *ppts   = NULL;
         bmpbufqueue_read_request(&(render->BmpBufQueue), &ppts, &hbitmap);
         if (render->nRenderStatus == RENDER_PLAY) {
-            render->u64CurTime = *ppts; // the current play time
+            render->i64CurTimeV = *ppts; // the current play time
             SelectObject(render->hBufferDC, hbitmap);
             BitBlt(render->hRenderDC, render->nRenderPosX, render->nRenderPosY,
                 render->nRenderWidth, render->nRenderHeight,
                 render->hBufferDC, 0, 0, SRCCOPY);
+            TRACE("i64CurTimeV = %d\n", render->i64CurTimeV);
         }
         bmpbufqueue_read_done(&(render->BmpBufQueue));
+
+        // ++ av sync control ++ //
+        if (render->i64CurTimeV - render->i64CurTimeA >  300) {
+            render->iSleepTick += 5;
+            goto dosleep;
+        }
+        if (render->i64CurTimeV - render->i64CurTimeA < -300) {
+            render->iSleepTick -= 5;
+            goto dosleep;
+        }
+        // -- av sync control -- //
 
         // ++ frame rate control ++ //
         render->dwLastTick = render->dwCurTick;
@@ -107,10 +123,11 @@ static DWORD WINAPI VideoRenderThreadProc(RENDER *render)
         else if (render->dwCurTick - render->dwLastTick < (DWORD)render->iFrameTick) {
             render->iSleepTick++;
         }
-        if (render->iSleepTick <= 0) render->iSleepTick = 1;
-
-        Sleep(render->iSleepTick);
         // -- frame rate control -- //
+
+dosleep:
+        if (render->iSleepTick <= 0) render->iSleepTick = 1;
+        Sleep(render->iSleepTick);
     }
 
     return 0;
@@ -316,7 +333,8 @@ void renderflush(HANDLE hrender)
     if (!hrender) return;
     RENDER *render = (RENDER*)hrender;
 
-    render->u64CurTime = 0; // set it to 0
+    render->i64CurTimeA   = 0; // set it to 0
+    render->i64CurTimeV   = 0; // set it to 0
     render->nRenderStatus = RENDER_SEEK;
     waveOutReset(render->hWaveOut); // wave out reset
     while (!wavbufqueue_isempty(&(render->WavBufQueue))) Sleep(50);
@@ -328,6 +346,6 @@ void renderplaytime(HANDLE hrender, DWORD *time)
 {
     if (!hrender) return;
     RENDER *render = (RENDER*)hrender;
-    if (time) *time = (DWORD)(render->u64CurTime / 1000);
+    if (time) *time = (DWORD)(render->i64CurTimeV / 1000);
 }
 
