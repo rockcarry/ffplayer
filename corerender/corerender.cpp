@@ -346,6 +346,12 @@ void renderplaytime(HANDLE hrender, DWORD *time)
 {
     if (!hrender) return;
     RENDER *render = (RENDER*)hrender;
-    if (time) *time = (DWORD)(render->i64CurTimeV / 1000);
+    if (time) {
+        DWORD atime;
+        DWORD vtime;
+        atime = (DWORD)(render->i64CurTimeA / 1000);
+        vtime = (DWORD)(render->i64CurTimeV / 1000);
+        *time = atime > vtime ? atime : vtime;
+    }
 }
 
