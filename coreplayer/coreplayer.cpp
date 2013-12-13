@@ -327,7 +327,6 @@ void playerpause(HANDLE hplayer)
 {
     if (!hplayer) return;
     PLAYER *player = (PLAYER*)hplayer;
-    player->nPlayerStatus = PLAYER_PAUSE;
     renderpause(player->hCoreRender);
 }
 

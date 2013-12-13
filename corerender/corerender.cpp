@@ -85,6 +85,10 @@ static DWORD WINAPI VideoRenderThreadProc(RENDER *render)
 {
     while (render->nRenderStatus != RENDER_STOP)
     {
+        while (render->nRenderStatus == RENDER_PAUSE) {
+            Sleep(50);
+        }
+
         HBITMAP hbitmap = NULL;
         int64_t *ppts   = NULL;
         bmpbufqueue_read_request(&(render->BmpBufQueue), &ppts, &hbitmap);
