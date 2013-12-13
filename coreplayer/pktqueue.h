@@ -12,8 +12,8 @@ extern "C" {
 #include "libavformat/avformat.h"
 
 // 常量定义
-#define DEF_PKT_QUEUE_ASIZE   128
-#define DEF_PKT_QUEUE_VSIZE   128
+#define DEF_PKT_QUEUE_ASIZE   64
+#define DEF_PKT_QUEUE_VSIZE   64
 
 typedef struct {
     long       fsize;
