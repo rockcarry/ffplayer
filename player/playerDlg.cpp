@@ -195,7 +195,7 @@ void CplayerDlg::OnTimer(UINT_PTR nIDEvent)
 
 void CplayerDlg::OnLButtonDown(UINT nFlags, CPoint point)
 {
-    if (point.y > SCREEN_HEIGHT - 5)
+    if (point.y > SCREEN_HEIGHT - 8)
     {
         playerseek(g_hplayer, m_nTimeTotal * point.x / SCREEN_WIDTH);
         m_nPosXCur  = point.x;
