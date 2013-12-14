@@ -114,21 +114,11 @@ static DWORD WINAPI VideoRenderThreadProc(RENDER *render)
         // ++ av sync control ++ //
         int64_t curdt = render->i64CurTimeV - render->i64CurTimeA;
         int64_t absdt = curdt > 0 ? curdt : -curdt;
-        if (absdt > 100) {
-            int dd = 2;
-            if (absdt > 500) {
-                dd = 20;
-            }
-            else if (absdt > 200) {
-                dd = 10;
-            }
-            if (curdt > 0) render->iSleepTick += dd;
-            if (curdt < 0) render->iSleepTick -= dd;
-        }
+        if (curdt >  100) render->iSleepTick++;
+        if (curdt < -100) render->iSleepTick--;
         // -- av sync control -- //
 
-        if (render->iSleepTick <= 0) render->iSleepTick = 1;
-        Sleep(render->iSleepTick);
+        if (render->iSleepTick > 0) Sleep(render->iSleepTick);
     }
 
     return 0;
@@ -318,8 +308,6 @@ void renderstart(HANDLE hrender)
     if (!hrender) return;
     RENDER *render = (RENDER*)hrender;
     waveOutRestart(render->hWaveOut);
-    render->dwCurTick     = GetTickCount();
-    render->dwLastTick    = GetTickCount();
     render->nRenderStatus = RENDER_PLAY;
 }
 
@@ -342,8 +330,6 @@ void renderflush(HANDLE hrender, DWORD time)
     while (!bmpbufqueue_isempty(&(render->BmpBufQueue))) Sleep(50);
     render->i64CurTimeA   = time * 1000;
     render->i64CurTimeV   = time * 1000;
-    render->dwCurTick     = GetTickCount();
-    render->dwLastTick    = GetTickCount();
     render->nRenderStatus = RENDER_PLAY;
 }
 
