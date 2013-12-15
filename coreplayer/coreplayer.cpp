@@ -442,6 +442,8 @@ void playerseek(HANDLE hplayer, DWORD sec)
 
     // seek frame
     av_seek_frame(player->pAVFormatContext, -1, (int64_t)sec * AV_TIME_BASE, 0);
+    if (player->iAudioStreamIndex != -1) avcodec_flush_buffers(player->pAudioCodecContext);
+    if (player->iVideoStreamIndex != -1) avcodec_flush_buffers(player->pVideoCodecContext);
 
     // flush render
     renderflush(player->hCoreRender, sec);
