@@ -76,7 +76,7 @@ static void CALLBACK waveOutProc(HWAVEOUT hwo, UINT uMsg, DWORD dwInstance, DWOR
     case WOM_DONE:
         wavbufqueue_read_request(&(render->WavBufQueue), &ppts, &pwhdr);
         //++ play completed ++//
-        if (*ppts == -1) {
+        if (render->nRenderStatus == RENDER_PLAY && *ppts == -1) {
             PostMessage(render->hRenderWnd, MSG_COREPLAYER, PLAY_COMPLETED, 0);
         }
         //-- play completed --//
