@@ -26,6 +26,15 @@ inline void TRACE(LPCSTR lpszFormat, ...)
 #define avcodec_decode_video avcodec_decode_video2
 #define avcodec_decode_audio avcodec_decode_audio4
 
+// player status
+enum {
+    PLAYER_STOP,
+    PLAYER_PLAY,
+    PLAYER_PAUSE,
+    PLAYER_SEEK,
+    PLAYER_DONE,
+};
+
 // 内部类型定义
 typedef struct
 {
@@ -55,20 +64,30 @@ static DWORD WINAPI PlayThreadProc(PLAYER *player)
     while (player->nPlayerStatus != PLAYER_STOP)
     {
         //++ for playerseek ++//
-        while (player->nPlayerStatus == PLAYER_SEEK) Sleep(50);
+        if (player->nPlayerStatus != PLAYER_PLAY) {
+            Sleep(50);
+            continue;
+        }
         //-- for playerseek --//
 
         pktqueue_write_request(&(player->PacketQueue), &packet);
         retv = av_read_frame(player->pAVFormatContext, packet);
 
-        // handle stop
+        //++ play completed ++//
         if (retv < 0)
         {
-            pktqueue_write_release(&(player->PacketQueue));
-            player->nPlayerStatus = PLAYER_STOP;
-            PostMessage(player->hRenderWnd, MSG_COREPLAYER, player->nPlayerStatus, 0);
-            break;
+            packet->pts = -1; // video packet pts == -1, means completed
+            if (player->iVideoStreamIndex != -1) {
+                pktqueue_write_done_v(&(player->PacketQueue));
+            }
+            else if (player->iAudioStreamIndex != -1) {
+                pktqueue_write_done_a(&(player->PacketQueue));
+            }
+            else pktqueue_write_release(&(player->PacketQueue));
+            player->nPlayerStatus = PLAYER_DONE;
+            continue;
         }
+        //-- play completed --//
 
         // audio
         if (packet->stream_index == player->iAudioStreamIndex)
@@ -106,6 +125,14 @@ static DWORD WINAPI AudioDecodeThreadProc(PLAYER *player)
     while (player->nPlayerStatus != PLAYER_STOP)
     {
         pktqueue_read_request_a(&(player->PacketQueue), &packet);
+
+        //++ play completed ++//
+        if (packet->pts == -1) {
+            renderaudiowrite(player->hCoreRender, (AVFrame*)-1);
+            pktqueue_read_done_a(&(player->PacketQueue));
+            continue;
+        }
+        //-- play completed --//
 
         if (player->nPlayerStatus != PLAYER_SEEK) {
             consumed = gotaudio = 0;
@@ -150,6 +177,14 @@ static DWORD WINAPI VideoDecodeThreadProc(PLAYER *player)
     while (player->nPlayerStatus != PLAYER_STOP)
     {
         pktqueue_read_request_v(&(player->PacketQueue), &packet);
+
+        //++ play completed ++//
+        if (packet->pts == -1) {
+            rendervideowrite(player->hCoreRender, (AVFrame*)-1);
+            pktqueue_read_done_v(&(player->PacketQueue));
+            continue;
+        }
+        //-- play completed --//
 
         if (player->nPlayerStatus != PLAYER_SEEK) {
             gotvideo = 0;

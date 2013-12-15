@@ -226,7 +226,9 @@ BOOL CplayerDlg::PreTranslateMessage(MSG *pMsg)
     {
         switch (pMsg->wParam)
         {
-        case PLAYER_STOP:
+        case PLAY_COMPLETED:
+            m_nPosXCur = SCREEN_WIDTH;
+            InvalidateRect(NULL, FALSE);
             PlayerOpenFile();
             break;
         }

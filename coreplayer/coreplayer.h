@@ -11,14 +11,7 @@ extern "C" {
 // 常量定义
 // message
 #define MSG_COREPLAYER  (WM_APP + 1)
-
-// player status
-enum {
-    PLAYER_STOP,
-    PLAYER_PLAY,
-    PLAYER_PAUSE,
-    PLAYER_SEEK,
-};
+#define PLAY_COMPLETED  (('E' << 24) | ('N' << 16) | ('D' << 8))
 
 // render mode
 enum {

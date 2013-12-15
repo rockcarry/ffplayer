@@ -1,6 +1,7 @@
 // 包含头文件
 #include <windows.h>
 #include <mmsystem.h>
+#include "../coreplayer/coreplayer.h"
 #include "corerender.h"
 #include "wavbufqueue.h"
 #include "bmpbufqueue.h"
@@ -74,8 +75,15 @@ static void CALLBACK waveOutProc(HWAVEOUT hwo, UINT uMsg, DWORD dwInstance, DWOR
     {
     case WOM_DONE:
         wavbufqueue_read_request(&(render->WavBufQueue), &ppts, &pwhdr);
-        render->i64CurTimeA = *ppts + 1000 * pwhdr->dwBytesRecorded / (44100 * 4);
-        TRACE("i64CurTimeA = %d\n", render->i64CurTimeA);
+        //++ play completed ++//
+        if (*ppts == -1) {
+            PostMessage(render->hRenderWnd, MSG_COREPLAYER, PLAY_COMPLETED, 0);
+        }
+        //-- play completed --//
+        else {
+            render->i64CurTimeA = *ppts + 1000 * pwhdr->dwBytesRecorded / (44100 * 4);
+            TRACE("i64CurTimeA = %d\n", render->i64CurTimeA);
+        }
         wavbufqueue_read_done(&(render->WavBufQueue));
         break;
     }
@@ -85,18 +93,28 @@ static DWORD WINAPI VideoRenderThreadProc(RENDER *render)
 {
     while (render->nRenderStatus != RENDER_STOP)
     {
-        while (render->nRenderStatus == RENDER_PAUSE) Sleep(50);
+        if (render->nRenderStatus == RENDER_PAUSE) {
+            Sleep(50);
+            continue;
+        }
 
         HBITMAP hbitmap = NULL;
         int64_t *ppts   = NULL;
         bmpbufqueue_read_request(&(render->BmpBufQueue), &ppts, &hbitmap);
         if (render->nRenderStatus == RENDER_PLAY) {
-            render->i64CurTimeV = *ppts; // the current play time
-            SelectObject(render->hBufferDC, hbitmap);
-            BitBlt(render->hRenderDC, render->nRenderPosX, render->nRenderPosY,
-                render->nRenderWidth, render->nRenderHeight,
-                render->hBufferDC, 0, 0, SRCCOPY);
-            TRACE("i64CurTimeV = %d\n", render->i64CurTimeV);
+            //++ play completed ++//
+            if (*ppts == -1) {
+                PostMessage(render->hRenderWnd, MSG_COREPLAYER, PLAY_COMPLETED, 0);
+            }
+            //-- play completed --//
+            else {
+                render->i64CurTimeV = *ppts; // the current play time
+                SelectObject(render->hBufferDC, hbitmap);
+                BitBlt(render->hRenderDC, render->nRenderPosX, render->nRenderPosY,
+                    render->nRenderWidth, render->nRenderHeight,
+                    render->hBufferDC, 0, 0, SRCCOPY);
+                TRACE("i64CurTimeV = %d\n", render->i64CurTimeV);
+            }
         }
         bmpbufqueue_read_done(&(render->BmpBufQueue));
 
@@ -152,7 +170,6 @@ HANDLE renderopen(HWND hwnd, AVRational frate, int pixfmt, int w, int h,
     swr_init(render->pSWRContext);
 
     // init for video
-    if (w == 0 || h == 0) return (HANDLE)render;
     render->nVideoWidth  = w;
     render->nVideoHeight = h;
     render->PixelFormat  = (PixelFormat)pixfmt;
@@ -223,6 +240,19 @@ void renderaudiowrite(HANDLE hrender, AVFrame *audio)
     int64_t *ppts;
 
     if (render->nRenderStatus == RENDER_SEEK) return;
+
+    //++ play completed ++//
+    if (audio == (AVFrame*)-1) {
+        wavbufqueue_write_request(&(render->WavBufQueue), &ppts, &wavehdr);
+        *ppts = -1; // *ppts == -1, means completed
+        memset(wavehdr->lpData, 0, wavehdr->dwUser);
+        wavehdr->dwBufferLength = (DWORD)wavehdr->dwUser;
+        waveOutWrite(render->hWaveOut, wavehdr, sizeof(WAVEHDR));
+        wavbufqueue_write_done(&(render->WavBufQueue));
+        return;
+    }
+    //-- play completed --//
+
     do {
         wavbufqueue_write_request(&(render->WavBufQueue), &ppts, &wavehdr);
 
@@ -266,10 +296,15 @@ void rendervideowrite(HANDLE hrender, AVFrame *video)
 
     if (render->nRenderStatus == RENDER_SEEK) return;
     bmpbufqueue_write_request(&(render->BmpBufQueue), &ppts, &bmpbuf, &stride);
-    *ppts               = video->pts;
-    picture.data[0]     = bmpbuf;
-    picture.linesize[0] = stride;
-    sws_scale(render->pSWSContext, video->data, video->linesize, 0, render->nVideoHeight, picture.data, picture.linesize);
+    //++ play completed ++//
+    if (video == (AVFrame*)-1) *ppts = -1;
+    //-- play completed --//
+    else {
+        *ppts               = video->pts;
+        picture.data[0]     = bmpbuf;
+        picture.linesize[0] = stride;
+        sws_scale(render->pSWSContext, video->data, video->linesize, 0, render->nVideoHeight, picture.data, picture.linesize);
+    }
     bmpbufqueue_write_done(&(render->BmpBufQueue));
 }
 
@@ -338,10 +373,8 @@ void renderplaytime(HANDLE hrender, DWORD *time)
     if (!hrender) return;
     RENDER *render = (RENDER*)hrender;
     if (time) {
-        if (render->i64CurTimeA < 0) render->i64CurTimeA = 0;
-        if (render->i64CurTimeV < 0) render->i64CurTimeV = 0;
-        DWORD atime = (DWORD)(render->i64CurTimeA / 1000);
-        DWORD vtime = (DWORD)(render->i64CurTimeV / 1000);
+        DWORD atime = render->i64CurTimeA > 0 ? (DWORD)(render->i64CurTimeA / 1000) : 0;
+        DWORD vtime = render->i64CurTimeV > 0 ? (DWORD)(render->i64CurTimeV / 1000) : 0;
         *time = atime > vtime ? atime : vtime;
     }
 }
