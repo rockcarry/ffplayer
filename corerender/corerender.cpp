@@ -131,7 +131,6 @@ static DWORD WINAPI VideoRenderThreadProc(RENDER *render)
 
         // ++ av sync control ++ //
         int64_t curdt = render->i64CurTimeV - render->i64CurTimeA;
-        int64_t absdt = curdt > 0 ? curdt : -curdt;
         if (curdt >  100) render->iSleepTick++;
         if (curdt < -100) render->iSleepTick--;
         // -- av sync control -- //
@@ -279,10 +278,6 @@ void renderaudiowrite(HANDLE hrender, AVFrame *audio)
         }
         //-- post or release waveout audio buffer --//
     } while (sampnum > 0);
-
-    if (sampnum < 0) {
-        TRACE("failed to resample audio data.\n");
-    }
 }
 
 void rendervideowrite(HANDLE hrender, AVFrame *video)

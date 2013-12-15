@@ -46,7 +46,6 @@ typedef struct
     int              iVideoStreamIndex;
     double           dVideoTimeBase;
     int              nRenderMode;
-    HWND             hRenderWnd;
     HANDLE           hCoreRender;
     int              nPlayerStatus;
     HANDLE           hPlayerThread;
@@ -312,8 +311,6 @@ HANDLE playeropen(char *file, HWND hwnd)
     player->hCoreRender = renderopen(hwnd, vrate, vformat, width, height,
         alayout, (AVSampleFormat)aformat, arate);
 
-    // save window handle
-    player->hRenderWnd = hwnd;
     return player;
 
 error_handler:
@@ -327,7 +324,7 @@ void playerclose(HANDLE hplayer)
     PLAYER *player = (PLAYER*)hplayer;
 
     // stop player first
-    playerstop(hplayer);
+    if (player->nPlayerStatus != PLAYER_STOP) playerstop(hplayer);
 
     if (player->hCoreRender       ) renderclose(player->hCoreRender);
     if (player->pVideoCodecContext) avcodec_close(player->pVideoCodecContext);
@@ -363,8 +360,8 @@ void playerpause(HANDLE hplayer)
 {
     if (!hplayer) return;
     PLAYER *player = (PLAYER*)hplayer;
-    renderpause(player->hCoreRender);
     player->nPlayerStatus = PLAYER_PAUSE;
+    renderpause(player->hCoreRender);
 }
 
 void playerstop(HANDLE hplayer)
