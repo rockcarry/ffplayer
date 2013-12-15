@@ -81,7 +81,7 @@ static void CALLBACK waveOutProc(HWAVEOUT hwo, UINT uMsg, DWORD dwInstance, DWOR
         }
         //-- play completed --//
         else {
-            render->i64CurTimeA = *ppts + 1000 * pwhdr->dwBytesRecorded / (44100 * 4);
+            render->i64CurTimeA = *ppts;
             TRACE("i64CurTimeA = %d\n", render->i64CurTimeA);
         }
         wavbufqueue_read_done(&(render->WavBufQueue));
@@ -255,9 +255,6 @@ void renderaudiowrite(HANDLE hrender, AVFrame *audio)
     do {
         wavbufqueue_write_request(&(render->WavBufQueue), &ppts, &wavehdr);
 
-        // record audio pts
-        *ppts = audio->pts;
-
         //++ do resample audio data ++//
         sampnum = swr_convert(render->pSWRContext, (uint8_t **)&(wavehdr->lpData),
             (int)wavehdr->dwUser / 4, (const uint8_t**)audio->extended_data,
@@ -269,6 +266,8 @@ void renderaudiowrite(HANDLE hrender, AVFrame *audio)
         //++ post or release waveout audio buffer ++//
         if (sampnum > 0) {
             wavehdr->dwBufferLength = sampnum * 4;
+            audio->pts += sampnum * 1000 / 44100;
+            *ppts = audio->pts;
             waveOutWrite(render->hWaveOut, wavehdr, sizeof(WAVEHDR));
             wavbufqueue_write_done(&(render->WavBufQueue));
         }
