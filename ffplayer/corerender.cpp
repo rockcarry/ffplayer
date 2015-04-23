@@ -170,11 +170,10 @@ HANDLE renderopen(HWND hwnd, AVRational frate, int pixfmt, int w, int h,
 
     // create dc & bitmaps
     render->hRenderDC = GetDC(render->hRenderWnd);
-    render->hBufferDC = CreateCompatibleDC(NULL);
+    render->hBufferDC = CreateCompatibleDC(render->hRenderDC);
 
-    RECT rect = {0};
-    GetClientRect(hwnd, &rect);
-    bmpqueue_create(&(render->BmpQueue), render->hBufferDC, rect.right, rect.bottom, 16);
+    // create bmp queue
+    bmpqueue_create(&(render->BmpQueue), render->hBufferDC, GetSystemMetrics(SM_CXSCREEN), GetSystemMetrics(SM_CYSCREEN), 32);
 
     render->nRenderStatus = 0;
     render->hVideoThread  = CreateThread(NULL, 0, (LPTHREAD_START_ROUTINE)VideoRenderThreadProc, render, 0, NULL);
@@ -207,14 +206,14 @@ void renderclose(HANDLE hrender)
     WaitForSingleObject(render->hVideoThread, -1);
     CloseHandle(render->hVideoThread);
 
-    // destroy bmp queue
-    bmpqueue_destroy(&(render->BmpQueue));
-
     // set zero to free sws context
     rendersetrect(render, 0, 0, 0, 0);
 
     if (render->hBufferDC) DeleteDC (render->hBufferDC);
     if (render->hRenderDC) ReleaseDC(render->hRenderWnd, render->hRenderDC);
+
+    // destroy bmp queue
+    bmpqueue_destroy(&(render->BmpQueue));
     //-- video --//
 
     // free context
@@ -317,7 +316,7 @@ void rendersetrect(HANDLE hrender, int x, int y, int w, int h)
         render->PixelFormat,
         render->nRenderWidth,
         render->nRenderHeight,
-        PIX_FMT_RGB565,
+        PIX_FMT_RGB32,
         SWS_BILINEAR,
         0, 0, 0);
 }

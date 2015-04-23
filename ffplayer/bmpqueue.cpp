@@ -31,7 +31,7 @@ BOOL bmpqueue_create(BMPQUEUE *pbq, HDC hdc, int w, int h, int cdepth)
     bmpinfo->bmiHeader.biHeight      =-h;
     bmpinfo->bmiHeader.biPlanes      = 1;
     bmpinfo->bmiHeader.biBitCount    = cdepth;
-    bmpinfo->bmiHeader.biCompression = BI_BITFIELDS;
+    bmpinfo->bmiHeader.biCompression = cdepth == 16 ? BI_BITFIELDS : BI_RGB;
 
     quad[0] = 0xF800; // RGB565
     quad[1] = 0x07E0;
