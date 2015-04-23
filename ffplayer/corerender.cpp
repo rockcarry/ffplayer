@@ -112,8 +112,10 @@ static DWORD WINAPI VideoRenderThreadProc(RENDER *render)
 
         // ++ av sync control ++ //
         diff = render->i64CurTimeV - render->i64CurTimeA;
-        if (diff >  88) render->iSleepTick++;
-        if (diff < -88) render->iSleepTick--;
+        if ((diff > 0 ? diff : -diff) < 60000) {
+            if (diff >  5) render->iSleepTick++;
+            if (diff < -5) render->iSleepTick--;
+        }
         // -- av sync control -- //
 
         //++ for seek ++//

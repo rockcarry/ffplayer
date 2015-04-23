@@ -217,7 +217,7 @@ HANDLE playeropen(char *file, HWND hwnd)
     uint32_t       i        = 0;
 
     // init log
-//  log_init(TEXT("DEBUGER"));
+    log_init(TEXT("DEBUGER"));
 
     // av register all
     av_register_all();
@@ -371,7 +371,7 @@ void playerclose(HANDLE hplayer)
     free(player);
 
     // close log
-//  log_done();
+    log_done();
 }
 
 void playerplay(HANDLE hplayer)
