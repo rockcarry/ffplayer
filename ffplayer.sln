@@ -1,0 +1,29 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 9.00
+# Visual Studio 2005
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "ffplayer", "ffplayer\ffplayer.vcproj", "{2537A15B-F975-416D-8106-22CD6EDFCCDE}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "player", "player\player.vcproj", "{0E175BF5-7997-4F54-86ED-40991B4D386A}"
+	ProjectSection(ProjectDependencies) = postProject
+		{2537A15B-F975-416D-8106-22CD6EDFCCDE} = {2537A15B-F975-416D-8106-22CD6EDFCCDE}
+	EndProjectSection
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Win32 = Debug|Win32
+		Release|Win32 = Release|Win32
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{2537A15B-F975-416D-8106-22CD6EDFCCDE}.Debug|Win32.ActiveCfg = Debug|Win32
+		{2537A15B-F975-416D-8106-22CD6EDFCCDE}.Debug|Win32.Build.0 = Debug|Win32
+		{2537A15B-F975-416D-8106-22CD6EDFCCDE}.Release|Win32.ActiveCfg = Release|Win32
+		{2537A15B-F975-416D-8106-22CD6EDFCCDE}.Release|Win32.Build.0 = Release|Win32
+		{0E175BF5-7997-4F54-86ED-40991B4D386A}.Debug|Win32.ActiveCfg = Debug|Win32
+		{0E175BF5-7997-4F54-86ED-40991B4D386A}.Debug|Win32.Build.0 = Debug|Win32
+		{0E175BF5-7997-4F54-86ED-40991B4D386A}.Release|Win32.ActiveCfg = Release|Win32
+		{0E175BF5-7997-4F54-86ED-40991B4D386A}.Release|Win32.Build.0 = Release|Win32
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+EndGlobal

@@ -28,6 +28,9 @@
 			/>
 			<Tool
 				Name="VCCustomBuildTool"
+				Description="copy ffmpeg dlls"
+				CommandLine="copy &quot;$(SolutionDir)\ffmpeg\bin\*.dll&quot; &quot;$(TargetDir)&quot; /y"
+				Outputs="avcodec-56.dll"
 			/>
 			<Tool
 				Name="VCXMLDataGeneratorTool"
@@ -113,6 +116,9 @@
 			/>
 			<Tool
 				Name="VCCustomBuildTool"
+				Description="copy ffmpeg dlls"
+				CommandLine="copy &quot;$(SolutionDir)\ffmpeg\bin\*.dll&quot; &quot;$(TargetDir)&quot; /y"
+				Outputs="avcodec-56.dll"
 			/>
 			<Tool
 				Name="VCXMLDataGeneratorTool"

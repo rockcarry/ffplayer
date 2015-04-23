@@ -1,0 +1,10 @@
+EXPORTS
+
+playeropen
+playerclose
+playerplay
+playerpause
+playerseek
+playersetrect
+playersetparam
+playergetparam

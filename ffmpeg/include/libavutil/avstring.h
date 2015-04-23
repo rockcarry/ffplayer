@@ -132,6 +132,20 @@ size_t av_strlcat(char *dst, const char *src, size_t size);
 size_t av_strlcatf(char *dst, size_t size, const char *fmt, ...) av_printf_format(3, 4);
 
 /**
+ * Get the count of continuous non zero chars starting from the beginning.
+ *
+ * @param len maximum number of characters to check in the string, that
+ *            is the maximum value which is returned by the function
+ */
+static inline size_t av_strnlen(const char *s, size_t len)
+{
+    size_t i;
+    for (i = 0; i < len && s[i]; i++)
+        ;
+    return i;
+}
+
+/**
  * Print arguments following specified format into a large enough auto
  * allocated buffer. It is similar to GNU asprintf().
  * @param fmt printf-compatible format string, specifying how the
@@ -189,22 +203,22 @@ char *av_strtok(char *s, const char *delim, char **saveptr);
 /**
  * Locale-independent conversion of ASCII isdigit.
  */
-int av_isdigit(int c);
+av_const int av_isdigit(int c);
 
 /**
  * Locale-independent conversion of ASCII isgraph.
  */
-int av_isgraph(int c);
+av_const int av_isgraph(int c);
 
 /**
  * Locale-independent conversion of ASCII isspace.
  */
-int av_isspace(int c);
+av_const int av_isspace(int c);
 
 /**
  * Locale-independent conversion of ASCII characters to uppercase.
  */
-static inline int av_toupper(int c)
+static inline av_const int av_toupper(int c)
 {
     if (c >= 'a' && c <= 'z')
         c ^= 0x20;
@@ -214,7 +228,7 @@ static inline int av_toupper(int c)
 /**
  * Locale-independent conversion of ASCII characters to lowercase.
  */
-static inline int av_tolower(int c)
+static inline av_const int av_tolower(int c)
 {
     if (c >= 'A' && c <= 'Z')
         c ^= 0x20;
@@ -224,7 +238,7 @@ static inline int av_tolower(int c)
 /**
  * Locale-independent conversion of ASCII isxdigit.
  */
-int av_isxdigit(int c);
+av_const int av_isxdigit(int c);
 
 /**
  * Locale-independent case-insensitive compare.
@@ -253,6 +267,24 @@ const char *av_basename(const char *path);
  * @note the function may change the input string.
  */
 const char *av_dirname(char *path);
+
+/**
+ * Match instances of a name in a comma-separated list of names.
+ * @param name  Name to look for.
+ * @param names List of names.
+ * @return 1 on match, 0 otherwise.
+ */
+int av_match_name(const char *name, const char *names);
+
+/**
+ * Append path component to the existing path.
+ * Path separator '/' is placed between when needed.
+ * Resulting string have to be freed with av_free().
+ * @param path      base path
+ * @param component component to be appended
+ * @return new path or NULL on error.
+ */
+char *av_append_path_component(const char *path, const char *component);
 
 enum AVEscapeMode {
     AV_ESCAPE_MODE_AUTO,      ///< Use auto-selected escaping mode.
@@ -334,6 +366,13 @@ int av_escape(char **dst, const char *src, const char *special_chars,
  */
 int av_utf8_decode(int32_t *codep, const uint8_t **bufp, const uint8_t *buf_end,
                    unsigned int flags);
+
+/**
+ * Check if a name is in a list.
+ * @returns 0 if not found, or the 1 based index where it has been found in the
+ *            list.
+ */
+int av_match_list(const char *name, const char *list, char separator);
 
 /**
  * @}

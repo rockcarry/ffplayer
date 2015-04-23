@@ -5,7 +5,7 @@
 #include "player.h"
 #include "playerDlg.h"
 extern "C" {
-#include "../coreplayer/coreplayer.h"
+#include "../ffplayer/coreplayer.h"
 }
 
 #ifdef _DEBUG
@@ -73,7 +73,7 @@ void CplayerDlg::PlayerOpenFile(void)
     {
         m_nPosXCur   = 0;
         m_bPlayPause = FALSE;
-        playergetparam(g_hplayer, PARAM_GET_DURATION, &m_nTimeTotal);
+        playergetparam(g_hplayer, PARAM_VIDEO_DURATION, &m_nTimeTotal);
         playersetrect(g_hplayer, 0, 0, SCREEN_WIDTH, SCREEN_HEIGHT - 2);
         playerplay(g_hplayer);
         SetTimer(TIMER_ID_PROGRESS, 500, NULL);
@@ -113,6 +113,7 @@ BOOL CplayerDlg::OnInitDialog()
 
     m_pDrawDC = GetDC();
     SetTimer(TIMER_ID_FIRST_DIALOG, 100, NULL);
+
     return TRUE;  // return TRUE  unless you set the focus to a control
 }
 
@@ -167,6 +168,13 @@ void CplayerDlg::OnDestroy()
 {
     CDialog::OnDestroy();
     ReleaseDC(m_pDrawDC);
+
+    // close player
+    if (g_hplayer)
+    {
+        playerclose(g_hplayer);
+        g_hplayer = NULL;
+    }
 }
 
 void CplayerDlg::OnTimer(UINT_PTR nIDEvent)
@@ -182,7 +190,7 @@ void CplayerDlg::OnTimer(UINT_PTR nIDEvent)
         break;
 
     case TIMER_ID_PROGRESS:
-        playergetparam(g_hplayer, PARAM_GET_POSITION, &pos);
+        playergetparam(g_hplayer, PARAM_VIDEO_POSITION, &pos);
         m_nPosXCur = (LONG)(SCREEN_WIDTH * pos / m_nTimeTotal);
         InvalidateRect(NULL, FALSE);
         break;
