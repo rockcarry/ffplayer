@@ -37,6 +37,8 @@ typedef struct
     int         nRenderPosY;
     int         nRenderWidth;
     int         nRenderHeight;
+    int         nRenderNewW;
+    int         nRenderNewH;
     HWND        hRenderWnd;
     HDC         hRenderDC;
     HDC         hBufferDC;
@@ -164,8 +166,22 @@ HANDLE renderopen(HWND hwnd, AVRational frate, int pixfmt, int w, int h,
     // init for video
     render->nVideoWidth  = w;
     render->nVideoHeight = h;
+    render->nRenderWidth = GetSystemMetrics(SM_CXSCREEN);
+    render->nRenderHeight= GetSystemMetrics(SM_CYSCREEN);
+    render->nRenderNewW  = render->nRenderWidth;
+    render->nRenderNewH  = render->nRenderHeight;
     render->PixelFormat  = (PixelFormat)pixfmt;
-    rendersetrect(render, 0, 0, w, h);
+
+    // create sws context
+    render->pSWSContext = sws_getContext(
+        render->nVideoWidth,
+        render->nVideoHeight,
+        render->PixelFormat,
+        render->nRenderWidth,
+        render->nRenderHeight,
+        PIX_FMT_RGB32,
+        SWS_BILINEAR,
+        0, 0, 0);
 
     render->iFrameTick = 1000 * frate.den / frate.num;
     render->iSleepTick = render->iFrameTick;
@@ -208,8 +224,8 @@ void renderclose(HANDLE hrender)
     WaitForSingleObject(render->hVideoThread, -1);
     CloseHandle(render->hVideoThread);
 
-    // set zero to free sws context
-    rendersetrect(render, 0, 0, 0, 0);
+    // free sws context
+    if (render->pSWSContext) sws_freeContext(render->pSWSContext);
 
     if (render->hBufferDC) DeleteDC (render->hBufferDC);
     if (render->hRenderDC) ReleaseDC(render->hRenderWnd, render->hRenderDC);
@@ -285,10 +301,21 @@ void rendervideowrite(HANDLE hrender, AVFrame *video)
     int64_t  *ppts    = NULL;
 
     if (render->nRenderStatus & RS_SEEK) return;
+
     bmpqueue_write_request(&(render->BmpQueue), &ppts, &bmpbuf, &stride);
     *ppts               = video->pts;
     picture.data[0]     = bmpbuf;
     picture.linesize[0] = stride;
+    if (  render->nRenderNewW != render->nRenderWidth
+       || render->nRenderNewH != render->nRenderHeight)
+    {
+        render->nRenderWidth  = render->nRenderNewW;
+        render->nRenderHeight = render->nRenderNewH;
+
+        if (render->pSWSContext) sws_freeContext(render->pSWSContext);
+        render->pSWSContext = sws_getContext(render->nVideoWidth, render->nVideoHeight, render->PixelFormat,
+                        render->nRenderWidth, render->nRenderHeight, PIX_FMT_RGB32, SWS_BILINEAR, 0, 0, 0);
+    }
     sws_scale(render->pSWSContext, video->data, video->linesize, 0, render->nVideoHeight, picture.data, picture.linesize);
     bmpqueue_write_done(&(render->BmpQueue));
 }
@@ -298,29 +325,39 @@ void rendersetrect(HANDLE hrender, int x, int y, int w, int h)
     if (!hrender) return;
     RENDER *render = (RENDER*)hrender;
 
-    // release first
-    if (render->pSWSContext)
-    {
-        sws_freeContext(render->pSWSContext);
-        render->pSWSContext = NULL;
-    }
-    if (x == 0 && y == 0 && w == 0 && h == 0) return;
+    render->nRenderPosX = x;
+    render->nRenderPosY = y;
+    render->nRenderNewW = w;
+    render->nRenderNewH = h;
 
-    render->nRenderPosX   = x;
-    render->nRenderPosY   = y;
-    render->nRenderWidth  = w;
-    render->nRenderHeight = h;
+    //++ invalidate rects ++//
+    RECT rect, client;
+    GetClientRect(render->hRenderWnd, &client);
 
-    // recreate then
-    render->pSWSContext = sws_getContext(
-        render->nVideoWidth,
-        render->nVideoHeight,
-        render->PixelFormat,
-        render->nRenderWidth,
-        render->nRenderHeight,
-        PIX_FMT_RGB32,
-        SWS_BILINEAR,
-        0, 0, 0);
+    rect.left   = 0;
+    rect.top    = 0;
+    rect.right  = client.right;
+    rect.bottom = y;
+    InvalidateRect(render->hRenderWnd, &rect, TRUE);
+
+    rect.left   = 0;
+    rect.top    = y + h;
+    rect.right  = client.right;
+    rect.bottom = client.bottom;
+    InvalidateRect(render->hRenderWnd, &rect, TRUE);
+
+    rect.left   = 0;
+    rect.top    = y;
+    rect.right  = x;
+    rect.bottom = y + h;
+    InvalidateRect(render->hRenderWnd, &rect, TRUE);
+
+    rect.left   = x + w;
+    rect.top    = y;
+    rect.right  = client.right;
+    rect.bottom = y + h;
+    InvalidateRect(render->hRenderWnd, &rect, TRUE);
+    //-- invalidate rects --//
 }
 
 void renderstart(HANDLE hrender)

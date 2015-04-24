@@ -12,9 +12,6 @@ extern "C" {
 #define new DEBUG_NEW
 #endif
 
-#define SCREEN_WIDTH   800
-#define SCREEN_HEIGHT  480
-
 #define TIMER_ID_FIRST_DIALOG  1
 #define TIMER_ID_PROGRESS      2
 
@@ -63,18 +60,12 @@ void CplayerDlg::PlayerOpenFile(void)
         return;
     }
 
-    // invalidate rect
-    InvalidateRect(NULL, TRUE);
-    m_nPosXCur = 0;
-
     // player open file
     g_hplayer = playeropen(str, GetSafeHwnd());
     if (g_hplayer)
     {
-        m_nPosXCur   = 0;
         m_bPlayPause = FALSE;
-        playergetparam(g_hplayer, PARAM_VIDEO_DURATION, &m_nTimeTotal);
-        playersetrect(g_hplayer, 0, 0, SCREEN_WIDTH, SCREEN_HEIGHT - 2);
+        playersetrect(g_hplayer, 0, 0, m_rtClient.right, m_rtClient.bottom - 2);
         playerplay(g_hplayer);
         SetTimer(TIMER_ID_PROGRESS, 500, NULL);
     }
@@ -88,6 +79,7 @@ BEGIN_MESSAGE_MAP(CplayerDlg, CDialog)
     ON_WM_TIMER()
     ON_WM_LBUTTONDOWN()
     ON_WM_CTLCOLOR()
+    ON_WM_SIZE()
 END_MESSAGE_MAP()
 
 
@@ -103,13 +95,7 @@ BOOL CplayerDlg::OnInitDialog()
     SetIcon(m_hIcon, FALSE);        // Set small icon
 
     // TODO: Add extra initialization here
-    RECT rect;
-    int  w, h;
-    MoveWindow(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT);
-    GetClientRect(&rect);
-    w = SCREEN_WIDTH  + (SCREEN_WIDTH  - rect.right);
-    h = SCREEN_HEIGHT + (SCREEN_HEIGHT - rect.bottom);
-    MoveWindow(0, 0, w, h);
+    MoveWindow(0, 0, 800, 480);
 
     m_pDrawDC = GetDC();
     SetTimer(TIMER_ID_FIRST_DIALOG, 100, NULL);
@@ -134,7 +120,7 @@ void CplayerDlg::OnPaint()
         int cyIcon = GetSystemMetrics(SM_CYICON);
         CRect rect;
         GetClientRect(&rect);
-        int x = (rect.Width() - cxIcon + 1) / 2;
+        int x = (rect.Width () - cxIcon + 1) / 2;
         int y = (rect.Height() - cyIcon + 1) / 2;
 
         // Draw the icon
@@ -144,13 +130,16 @@ void CplayerDlg::OnPaint()
     {
         CPaintDC dc(this);
 
-        RECT fill   = {0};
-        fill.right  = m_nPosXCur;
-        fill.top    = SCREEN_HEIGHT - 2;
-        fill.bottom = SCREEN_HEIGHT;
-        dc.FillSolidRect(&fill, RGB(250, 200, 0));
-        fill.left   = fill.right;
-        fill.right  = SCREEN_WIDTH;
+        int total = 1, pos = 0;
+        playergetparam(g_hplayer, PARAM_VIDEO_DURATION, &total);
+        playergetparam(g_hplayer, PARAM_VIDEO_POSITION, &pos  );
+
+        RECT fill  = m_rtClient;
+        fill.right = (LONG)(fill.right * pos / total);
+        fill.top   = fill.bottom - 2;
+        dc.FillSolidRect(&fill, RGB(250, 150, 0));
+        fill.left  = fill.right;
+        fill.right = m_rtClient.right;
         dc.FillSolidRect(&fill, RGB(0, 0, 0));
 
         CDialog::OnPaint();
@@ -179,8 +168,6 @@ void CplayerDlg::OnDestroy()
 
 void CplayerDlg::OnTimer(UINT_PTR nIDEvent)
 {
-    int  pos;
-
     switch (nIDEvent)
     {
     case TIMER_ID_FIRST_DIALOG:
@@ -190,9 +177,12 @@ void CplayerDlg::OnTimer(UINT_PTR nIDEvent)
         break;
 
     case TIMER_ID_PROGRESS:
-        playergetparam(g_hplayer, PARAM_VIDEO_POSITION, &pos);
-        m_nPosXCur = (LONG)(SCREEN_WIDTH * pos / m_nTimeTotal);
-        InvalidateRect(NULL, FALSE);
+        RECT rect;
+        rect.top    = m_rtClient.bottom - 2;
+        rect.left   = m_rtClient.left;
+        rect.bottom = m_rtClient.bottom;
+        rect.right  = m_rtClient.right;
+        InvalidateRect(&rect, FALSE);
         break;
 
     default:
@@ -203,10 +193,11 @@ void CplayerDlg::OnTimer(UINT_PTR nIDEvent)
 
 void CplayerDlg::OnLButtonDown(UINT nFlags, CPoint point)
 {
-    if (point.y > SCREEN_HEIGHT - 8)
+    if (point.y > m_rtClient.bottom - 8)
     {
-        playerseek(g_hplayer, m_nTimeTotal * point.x / SCREEN_WIDTH);
-        m_nPosXCur  = point.x;
+        int total = 1;
+        playergetparam(g_hplayer, PARAM_VIDEO_DURATION, &total);
+        playerseek(g_hplayer, total * point.x / m_rtClient.right);
         InvalidateRect(NULL, FALSE);
     }
     else {
@@ -228,6 +219,16 @@ HBRUSH CplayerDlg::OnCtlColor(CDC* pDC, CWnd* pWnd, UINT nCtlColor)
     else return hbr;
 }
 
+void CplayerDlg::OnSize(UINT nType, int cx, int cy)
+{
+    CDialog::OnSize(nType, cx, cy);
+
+    if (nType != SIZE_MINIMIZED) {
+        GetClientRect(&m_rtClient);
+        playersetrect(g_hplayer, 0, 0, cx, cy - 2);
+    }
+}
+
 BOOL CplayerDlg::PreTranslateMessage(MSG *pMsg) 
 {
     if (pMsg->message == MSG_COREPLAYER)
@@ -235,8 +236,6 @@ BOOL CplayerDlg::PreTranslateMessage(MSG *pMsg)
         switch (pMsg->wParam)
         {
         case PLAY_COMPLETED:
-            m_nPosXCur = SCREEN_WIDTH;
-            InvalidateRect(NULL, FALSE);
             PlayerOpenFile();
             break;
         }

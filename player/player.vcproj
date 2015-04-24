@@ -29,7 +29,7 @@
 			<Tool
 				Name="VCCustomBuildTool"
 				Description="copy ffmpeg dlls"
-				CommandLine="copy &quot;$(SolutionDir)\ffmpeg\bin\*.dll&quot; &quot;$(TargetDir)&quot; /y"
+				CommandLine="copy &quot;$(SolutionDir)\ffmpeg\bin\*.dll&quot; &quot;$(TargetDir)&quot; /y&#x0D;&#x0A;"
 				Outputs="avcodec-56.dll"
 			/>
 			<Tool
@@ -117,7 +117,7 @@
 			<Tool
 				Name="VCCustomBuildTool"
 				Description="copy ffmpeg dlls"
-				CommandLine="copy &quot;$(SolutionDir)\ffmpeg\bin\*.dll&quot; &quot;$(TargetDir)&quot; /y"
+				CommandLine="copy &quot;$(SolutionDir)\ffmpeg\bin\*.dll&quot; &quot;$(TargetDir)&quot; /y&#x0D;&#x0A;"
 				Outputs="avcodec-56.dll"
 			/>
 			<Tool
@@ -271,5 +271,9 @@
 		</Filter>
 	</Files>
 	<Globals>
+		<Global
+			Name="RESOURCE_FILE"
+			Value="player.rc"
+		/>
 	</Globals>
 </VisualStudioProject>
