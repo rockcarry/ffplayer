@@ -100,10 +100,8 @@ static DWORD WINAPI AVDemuxThreadProc(PLAYER *player)
 
 static DWORD WINAPI AudioDecodeThreadProc(PLAYER *player)
 {
-    AVPacket *packet   = NULL;
-    AVFrame  *aframe   = NULL;
-    int       consumed = 0;
-    int       gotaudio = 0;
+    AVPacket *packet = NULL;
+    AVFrame  *aframe = NULL;
 
     aframe = av_frame_alloc();
     if (!aframe) return 0;
@@ -129,23 +127,23 @@ static DWORD WINAPI AudioDecodeThreadProc(PLAYER *player)
         //-- play completed --//
 
         //++ decode audio packet ++//
-        consumed = gotaudio = 0;
-        while (packet->size > 0) {
-            if (player->iAudioStreamIndex != -1) {
+        if (player->iAudioStreamIndex != -1) {
+            while (packet->size > 0) {
+                int consumed = 0;
+                int gotaudio = 0;
                 consumed = avcodec_decode_audio(player->pAudioCodecContext, aframe, &gotaudio, packet);
-            }
+                if (consumed < 0) {
+                    log_printf(TEXT("an error occurred during decoding audio.\n"));
+                    break;
+                }
 
-            if (consumed < 0) {
-                log_printf(TEXT("an error occurred during decoding audio.\n"));
-                break;
+                if (gotaudio) {
+                    aframe->pts = (int64_t)(packet->pts * player->dAudioTimeBase);
+                    renderaudiowrite(player->hCoreRender, aframe);
+                }
+                packet->data += consumed;
+                packet->size -= consumed;
             }
-
-            if (gotaudio) {
-                aframe->pts = (int64_t)(packet->pts * player->dAudioTimeBase);
-                renderaudiowrite(player->hCoreRender, aframe);
-            }
-            packet->data += consumed;
-            packet->size -= consumed;
         }
         //-- decode audio packet --//
 
@@ -161,9 +159,8 @@ static DWORD WINAPI AudioDecodeThreadProc(PLAYER *player)
 
 static DWORD WINAPI VideoDecodeThreadProc(PLAYER *player)
 {
-    AVPacket *packet   = NULL;
-    AVFrame  *vframe   = NULL;
-    int       gotvideo = 0;
+    AVPacket *packet = NULL;
+    AVFrame  *vframe = NULL;
 
     vframe = av_frame_alloc();
     if (!vframe) return 0;
@@ -181,14 +178,25 @@ static DWORD WINAPI VideoDecodeThreadProc(PLAYER *player)
         pktqueue_read_request_v(&(player->PacketQueue), &packet);
 
         //++ decode video packet ++//
-        gotvideo = 0;
         if (player->iVideoStreamIndex != -1) {
-            avcodec_decode_video(player->pVideoCodecContext, vframe, &gotvideo, packet);
-        }
+            while (packet->size > 0) {
+                int consumed = 0;
+                int gotvideo = 0;
 
-        if (gotvideo) {
-            vframe->pts = (int64_t)(packet->pts * player->dVideoTimeBase);
-            rendervideowrite(player->hCoreRender, vframe);
+                consumed = avcodec_decode_video(player->pVideoCodecContext, vframe, &gotvideo, packet);
+                if (consumed < 0) {
+                    log_printf(TEXT("an error occurred during decoding video.\n"));
+                    break;
+                }
+
+                if (gotvideo) {
+                    vframe->pts = (int64_t)(packet->pts * player->dVideoTimeBase);
+                    rendervideowrite(player->hCoreRender, vframe);
+                }
+
+                packet->data += consumed;
+                packet->size -= consumed;
+            }
         }
         //-- decode video packet --//
 
