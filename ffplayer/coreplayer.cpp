@@ -138,9 +138,10 @@ static DWORD WINAPI AudioDecodeThreadProc(PLAYER *player)
                 }
 
                 if (gotaudio) {
-                    aframe->pts = (int64_t)(packet->pts * player->dAudioTimeBase);
+                    aframe->pts = (int64_t)(aframe->pkt_pts * player->dAudioTimeBase);
                     renderaudiowrite(player->hCoreRender, aframe);
                 }
+
                 packet->data += consumed;
                 packet->size -= consumed;
             }
@@ -190,7 +191,8 @@ static DWORD WINAPI VideoDecodeThreadProc(PLAYER *player)
                 }
 
                 if (gotvideo) {
-                    vframe->pts = (int64_t)(packet->pts * player->dVideoTimeBase);
+//                  vframe->pts = av_frame_get_best_effort_timestamp(vframe);
+                    vframe->pts = (int64_t)(vframe->pkt_pts * player->dVideoTimeBase);
                     rendervideowrite(player->hCoreRender, vframe);
                 }
 
