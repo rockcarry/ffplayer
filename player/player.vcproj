@@ -29,7 +29,7 @@
 			<Tool
 				Name="VCCustomBuildTool"
 				Description="copy ffmpeg dlls"
-				CommandLine="copy &quot;$(SolutionDir)\ffmpeg\bin\*.dll&quot; &quot;$(TargetDir)&quot; /y&#x0D;&#x0A;"
+				CommandLine="copy &quot;$(SolutionDir)\ffmpeg-win32\bin\*.dll&quot; &quot;$(TargetDir)&quot; /y&#x0D;&#x0A;"
 				Outputs="avcodec-56.dll"
 			/>
 			<Tool
@@ -117,7 +117,7 @@
 			<Tool
 				Name="VCCustomBuildTool"
 				Description="copy ffmpeg dlls"
-				CommandLine="copy &quot;$(SolutionDir)\ffmpeg\bin\*.dll&quot; &quot;$(TargetDir)&quot; /y&#x0D;&#x0A;"
+				CommandLine="copy &quot;$(SolutionDir)\ffmpeg-win32\bin\*.dll&quot; &quot;$(TargetDir)&quot; /y&#x0D;&#x0A;"
 				Outputs="avcodec-56.dll"
 			/>
 			<Tool
