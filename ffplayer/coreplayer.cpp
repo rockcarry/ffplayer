@@ -1,5 +1,5 @@
 // 包含头文件
-#include <windows.h>
+#include <pthread.h>
 #include "pktqueue.h"
 #include "coreplayer.h"
 #include "corerender.h"
@@ -39,17 +39,18 @@ typedef struct
     #define PS_R_PAUSE  (1 << 3)  // rendering pause
     #define PS_CLOSE    (1 << 4)  // close player
     int              nPlayerStatus;
-    HANDLE           hAVDemuxThread;
-    HANDLE           hADecodeThread;
-    HANDLE           hVDecodeThread;
+    pthread_t        hAVDemuxThread;
+    pthread_t        hADecodeThread;
+    pthread_t        hVDecodeThread;
 
     // packet queue
     PKTQUEUE         PacketQueue;
 } PLAYER;
 
 // 内部函数实现
-static DWORD WINAPI AVDemuxThreadProc(PLAYER *player)
+static void* AVDemuxThreadProc(void *param)
 {
+    PLAYER   *player = (PLAYER*)param;
     AVPacket *packet = NULL;
     int       retv   = 0;
 
@@ -95,16 +96,17 @@ static DWORD WINAPI AVDemuxThreadProc(PLAYER *player)
         }
     }
 
-    return 0;
+    return NULL;
 }
 
-static DWORD WINAPI AudioDecodeThreadProc(PLAYER *player)
+static void* AudioDecodeThreadProc(void *param)
 {
+    PLAYER   *player = (PLAYER*)param;
     AVPacket *packet = NULL;
     AVFrame  *aframe = NULL;
 
     aframe = av_frame_alloc();
-    if (!aframe) return 0;
+    if (!aframe) return NULL;
 
     while (!(player->nPlayerStatus & PS_CLOSE))
     {
@@ -155,16 +157,17 @@ static DWORD WINAPI AudioDecodeThreadProc(PLAYER *player)
     }
 
     av_frame_free(&aframe);
-    return 0;
+    return NULL;
 }
 
-static DWORD WINAPI VideoDecodeThreadProc(PLAYER *player)
+static void* VideoDecodeThreadProc(void *param)
 {
+    PLAYER   *player = (PLAYER*)param;
     AVPacket *packet = NULL;
     AVFrame  *vframe = NULL;
 
     vframe = av_frame_alloc();
-    if (!vframe) return 0;
+    if (!vframe) return NULL;
 
     while (!(player->nPlayerStatus & PS_CLOSE))
     {
@@ -209,7 +212,7 @@ static DWORD WINAPI VideoDecodeThreadProc(PLAYER *player)
     }
 
     av_frame_free(&vframe);
-    return 0;
+    return NULL;
 }
 
 // 函数实现
@@ -319,6 +322,12 @@ HANDLE playeropen(char *file, HWND hwnd)
     player->hCoreRender = renderopen(hwnd, vrate, vformat, width, height,
         alayout, (AVSampleFormat)aformat, arate);
 
+    // make sure player status paused
+    player->nPlayerStatus = 0xf;
+    pthread_create(&(player->hAVDemuxThread), NULL, AVDemuxThreadProc    , player);
+    pthread_create(&(player->hADecodeThread), NULL, AudioDecodeThreadProc, player);
+    pthread_create(&(player->hVDecodeThread), NULL, VideoDecodeThreadProc, player);
+
     return player;
 
 error_handler:
@@ -346,29 +355,14 @@ void playerclose(HANDLE hplayer)
     }
     //-- make sure packet queue not empty --//
 
-    // wait and close audio/video demuxing thread handle
-    if (player->hAVDemuxThread)
-    {
-        WaitForSingleObject(player->hAVDemuxThread, -1);
-        CloseHandle(player->hAVDemuxThread);
-        player->hAVDemuxThread = NULL;
-    }
+    // wait audio/video demuxing thread exit
+    pthread_join(player->hAVDemuxThread, NULL);
 
-    // wait and close audio decoding thread handle
-    if (player->hADecodeThread)
-    {
-        WaitForSingleObject(player->hADecodeThread, -1);
-        CloseHandle(player->hADecodeThread);
-        player->hADecodeThread = NULL;
-    }
+    // wait audio decoding thread exit
+    pthread_join(player->hADecodeThread, NULL);
 
-    // wait and close video decoding thread handle
-    if (player->hVDecodeThread)
-    {
-        WaitForSingleObject(player->hVDecodeThread, -1);
-        CloseHandle(player->hVDecodeThread);
-        player->hVDecodeThread = NULL;
-    }
+    // wait video decoding thread exit
+    pthread_join(player->hVDecodeThread, NULL);
 
     // destroy packet queue
     pktqueue_destroy(&(player->PacketQueue));
@@ -389,23 +383,6 @@ void playerplay(HANDLE hplayer)
     if (!hplayer) return;
     PLAYER *player = (PLAYER*)hplayer;
     player->nPlayerStatus = 0;
-
-    // create audio/video demuxing thread
-    if (!player->hAVDemuxThread) {
-        player->hAVDemuxThread = CreateThread(0, 0, (LPTHREAD_START_ROUTINE)AVDemuxThreadProc, player, 0, 0);
-    }
-
-    // create audio decoding thread
-    if (!player->hADecodeThread) {
-        player->hADecodeThread = CreateThread(0, 0, (LPTHREAD_START_ROUTINE)AudioDecodeThreadProc, player, 0, 0);
-    }
-
-    // create video decoding thread
-    if (!player->hVDecodeThread) {
-        player->hVDecodeThread = CreateThread(0, 0, (LPTHREAD_START_ROUTINE)VideoDecodeThreadProc, player, 0, 0);
-    }
-
-    // render start
     renderstart(player->hCoreRender);
 }
 

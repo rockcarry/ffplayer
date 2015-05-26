@@ -3,6 +3,7 @@
 
 // 包含头文件
 #include <windows.h>
+#include <semaphore.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -25,14 +26,13 @@ typedef struct {
     long       atail;
     long       vhead;
     long       vtail;
-    long       fpktnum;
     long       apktnum;
     long       vpktnum;
-    HANDLE     fsemr;
-    HANDLE     asemr;
-    HANDLE     asemw;
-    HANDLE     vsemr;
-    HANDLE     vsemw;
+    sem_t      fsemr;
+    sem_t      asemr;
+    sem_t      asemw;
+    sem_t      vsemr;
+    sem_t      vsemw;
     AVPacket  *bpkts; // packet buffers
     AVPacket **fpkts; // free packets
     AVPacket **apkts; // audio packets

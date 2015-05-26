@@ -1,5 +1,6 @@
 // 包含头文件
 #include <windows.h>
+#include <pthread.h>
 #include <mmsystem.h>
 #include "coreplayer.h"
 #include "corerender.h"
@@ -42,8 +43,8 @@ typedef struct
     HWND        hRenderWnd;
     HDC         hRenderDC;
     HDC         hBufferDC;
-    HANDLE      hVideoThread;
     BMPQUEUE    BmpQueue;
+    pthread_t   hVideoThread;
 
     DWORD       dwCurTick;
     DWORD       dwLastTick;
@@ -79,8 +80,10 @@ static void CALLBACK waveOutProc(HWAVEOUT hwo, UINT uMsg, DWORD dwInstance, DWOR
     }
 }
 
-static DWORD WINAPI VideoRenderThreadProc(RENDER *render)
+static void* VideoRenderThreadProc(void *param)
 {
+    RENDER *render = (RENDER*)param;
+
     while (!(render->nRenderStatus & RS_CLOSE))
     {
         if (render->nRenderStatus & RS_PAUSE) {
@@ -133,7 +136,7 @@ static DWORD WINAPI VideoRenderThreadProc(RENDER *render)
         log_printf(TEXT("%lld, %d\n"), diff, render->iSleepTick);
     }
 
-    return 0;
+    return NULL;
 }
 
 // 函数实现
@@ -194,7 +197,7 @@ HANDLE renderopen(HWND hwnd, AVRational frate, int pixfmt, int w, int h,
     bmpqueue_create(&(render->BmpQueue), render->hBufferDC, GetSystemMetrics(SM_CXSCREEN), GetSystemMetrics(SM_CYSCREEN), 32);
 
     render->nRenderStatus = 0;
-    render->hVideoThread  = CreateThread(NULL, 0, (LPTHREAD_START_ROUTINE)VideoRenderThreadProc, render, 0, NULL);
+    pthread_create(&(render->hVideoThread), NULL, VideoRenderThreadProc, render);
     return (HANDLE)render;
 }
 
@@ -221,8 +224,9 @@ void renderclose(HANDLE hrender)
         bmpqueue_write_request(&(render->BmpQueue), NULL, NULL, NULL);
         bmpqueue_write_done   (&(render->BmpQueue));
     }
-    WaitForSingleObject(render->hVideoThread, -1);
-    CloseHandle(render->hVideoThread);
+
+    // wait for video rendering thread exit
+    pthread_join(render->hVideoThread, NULL);
 
     // free sws context
     if (render->pSWSContext) sws_freeContext(render->pSWSContext);

@@ -4,6 +4,7 @@
 // 包含头文件
 #include <windows.h>
 #include <inttypes.h>
+#include <semaphore.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -16,9 +17,8 @@ typedef struct {
     long      head;
     long      tail;
     long      size;
-    long      curnum;
-    HANDLE    semr;
-    HANDLE    semw;
+    sem_t     semr;
+    sem_t     semw;
     int64_t  *ppts;
     HBITMAP  *hbitmaps;
     BYTE    **pbmpbufs;
