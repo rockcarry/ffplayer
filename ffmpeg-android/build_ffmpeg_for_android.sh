@@ -1,19 +1,33 @@
 #!/bin/bash
 
-cd ffmpeg
+if [ -d ffmpeg ]; then
+  cd ffmpeg
+else
+  git clone git://source.ffmpeg.org/ffmpeg.git ffmpeg
+  cd ffmpeg
+fi
+
+CFLAGS="-O3 -Wall -mthumb -pipe -fpic -fasm \
+  -finline-limit=300 -ffast-math \
+  -fstrict-aliasing -Werror=strict-aliasing \
+  -fmodulo-sched -fmodulo-sched-allow-regmoves \
+  -Wno-psabi -Wa,--noexecstack \
+  -D__ARM_ARCH_5__ -D__ARM_ARCH_5E__ -D__ARM_ARCH_5T__ -D__ARM_ARCH_5TE__ \
+  -DANDROID -DNDEBUG"
+EXTRA_CFLAGS="-march=armv7-a -mfpu=vfpv3-d16 -mfloat-abi=softfp"
+EXTRA_LDFLAGS="-Wl,--fix-cortex-a8"
 
 ./configure \
 --arch=arm \
 --target-os=linux \
 --enable-cross-compile \
 --cross-prefix=arm-linux-androideabi- \
---pkg-config=pkg-config \
---prefix=$PWD/../ffmpeg_sdk_android \
+--prefix=$PWD/.. \
 --enable-static \
 --enable-shared \
 --enable-small \
+--disable-symver \
 --disable-debug \
---disable-yasm \
 --disable-programs \
 --disable-doc \
 --disable-avdevice \
@@ -24,27 +38,15 @@ cd ffmpeg
 --disable-filters  \
 --disable-muxers \
 --disable-swscale-alpha \
+--enable-asm \
 --enable-gpl \
 --enable-version3 \
 --enable-nonfree \
---extra-cflags="-D__ANDROID__ -fPIC" \
---extra-ldflags="-nostdlib" \
-
-sed -i 's/HAVE_LRINT 0/HAVE_LRINT 1/g' config.h
-sed -i 's/HAVE_LRINTF 0/HAVE_LRINTF 1/g' config.h
-sed -i 's/HAVE_ROUND 0/HAVE_ROUND 1/g' config.h
-sed -i 's/HAVE_ROUNDF 0/HAVE_ROUNDF 1/g' config.h
-sed -i 's/HAVE_TRUNC 0/HAVE_TRUNC 1/g' config.h
-sed -i 's/HAVE_TRUNCF 0/HAVE_TRUNCF 1/g' config.h
-sed -i 's/HAVE_CBRT 0/HAVE_CBRT 1/g' config.h
-sed -i 's/HAVE_CBRTF 0/HAVE_CBRTF 1/g' config.h
-sed -i 's/HAVE_ISINF 0/HAVE_ISINF 1/g' config.h
-sed -i 's/HAVE_ISNAN 0/HAVE_ISNAN 1/g' config.h
-sed -i 's/HAVE_SINF 0/HAVE_SINF 1/g' config.h
-sed -i 's/HAVE_RINT 0/HAVE_RINT 1/g' config.h
-sed -i 's/#define av_restrict restrict/#define av_restrict/g' config.h
+--extra-cflags="$CFLAGS $EXTRA_CFLAGS" \
+--extra-ldflags="$EXTRA_LDFLAGS"
 
 make -j8 && make install
 
 cd -
 
+rm -rf ffmpeg
