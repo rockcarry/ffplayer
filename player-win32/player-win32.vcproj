@@ -2,7 +2,7 @@
 <VisualStudioProject
 	ProjectType="Visual C++"
 	Version="8.00"
-	Name="player"
+	Name="player-win32"
 	ProjectGUID="{0E175BF5-7997-4F54-86ED-40991B4D386A}"
 	RootNamespace="player"
 	Keyword="MFCProj"

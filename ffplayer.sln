@@ -3,7 +3,7 @@ Microsoft Visual Studio Solution File, Format Version 9.00
 # Visual Studio 2005
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "ffplayer", "ffplayer\ffplayer.vcproj", "{2537A15B-F975-416D-8106-22CD6EDFCCDE}"
 EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "player", "player\player.vcproj", "{0E175BF5-7997-4F54-86ED-40991B4D386A}"
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "player-win32", "player-win32\player-win32.vcproj", "{0E175BF5-7997-4F54-86ED-40991B4D386A}"
 	ProjectSection(ProjectDependencies) = postProject
 		{2537A15B-F975-416D-8106-22CD6EDFCCDE} = {2537A15B-F975-416D-8106-22CD6EDFCCDE}
 	EndProjectSection
