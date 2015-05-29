@@ -2,7 +2,7 @@
 #define _PLAYER_H_
 
 // 包含头文件
-#include <windows.h>
+#include "stdefine.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -29,14 +29,14 @@ enum {
 };
 
 // 函数声明
-HANDLE playeropen    (char *file, HWND hwnd);
-void   playerclose   (HANDLE hplayer);
-void   playerplay    (HANDLE hplayer);
-void   playerpause   (HANDLE hplayer);
-void   playerseek    (HANDLE hplayer, DWORD sec);
-void   playersetrect (HANDLE hplayer, int x, int y, int w, int h);
-void   playersetparam(HANDLE hplayer, DWORD id, DWORD param);
-void   playergetparam(HANDLE hplayer, DWORD id, void *param);
+void* playeropen    (char *file, void *surface);
+void  playerclose   (void *hplayer);
+void  playerplay    (void *hplayer);
+void  playerpause   (void *hplayer);
+void  playerseek    (void *hplayer, DWORD sec);
+void  playersetrect (void *hplayer, int x, int y, int w, int h);
+void  playersetparam(void *hplayer, DWORD id, DWORD param);
+void  playergetparam(void *hplayer, DWORD id, void *param);
 
 #ifdef __cplusplus
 }

@@ -16,7 +16,7 @@ extern "C" {
 #define TIMER_ID_PROGRESS      2
 
 // 全局变量定义
-static HANDLE g_hplayer = NULL;
+static void *g_hplayer = NULL;
 
 // CplayerDlg dialog
 

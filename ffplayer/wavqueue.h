@@ -2,9 +2,9 @@
 #define _WAV_QUEUE_H_
 
 // 包含头文件
-#include <windows.h>
 #include <inttypes.h>
 #include <semaphore.h>
+#include "stdefine.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -22,11 +22,11 @@ typedef struct {
     sem_t     semw;
     int64_t  *ppts;
     WAVEHDR  *pwhdrs;
-    HWAVEOUT  hwavout;
+    void     *adev;
 } WAVQUEUE;
 
 // 函数声明
-BOOL wavqueue_create (WAVQUEUE *pwq, HWAVEOUT h, int wavbufsize);
+BOOL wavqueue_create (WAVQUEUE *pwq, void *adev, int wavbufsize);
 void wavqueue_destroy(WAVQUEUE *pwq);
 BOOL wavqueue_isempty(WAVQUEUE *pwq);
 

@@ -233,6 +233,10 @@
 				>
 			</File>
 			<File
+				RelativePath=".\stdefine.h"
+				>
+			</File>
+			<File
 				RelativePath=".\wavqueue.h"
 				>
 			</File>

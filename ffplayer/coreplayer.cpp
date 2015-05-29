@@ -30,7 +30,7 @@ typedef struct
 
     // render
     int              nRenderMode;
-    HANDLE           hCoreRender;
+    void            *hCoreRender;
 
     // thread
     #define PS_D_PAUSE  (1 << 0)  // demux pause
@@ -216,7 +216,7 @@ static void* VideoDecodeThreadProc(void *param)
 }
 
 // º¯ÊýÊµÏÖ
-HANDLE playeropen(char *file, HWND hwnd)
+void* playeropen(char *file, void *surface)
 {
     PLAYER        *player   = NULL;
     AVCodec       *pAVCodec = NULL;
@@ -319,7 +319,7 @@ HANDLE playeropen(char *file, HWND hwnd)
     }
 
     // open core render
-    player->hCoreRender = renderopen(hwnd, vrate, vformat, width, height,
+    player->hCoreRender = renderopen(surface, vrate, vformat, width, height,
         alayout, (AVSampleFormat)aformat, arate);
 
     // make sure player status paused
@@ -331,11 +331,11 @@ HANDLE playeropen(char *file, HWND hwnd)
     return player;
 
 error_handler:
-    playerclose((HANDLE)player);
+    playerclose(player);
     return NULL;
 }
 
-void playerclose(HANDLE hplayer)
+void playerclose(void *hplayer)
 {
     if (!hplayer) return;
     PLAYER *player = (PLAYER*)hplayer;
@@ -378,7 +378,7 @@ void playerclose(HANDLE hplayer)
     log_done();
 }
 
-void playerplay(HANDLE hplayer)
+void playerplay(void *hplayer)
 {
     if (!hplayer) return;
     PLAYER *player = (PLAYER*)hplayer;
@@ -386,7 +386,7 @@ void playerplay(HANDLE hplayer)
     renderstart(player->hCoreRender);
 }
 
-void playerpause(HANDLE hplayer)
+void playerpause(void *hplayer)
 {
     if (!hplayer) return;
     PLAYER *player = (PLAYER*)hplayer;
@@ -394,7 +394,7 @@ void playerpause(HANDLE hplayer)
     renderpause(player->hCoreRender);
 }
 
-void playersetrect(HANDLE hplayer, int x, int y, int w, int h)
+void playersetrect(void *hplayer, int x, int y, int w, int h)
 {
     if (!hplayer) return;
     PLAYER *player = (PLAYER*)hplayer;
@@ -420,7 +420,7 @@ void playersetrect(HANDLE hplayer, int x, int y, int w, int h)
     rendersetrect(player->hCoreRender, x + (w - rw) / 2, y + (h - rh) / 2, rw, rh);
 }
 
-void playerseek(HANDLE hplayer, DWORD sec)
+void playerseek(void *hplayer, DWORD sec)
 {
     if (!hplayer) return;
     PLAYER *player = (PLAYER*)hplayer;
@@ -452,7 +452,7 @@ void playerseek(HANDLE hplayer, DWORD sec)
     if (player->nPlayerStatus & PS_R_PAUSE) renderpause(player->hCoreRender);
 }
 
-void playersetparam(HANDLE hplayer, DWORD id, DWORD param)
+void playersetparam(void *hplayer, DWORD id, DWORD param)
 {
     if (!hplayer) return;
     PLAYER *player = (PLAYER*)hplayer;
@@ -465,7 +465,7 @@ void playersetparam(HANDLE hplayer, DWORD id, DWORD param)
     }
 }
 
-void playergetparam(HANDLE hplayer, DWORD id, void *param)
+void playergetparam(void *hplayer, DWORD id, void *param)
 {
     if (!hplayer || !param) return;
     PLAYER *player = (PLAYER*)hplayer;

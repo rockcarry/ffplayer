@@ -2,8 +2,8 @@
 #define _PKT_QUEUE_H_
 
 // 包含头文件
-#include <windows.h>
 #include <semaphore.h>
+#include "stdefine.h"
 
 #ifdef __cplusplus
 extern "C" {

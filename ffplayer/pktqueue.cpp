@@ -1,5 +1,4 @@
 // 包含头文件
-#include <windows.h>
 #include "pktqueue.h"
 
 // 函数实现

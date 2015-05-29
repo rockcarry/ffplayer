@@ -1,7 +1,5 @@
 // 包含头文件
-#include <windows.h>
 #include <pthread.h>
-#include <mmsystem.h>
 #include "coreplayer.h"
 #include "corerender.h"
 #include "wavqueue.h"
@@ -140,14 +138,14 @@ static void* VideoRenderThreadProc(void *param)
 }
 
 // 函数实现
-HANDLE renderopen(HWND hwnd, AVRational frate, int pixfmt, int w, int h,
+void* renderopen(void *surface, AVRational frate, int pixfmt, int w, int h,
                   int64_t ch_layout, AVSampleFormat sndfmt, int srate)
 {
     WAVEFORMATEX wfx = {0};
 
     RENDER *render = (RENDER*)malloc(sizeof(RENDER));
     memset(render, 0, sizeof(RENDER));
-    render->hRenderWnd = hwnd; // save hwnd
+    render->hRenderWnd = (HWND)surface; // save hwnd
 
     // init for audio
     wfx.cbSize          = sizeof(wfx);
@@ -198,10 +196,10 @@ HANDLE renderopen(HWND hwnd, AVRational frate, int pixfmt, int w, int h,
 
     render->nRenderStatus = 0;
     pthread_create(&(render->hVideoThread), NULL, VideoRenderThreadProc, render);
-    return (HANDLE)render;
+    return render;
 }
 
-void renderclose(HANDLE hrender)
+void renderclose(void *hrender)
 {
     if (!hrender) return;
     RENDER *render = (RENDER*)hrender;
@@ -242,7 +240,7 @@ void renderclose(HANDLE hrender)
     free(render);
 }
 
-void renderaudiowrite(HANDLE hrender, AVFrame *audio)
+void renderaudiowrite(void *hrender, AVFrame *audio)
 {
     if (!hrender) return;
     RENDER  *render  = (RENDER*)hrender;
@@ -295,7 +293,7 @@ void renderaudiowrite(HANDLE hrender, AVFrame *audio)
     } while (sampnum > 0);
 }
 
-void rendervideowrite(HANDLE hrender, AVFrame *video)
+void rendervideowrite(void *hrender, AVFrame *video)
 {
     if (!hrender) return;
     RENDER   *render  = (RENDER*)hrender;
@@ -324,7 +322,7 @@ void rendervideowrite(HANDLE hrender, AVFrame *video)
     bmpqueue_write_done(&(render->BmpQueue));
 }
 
-void rendersetrect(HANDLE hrender, int x, int y, int w, int h)
+void rendersetrect(void *hrender, int x, int y, int w, int h)
 {
     if (!hrender) return;
     RENDER *render = (RENDER*)hrender;
@@ -364,7 +362,7 @@ void rendersetrect(HANDLE hrender, int x, int y, int w, int h)
     //-- invalidate rects --//
 }
 
-void renderstart(HANDLE hrender)
+void renderstart(void *hrender)
 {
     if (!hrender) return;
     RENDER *render = (RENDER*)hrender;
@@ -372,7 +370,7 @@ void renderstart(HANDLE hrender)
     render->nRenderStatus &= ~RS_PAUSE;
 }
 
-void renderpause(HANDLE hrender)
+void renderpause(void *hrender)
 {
     if (!hrender) return;
     RENDER *render = (RENDER*)hrender;
@@ -380,7 +378,7 @@ void renderpause(HANDLE hrender)
     render->nRenderStatus |= RS_PAUSE;
 }
 
-void renderseek(HANDLE hrender, DWORD sec)
+void renderseek(void *hrender, DWORD sec)
 {
     if (!hrender) return;
     RENDER *render = (RENDER*)hrender;
@@ -396,7 +394,7 @@ void renderseek(HANDLE hrender, DWORD sec)
     }
 }
 
-void rendertime(HANDLE hrender, DWORD *time)
+void rendertime(void *hrender, DWORD *time)
 {
     if (!hrender) return;
     RENDER *render = (RENDER*)hrender;

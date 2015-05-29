@@ -2,7 +2,7 @@
 #define _CORERENDER_H_
 
 // 包含头文件
-#include <windows.h>
+#include "stdefine.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -19,17 +19,17 @@ typedef struct
 } AUDIOBUF;
 
 // 函数声明
-HANDLE renderopen(HWND hwnd, AVRational frate, int pixfmt, int w, int h,
+void* renderopen(void *surface, AVRational frate, int pixfmt, int w, int h,
                   int64_t ch_layout, AVSampleFormat sndfmt, int srate);
 
-void renderclose     (HANDLE hrender);
-void renderaudiowrite(HANDLE hrender, AVFrame *audio);
-void rendervideowrite(HANDLE hrender, AVFrame *video);
-void rendersetrect   (HANDLE hrender, int x, int y, int w, int h);
-void renderstart     (HANDLE hrender);
-void renderpause     (HANDLE hrender);
-void renderseek      (HANDLE hrender, DWORD  sec );
-void rendertime      (HANDLE hrender, DWORD *time);
+void renderclose     (void *hrender);
+void renderaudiowrite(void *hrender, AVFrame *audio);
+void rendervideowrite(void *hrender, AVFrame *video);
+void rendersetrect   (void *hrender, int x, int y, int w, int h);
+void renderstart     (void *hrender);
+void renderpause     (void *hrender);
+void renderseek      (void *hrender, DWORD  sec );
+void rendertime      (void *hrender, DWORD *time);
 
 #ifdef __cplusplus
 }

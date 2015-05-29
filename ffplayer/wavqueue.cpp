@@ -2,7 +2,7 @@
 #include "wavqueue.h"
 
 // º¯ÊýÊµÏÖ
-BOOL wavqueue_create(WAVQUEUE *pwq, HWAVEOUT h, int wavbufsize)
+BOOL wavqueue_create(WAVQUEUE *pwq, void *adev, int wavbufsize)
 {
     BYTE *pwavbuf;
     int   i;
@@ -16,7 +16,7 @@ BOOL wavqueue_create(WAVQUEUE *pwq, HWAVEOUT h, int wavbufsize)
     pwq->pwhdrs  = (WAVEHDR*)malloc(pwq->size * (sizeof(WAVEHDR) + wavbufsize));
     sem_init(&(pwq->semr), 0, 0        );
     sem_init(&(pwq->semw), 0, pwq->size);
-    pwq->hwavout = h;
+    pwq->adev = adev;
 
     // check invalid
     if (!pwq->ppts || !pwq->pwhdrs) {
@@ -34,7 +34,7 @@ BOOL wavqueue_create(WAVQUEUE *pwq, HWAVEOUT h, int wavbufsize)
         pwq->pwhdrs[i].lpData         = (LPSTR)(pwavbuf + i * wavbufsize);
         pwq->pwhdrs[i].dwBufferLength = wavbufsize;
         pwq->pwhdrs[i].dwUser         = wavbufsize;
-        waveOutPrepareHeader(pwq->hwavout, &(pwq->pwhdrs[i]), sizeof(WAVEHDR));
+        waveOutPrepareHeader((HWAVEOUT)pwq->adev, &(pwq->pwhdrs[i]), sizeof(WAVEHDR));
     }
     return TRUE;
 }
@@ -45,7 +45,7 @@ void wavqueue_destroy(WAVQUEUE *pwq)
 
     // unprepare
     for (i=0; i<pwq->size; i++) {
-        waveOutUnprepareHeader(pwq->hwavout, &(pwq->pwhdrs[i]), sizeof(WAVEHDR));
+        waveOutUnprepareHeader((HWAVEOUT)pwq->adev, &(pwq->pwhdrs[i]), sizeof(WAVEHDR));
     }
 
     if (pwq->ppts  ) free(pwq->ppts  );

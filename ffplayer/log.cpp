@@ -1,9 +1,7 @@
 /* 包含头文件 */
-#include <windows.h>
 #include <stdlib.h>
 #include <stdarg.h>
 #include <stdio.h>
-#include <tchar.h>
 #include "log.h"
 
 // 内部常量定义
