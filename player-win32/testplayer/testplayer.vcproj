@@ -2,10 +2,10 @@
 <VisualStudioProject
 	ProjectType="Visual C++"
 	Version="8.00"
-	Name="ffplayer"
-	ProjectGUID="{2537A15B-F975-416D-8106-22CD6EDFCCDE}"
-	RootNamespace="ffplayer"
-	Keyword="Win32Proj"
+	Name="testplayer"
+	ProjectGUID="{0E175BF5-7997-4F54-86ED-40991B4D386A}"
+	RootNamespace="player"
+	Keyword="MFCProj"
 	>
 	<Platforms>
 		<Platform
@@ -19,7 +19,8 @@
 			Name="Debug|Win32"
 			OutputDirectory="$(SolutionDir)$(ConfigurationName)"
 			IntermediateDirectory="$(ConfigurationName)"
-			ConfigurationType="2"
+			ConfigurationType="1"
+			UseOfMFC="2"
 			CharacterSet="1"
 			>
 			<Tool
@@ -27,6 +28,9 @@
 			/>
 			<Tool
 				Name="VCCustomBuildTool"
+				Description="copy ffmpeg and pthreads dlls"
+				CommandLine="copy &quot;$(SolutionDir)\..\ffmpeg-win32\bin\*.dll&quot; &quot;$(TargetDir)&quot; /y"
+				Outputs="avcodec-56.dll"
 			/>
 			<Tool
 				Name="VCXMLDataGeneratorTool"
@@ -36,16 +40,19 @@
 			/>
 			<Tool
 				Name="VCMIDLTool"
+				PreprocessorDefinitions="_DEBUG"
+				MkTypLibCompatible="false"
+				ValidateParameters="false"
 			/>
 			<Tool
 				Name="VCCLCompilerTool"
 				Optimization="0"
-				AdditionalIncludeDirectories="&quot;..\ffmpeg-win32\include&quot;;&quot;..\pthreads-win32\include&quot;"
-				PreprocessorDefinitions="WIN32;_DEBUG;_WINDOWS;_USRDLL;FFPLAYER_EXPORTS"
+				AdditionalIncludeDirectories=""
+				PreprocessorDefinitions="WIN32;_WINDOWS;_DEBUG"
 				MinimalRebuild="true"
 				BasicRuntimeChecks="3"
 				RuntimeLibrary="3"
-				UsePrecompiledHeader="0"
+				UsePrecompiledHeader="2"
 				WarningLevel="3"
 				Detect64BitPortabilityProblems="true"
 				DebugInformationFormat="4"
@@ -55,16 +62,17 @@
 			/>
 			<Tool
 				Name="VCResourceCompilerTool"
+				PreprocessorDefinitions="_DEBUG"
+				Culture="1033"
+				AdditionalIncludeDirectories="$(IntDir)"
 			/>
 			<Tool
 				Name="VCPreLinkEventTool"
 			/>
 			<Tool
 				Name="VCLinkerTool"
-				AdditionalDependencies="winmm.lib avcodec.lib avformat.lib avutil.lib swscale.lib swresample.lib pthreadVC2.lib"
 				LinkIncremental="2"
-				AdditionalLibraryDirectories="&quot;..\ffmpeg-win32\bin&quot;;&quot;..\pthreads-win32\lib&quot;"
-				ModuleDefinitionFile="coreplayer.def"
+				AdditionalLibraryDirectories=""
 				GenerateDebugInformation="true"
 				SubSystem="2"
 				TargetMachine="1"
@@ -98,7 +106,8 @@
 			Name="Release|Win32"
 			OutputDirectory="$(SolutionDir)$(ConfigurationName)"
 			IntermediateDirectory="$(ConfigurationName)"
-			ConfigurationType="2"
+			ConfigurationType="1"
+			UseOfMFC="2"
 			CharacterSet="1"
 			WholeProgramOptimization="1"
 			>
@@ -107,6 +116,9 @@
 			/>
 			<Tool
 				Name="VCCustomBuildTool"
+				Description="copy ffmpeg and pthreads dlls"
+				CommandLine="copy &quot;$(SolutionDir)\..\ffmpeg-win32\bin\*.dll&quot; &quot;$(TargetDir)&quot; /y&#x0D;&#x0A;copy &quot;$(SolutionDir)\..\pthreads-win32\dll\pthreadVC2.dll&quot; &quot;$(TargetDir)&quot; /y"
+				Outputs="avcodec-56.dll"
 			/>
 			<Tool
 				Name="VCXMLDataGeneratorTool"
@@ -116,13 +128,17 @@
 			/>
 			<Tool
 				Name="VCMIDLTool"
+				PreprocessorDefinitions="NDEBUG"
+				MkTypLibCompatible="false"
+				ValidateParameters="false"
 			/>
 			<Tool
 				Name="VCCLCompilerTool"
-				AdditionalIncludeDirectories="&quot;..\ffmpeg-win32\include&quot;;&quot;..\pthreads-win32\include&quot;"
-				PreprocessorDefinitions="WIN32;NDEBUG;_WINDOWS;_USRDLL;FFPLAYER_EXPORTS"
+				AdditionalIncludeDirectories=""
+				PreprocessorDefinitions="WIN32;_WINDOWS;NDEBUG"
+				MinimalRebuild="false"
 				RuntimeLibrary="2"
-				UsePrecompiledHeader="0"
+				UsePrecompiledHeader="2"
 				WarningLevel="3"
 				Detect64BitPortabilityProblems="true"
 				DebugInformationFormat="3"
@@ -132,19 +148,21 @@
 			/>
 			<Tool
 				Name="VCResourceCompilerTool"
+				PreprocessorDefinitions="NDEBUG"
+				Culture="1033"
+				AdditionalIncludeDirectories="$(IntDir)"
 			/>
 			<Tool
 				Name="VCPreLinkEventTool"
 			/>
 			<Tool
 				Name="VCLinkerTool"
-				AdditionalDependencies="winmm.lib avcodec.lib avformat.lib avutil.lib swscale.lib pthreadVC2.lib swresample.lib"
 				LinkIncremental="1"
-				AdditionalLibraryDirectories="&quot;..\ffmpeg-win32\bin&quot;;&quot;..\pthreads-win32\lib&quot;"
-				ModuleDefinitionFile="coreplayer.def"
+				AdditionalLibraryDirectories=""
 				GenerateDebugInformation="true"
 				SubSystem="2"
-				OptimizeReferences="1"
+				StackReserveSize="0"
+				OptimizeReferences="2"
 				EnableCOMDATFolding="2"
 				TargetMachine="1"
 			/>
@@ -183,28 +201,32 @@
 			UniqueIdentifier="{4FC737F1-C7A5-4376-A066-2A32D752A2FF}"
 			>
 			<File
-				RelativePath=".\bmpqueue.cpp"
+				RelativePath=".\player.cpp"
 				>
 			</File>
 			<File
-				RelativePath=".\coreplayer.cpp"
+				RelativePath=".\playerDlg.cpp"
 				>
 			</File>
 			<File
-				RelativePath=".\corerender.cpp"
+				RelativePath=".\stdafx.cpp"
 				>
-			</File>
-			<File
-				RelativePath=".\log.cpp"
-				>
-			</File>
-			<File
-				RelativePath=".\pktqueue.cpp"
-				>
-			</File>
-			<File
-				RelativePath=".\wavqueue.cpp"
-				>
+				<FileConfiguration
+					Name="Debug|Win32"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+						UsePrecompiledHeader="1"
+					/>
+				</FileConfiguration>
+				<FileConfiguration
+					Name="Release|Win32"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+						UsePrecompiledHeader="1"
+					/>
+				</FileConfiguration>
 			</File>
 		</Filter>
 		<Filter
@@ -213,35 +235,45 @@
 			UniqueIdentifier="{93995380-89BD-4b04-88EB-625FBE52EBFB}"
 			>
 			<File
-				RelativePath=".\bmpqueue.h"
+				RelativePath=".\player.h"
 				>
 			</File>
 			<File
-				RelativePath=".\coreplayer.h"
+				RelativePath=".\playerDlg.h"
 				>
 			</File>
 			<File
-				RelativePath=".\corerender.h"
+				RelativePath=".\Resource.h"
 				>
 			</File>
 			<File
-				RelativePath=".\log.h"
+				RelativePath=".\stdafx.h"
+				>
+			</File>
+		</Filter>
+		<Filter
+			Name="Resource Files"
+			Filter="rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav"
+			UniqueIdentifier="{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}"
+			>
+			<File
+				RelativePath=".\res\player.ico"
 				>
 			</File>
 			<File
-				RelativePath=".\pktqueue.h"
+				RelativePath=".\player.rc"
 				>
 			</File>
 			<File
-				RelativePath=".\stdefine.h"
-				>
-			</File>
-			<File
-				RelativePath=".\wavqueue.h"
+				RelativePath=".\res\player.rc2"
 				>
 			</File>
 		</Filter>
 	</Files>
 	<Globals>
+		<Global
+			Name="RESOURCE_FILE"
+			Value="player.rc"
+		/>
 	</Globals>
 </VisualStudioProject>

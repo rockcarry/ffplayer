@@ -1,5 +1,11 @@
 #include <jni.h>
+#include <android_runtime/AndroidRuntime.h>
+#include <gui/Surface.h>
 #include "com_rockcarry_ffplayer_player.h"
+
+typedef struct {
+    Surface *surface;
+} PLAYER;
 
 /*
  * Class:     com_rockcarry_ffplayer_player
@@ -7,9 +13,9 @@
  * Signature: (Ljava/lang/String;Ljava/lang/Object;)Ljava/lang/Object;
  */
 JNIEXPORT jobject JNICALL Java_com_rockcarry_ffplayer_player_open
-  (JNIEnv *, jobject, jstring, jobject)
+  (JNIEnv *env, jobject this, jstring url, jobject surface)
 {
-    return NULL;
+    return 0;
 }
 
 /*
@@ -18,7 +24,7 @@ JNIEXPORT jobject JNICALL Java_com_rockcarry_ffplayer_player_open
  * Signature: (Ljava/lang/Object;)V
  */
 JNIEXPORT void JNICALL Java_com_rockcarry_ffplayer_player_close
-  (JNIEnv *, jobject, jobject)
+  (JNIEnv *env, jobject this, jobject player)
 {
 }
 
@@ -28,7 +34,7 @@ JNIEXPORT void JNICALL Java_com_rockcarry_ffplayer_player_close
  * Signature: (Ljava/lang/Object;)V
  */
 JNIEXPORT void JNICALL Java_com_rockcarry_ffplayer_player_play
-  (JNIEnv *, jobject, jobject)
+  (JNIEnv *env, jobject this, jobject player)
 {
 }
 
@@ -38,7 +44,7 @@ JNIEXPORT void JNICALL Java_com_rockcarry_ffplayer_player_play
  * Signature: (Ljava/lang/Object;)V
  */
 JNIEXPORT void JNICALL Java_com_rockcarry_ffplayer_player_pause
-  (JNIEnv *, jobject, jobject)
+  (JNIEnv *env, jobject this, jobject player)
 {
 }
 
@@ -48,7 +54,7 @@ JNIEXPORT void JNICALL Java_com_rockcarry_ffplayer_player_pause
  * Signature: (Ljava/lang/Object;J)V
  */
 JNIEXPORT void JNICALL Java_com_rockcarry_ffplayer_player_seek
-  (JNIEnv *, jobject, jobject, jlong)
+  (JNIEnv *env, jobject this, jobject player, jlong sec)
 {
 }
 
@@ -58,7 +64,7 @@ JNIEXPORT void JNICALL Java_com_rockcarry_ffplayer_player_seek
  * Signature: (Ljava/lang/Object;II)V
  */
 JNIEXPORT void JNICALL Java_com_rockcarry_ffplayer_player_setparam
-  (JNIEnv *, jobject, jobject, jint, jint)
+  (JNIEnv *env, jobject this, jobject player, jint id, jint value)
 {
 }
 
@@ -68,6 +74,6 @@ JNIEXPORT void JNICALL Java_com_rockcarry_ffplayer_player_setparam
  * Signature: (Ljava/lang/Object;I)I
  */
 JNIEXPORT jint JNICALL Java_com_rockcarry_ffplayer_player_getparam
-  (JNIEnv *, jobject, jobject, jint)
+  (JNIEnv *env, jobject this, jobject player, jint id)
 {
 }
