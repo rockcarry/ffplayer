@@ -24,58 +24,58 @@ extern "C" {
 /*
  * Class:     com_rockcarry_ffplayer_player
  * Method:    open
- * Signature: (Ljava/lang/String;Ljava/lang/Object;)Ljava/lang/Object;
+ * Signature: (Ljava/lang/String;Ljava/lang/Object;)Z
  */
-JNIEXPORT jobject JNICALL Java_com_rockcarry_ffplayer_player_open
+JNIEXPORT jboolean JNICALL Java_com_rockcarry_ffplayer_player_open
   (JNIEnv *, jobject, jstring, jobject);
 
 /*
  * Class:     com_rockcarry_ffplayer_player
  * Method:    close
- * Signature: (Ljava/lang/Object;)V
+ * Signature: ()V
  */
 JNIEXPORT void JNICALL Java_com_rockcarry_ffplayer_player_close
-  (JNIEnv *, jobject, jobject);
+  (JNIEnv *, jobject);
 
 /*
  * Class:     com_rockcarry_ffplayer_player
  * Method:    play
- * Signature: (Ljava/lang/Object;)V
+ * Signature: ()V
  */
 JNIEXPORT void JNICALL Java_com_rockcarry_ffplayer_player_play
-  (JNIEnv *, jobject, jobject);
+  (JNIEnv *, jobject);
 
 /*
  * Class:     com_rockcarry_ffplayer_player
  * Method:    pause
- * Signature: (Ljava/lang/Object;)V
+ * Signature: ()V
  */
 JNIEXPORT void JNICALL Java_com_rockcarry_ffplayer_player_pause
-  (JNIEnv *, jobject, jobject);
+  (JNIEnv *, jobject);
 
 /*
  * Class:     com_rockcarry_ffplayer_player
  * Method:    seek
- * Signature: (Ljava/lang/Object;J)V
+ * Signature: (J)V
  */
 JNIEXPORT void JNICALL Java_com_rockcarry_ffplayer_player_seek
-  (JNIEnv *, jobject, jobject, jlong);
+  (JNIEnv *, jobject, jlong);
 
 /*
  * Class:     com_rockcarry_ffplayer_player
- * Method:    setparam
- * Signature: (Ljava/lang/Object;II)V
+ * Method:    setParam
+ * Signature: (II)V
  */
-JNIEXPORT void JNICALL Java_com_rockcarry_ffplayer_player_setparam
-  (JNIEnv *, jobject, jobject, jint, jint);
+JNIEXPORT void JNICALL Java_com_rockcarry_ffplayer_player_setParam
+  (JNIEnv *, jobject, jint, jint);
 
 /*
  * Class:     com_rockcarry_ffplayer_player
- * Method:    getparam
- * Signature: (Ljava/lang/Object;I)I
+ * Method:    getParam
+ * Signature: (I)I
  */
-JNIEXPORT jint JNICALL Java_com_rockcarry_ffplayer_player_getparam
-  (JNIEnv *, jobject, jobject, jint);
+JNIEXPORT jint JNICALL Java_com_rockcarry_ffplayer_player_getParam
+  (JNIEnv *, jobject, jint);
 
 #ifdef __cplusplus
 }
