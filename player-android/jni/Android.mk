@@ -9,6 +9,6 @@ LOCAL_SRC_FILES := com_rockcarry_ffplayer_player.cpp
 
 LOCAL_C_INCLUDES += $(JNI_H_INCLUDE)
 
-LOCAL_SHARED_LIBRARIES := libcutils libutils
+LOCAL_SHARED_LIBRARIES := libcutils libutils libgui libandroid_runtime
 
 include $(BUILD_SHARED_LIBRARY)

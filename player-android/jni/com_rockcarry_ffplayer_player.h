@@ -56,10 +56,10 @@ JNIEXPORT void JNICALL Java_com_rockcarry_ffplayer_player_nativePause
 /*
  * Class:     com_rockcarry_ffplayer_player
  * Method:    nativeSeek
- * Signature: (IJ)V
+ * Signature: (II)V
  */
 JNIEXPORT void JNICALL Java_com_rockcarry_ffplayer_player_nativeSeek
-  (JNIEnv *, jclass, jint, jlong);
+  (JNIEnv *, jclass, jint, jint);
 
 /*
  * Class:     com_rockcarry_ffplayer_player

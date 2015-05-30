@@ -29,7 +29,7 @@ public final class player
     private static native void nativeClose(int hplayer);
     private static native void nativePlay (int hplayer);
     private static native void nativePause(int hplayer);
-    private static native void nativeSeek (int hplayer, long sec);
+    private static native void nativeSeek (int hplayer, int sec);
     private static native void nativeSetParam(int hplayer, int id, int value);
     private static native int  nativeGetParam(int hplayer, int id);
 
