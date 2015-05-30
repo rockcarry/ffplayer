@@ -23,59 +23,59 @@ extern "C" {
 #define com_rockcarry_ffplayer_player_PARAM_RENDER_MODE 4L
 /*
  * Class:     com_rockcarry_ffplayer_player
- * Method:    open
- * Signature: (Ljava/lang/String;Ljava/lang/Object;)Z
+ * Method:    nativeOpen
+ * Signature: (Ljava/lang/String;Ljava/lang/Object;)I
  */
-JNIEXPORT jboolean JNICALL Java_com_rockcarry_ffplayer_player_open
-  (JNIEnv *, jobject, jstring, jobject);
+JNIEXPORT jint JNICALL Java_com_rockcarry_ffplayer_player_nativeOpen
+  (JNIEnv *, jclass, jstring, jobject);
 
 /*
  * Class:     com_rockcarry_ffplayer_player
- * Method:    close
- * Signature: ()V
+ * Method:    nativeClose
+ * Signature: (I)V
  */
-JNIEXPORT void JNICALL Java_com_rockcarry_ffplayer_player_close
-  (JNIEnv *, jobject);
+JNIEXPORT void JNICALL Java_com_rockcarry_ffplayer_player_nativeClose
+  (JNIEnv *, jclass, jint);
 
 /*
  * Class:     com_rockcarry_ffplayer_player
- * Method:    play
- * Signature: ()V
+ * Method:    nativePlay
+ * Signature: (I)V
  */
-JNIEXPORT void JNICALL Java_com_rockcarry_ffplayer_player_play
-  (JNIEnv *, jobject);
+JNIEXPORT void JNICALL Java_com_rockcarry_ffplayer_player_nativePlay
+  (JNIEnv *, jclass, jint);
 
 /*
  * Class:     com_rockcarry_ffplayer_player
- * Method:    pause
- * Signature: ()V
+ * Method:    nativePause
+ * Signature: (I)V
  */
-JNIEXPORT void JNICALL Java_com_rockcarry_ffplayer_player_pause
-  (JNIEnv *, jobject);
+JNIEXPORT void JNICALL Java_com_rockcarry_ffplayer_player_nativePause
+  (JNIEnv *, jclass, jint);
 
 /*
  * Class:     com_rockcarry_ffplayer_player
- * Method:    seek
- * Signature: (J)V
+ * Method:    nativeSeek
+ * Signature: (IJ)V
  */
-JNIEXPORT void JNICALL Java_com_rockcarry_ffplayer_player_seek
-  (JNIEnv *, jobject, jlong);
+JNIEXPORT void JNICALL Java_com_rockcarry_ffplayer_player_nativeSeek
+  (JNIEnv *, jclass, jint, jlong);
 
 /*
  * Class:     com_rockcarry_ffplayer_player
- * Method:    setParam
- * Signature: (II)V
+ * Method:    nativeSetParam
+ * Signature: (III)V
  */
-JNIEXPORT void JNICALL Java_com_rockcarry_ffplayer_player_setParam
-  (JNIEnv *, jobject, jint, jint);
+JNIEXPORT void JNICALL Java_com_rockcarry_ffplayer_player_nativeSetParam
+  (JNIEnv *, jclass, jint, jint, jint);
 
 /*
  * Class:     com_rockcarry_ffplayer_player
- * Method:    getParam
- * Signature: (I)I
+ * Method:    nativeGetParam
+ * Signature: (II)I
  */
-JNIEXPORT jint JNICALL Java_com_rockcarry_ffplayer_player_getParam
-  (JNIEnv *, jobject, jint);
+JNIEXPORT jint JNICALL Java_com_rockcarry_ffplayer_player_nativeGetParam
+  (JNIEnv *, jclass, jint, jint);
 
 #ifdef __cplusplus
 }

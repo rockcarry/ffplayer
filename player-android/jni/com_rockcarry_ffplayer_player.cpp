@@ -1,3 +1,5 @@
+#define LOG_TAG "ffplayer_jni"
+
 #include <jni.h>
 #include <gui/Surface.h>
 #include "com_rockcarry_ffplayer_player.h"
@@ -9,76 +11,74 @@ typedef struct {
 
 /*
  * Class:     com_rockcarry_ffplayer_player
- * Method:    open
- * Signature: (Ljava/lang/String;Ljava/lang/Object;)Z
+ * Method:    nativeOpen
+ * Signature: (Ljava/lang/String;Ljava/lang/Object;)I
  */
-JNIEXPORT jboolean JNICALL Java_com_rockcarry_ffplayer_player_open
-  (JNIEnv *env, jobject obj, jstring url, jobject surface)
+JNIEXPORT jint JNICALL Java_com_rockcarry_ffplayer_player_nativeOpen
+  (JNIEnv *, jclass, jstring, jobject)
 {
-    jclass   cls = env->GetObjectClass(obj);
-    jfieldID id  = env->GetFieldID(cls , "context" , "Ljava/lang/Object;");
-    if (id == NULL) ALOGW("can't find id of 'context'.");
-
-    return true;
+    ALOGD("Java_com_rockcarry_ffplayer_player_open.\n");
+    return 0;
 }
 
 /*
  * Class:     com_rockcarry_ffplayer_player
- * Method:    close
- * Signature: ()V
+ * Method:    nativeClose
+ * Signature: (I)V
  */
-JNIEXPORT void JNICALL Java_com_rockcarry_ffplayer_player_close
-  (JNIEnv *env, jobject obj)
+JNIEXPORT void JNICALL Java_com_rockcarry_ffplayer_player_nativeClose
+  (JNIEnv *, jclass, jint)
 {
 }
 
 /*
  * Class:     com_rockcarry_ffplayer_player
- * Method:    play
- * Signature: ()V
+ * Method:    nativePlay
+ * Signature: (I)V
  */
-JNIEXPORT void JNICALL Java_com_rockcarry_ffplayer_player_play
-  (JNIEnv *env, jobject obj)
+JNIEXPORT void JNICALL Java_com_rockcarry_ffplayer_player_nativePlay
+  (JNIEnv *, jclass, jint)
 {
 }
 
 /*
  * Class:     com_rockcarry_ffplayer_player
- * Method:    pause
- * Signature: ()V
+ * Method:    nativePause
+ * Signature: (I)V
  */
-JNIEXPORT void JNICALL Java_com_rockcarry_ffplayer_player_pause
-  (JNIEnv *env, jobject obj)
+JNIEXPORT void JNICALL Java_com_rockcarry_ffplayer_player_nativePause
+  (JNIEnv *, jclass, jint)
 {
 }
 
 /*
  * Class:     com_rockcarry_ffplayer_player
- * Method:    seek
- * Signature: (J)V
+ * Method:    nativeSeek
+ * Signature: (IJ)V
  */
-JNIEXPORT void JNICALL Java_com_rockcarry_ffplayer_player_seek
-  (JNIEnv *env, jobject obj, jlong sec)
+JNIEXPORT void JNICALL Java_com_rockcarry_ffplayer_player_nativeSeek
+  (JNIEnv *, jclass, jint, jlong)
 {
 }
 
 /*
  * Class:     com_rockcarry_ffplayer_player
- * Method:    setParam
- * Signature: (II)V
+ * Method:    nativeSetParam
+ * Signature: (III)V
  */
-JNIEXPORT void JNICALL Java_com_rockcarry_ffplayer_player_setParam
-  (JNIEnv *env, jobject obj, jint id, jint value)
+JNIEXPORT void JNICALL Java_com_rockcarry_ffplayer_player_nativeSetParam
+  (JNIEnv *, jclass, jint, jint, jint)
 {
 }
 
 /*
  * Class:     com_rockcarry_ffplayer_player
- * Method:    getParam
- * Signature: (I)I
+ * Method:    nativeGetParam
+ * Signature: (II)I
  */
-JNIEXPORT jint JNICALL Java_com_rockcarry_ffplayer_player_getParam
-  (JNIEnv *env, jobject obj, jint id)
+JNIEXPORT jint JNICALL Java_com_rockcarry_ffplayer_player_nativeGetParam
+  (JNIEnv *, jclass, jint, jint)
 {
     return 0;
 }
+
