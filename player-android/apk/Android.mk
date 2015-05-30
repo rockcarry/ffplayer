@@ -19,9 +19,9 @@ include $(CLEAR_VARS)
 
 LOCAL_MODULE_TAGS := optional
 
-LOCAL_SRC_FILES := $(call all-subdir-java-files)
-
 LOCAL_PACKAGE_NAME := ffplayertest
+
+LOCAL_SRC_FILES := $(call all-subdir-java-files)
 
 LOCAL_JNI_SHARED_LIBRARIES := libffplayer_jni
 LOCAL_REQUIRED_MODULES := libffplayer_jni
