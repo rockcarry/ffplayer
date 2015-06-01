@@ -232,10 +232,6 @@ static void* VideoDecodeThreadProc(void *param)
     return NULL;
 }
 
-static char* jstring2cstr(JNIEnv *env, jstring jstr)
-{
-    return NULL;
-}
 
 /*
  * Class:     com_rockcarry_ffplayer_player
@@ -276,7 +272,7 @@ JNIEXPORT jint JNICALL Java_com_rockcarry_ffplayer_player_nativeOpen
     pktqueue_create(&(player->PacketQueue));
 
     // open input file
-    if (avformat_open_input(&(player->pAVFormatContext), jstring2cstr(env, url), NULL, 0) != 0) {
+    if (avformat_open_input(&(player->pAVFormatContext), env->GetStringUTFChars(url, NULL), NULL, 0) != 0) {
         goto error_handler;
     }
 
