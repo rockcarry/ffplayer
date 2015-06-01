@@ -27,13 +27,13 @@ LOCAL_CFLAGS += \
     -march=armv7-a -mfpu=vfpv3-d16 -mfloat-abi=softfp
 
 LOCAL_LDFLAGS += \
-    -lz -Wl,--fix-cortex-a8 \
+    -Wl,--fix-cortex-a8 \
     $(LOCAL_PATH)/../../ffmpeg-android/lib/libavformat.a \
     $(LOCAL_PATH)/../../ffmpeg-android/lib/libavcodec.a \
     $(LOCAL_PATH)/../../ffmpeg-android/lib/libswresample.a \
     $(LOCAL_PATH)/../../ffmpeg-android/lib/libswscale.a \
     $(LOCAL_PATH)/../../ffmpeg-android/lib/libavutil.a \
 
-LOCAL_SHARED_LIBRARIES := libcutils libutils libgui libandroid_runtime
+LOCAL_SHARED_LIBRARIES := libcutils libutils libgui libandroid_runtime libz
 
 include $(BUILD_SHARED_LIBRARY)
