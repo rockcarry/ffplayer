@@ -5,9 +5,12 @@
 #include <inttypes.h>
 #include <semaphore.h>
 
-#ifdef __cplusplus
-extern "C" {
-#endif
+// android
+#include <android_runtime/AndroidRuntime.h>
+#include <system/window.h>
+
+// namespace android
+using namespace android;
 
 // 常量定义
 #define DEF_BMP_QUEUE_SIZE   3
@@ -19,10 +22,11 @@ typedef struct {
     sem_t     semr;
     sem_t     semw;
     int64_t  *ppts;
+    sp<ANativeWindow> win;
 } BMPQUEUE;
 
 // 函数声明
-bool bmpqueue_create (BMPQUEUE *pbq);
+bool bmpqueue_create (BMPQUEUE *pbq, sp<ANativeWindow> win);
 void bmpqueue_destroy(BMPQUEUE *pbq);
 bool bmpqueue_isempty(BMPQUEUE *pbq);
 
@@ -48,9 +52,6 @@ void bmpqueue_read_release(BMPQUEUE *pbq);
 void bmpqueue_read_done   (BMPQUEUE *pbq);
 //-- 以上三个接口函数用于空闲可读 bitmap 的管理 --//
 
-#ifdef __cplusplus
-}
-#endif
 
 #endif
 

@@ -5,10 +5,6 @@
 #include <inttypes.h>
 #include <semaphore.h>
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 // 常量定义
 #define DEF_WAV_QUEUE_SIZE   5
 #define DEF_WAV_BUFFER_SIZE  8192
@@ -48,10 +44,6 @@ void wavqueue_read_request(WAVQUEUE *pwq, int64_t **ppts);
 void wavqueue_read_release(WAVQUEUE *pwq);
 void wavqueue_read_done   (WAVQUEUE *pwq);
 //-- 以下三个接口函数用于空闲可读 wavehdr 的管理 --//
-
-#ifdef __cplusplus
-}
-#endif
 
 #endif
 

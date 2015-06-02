@@ -24,10 +24,10 @@ extern "C" {
 /*
  * Class:     com_rockcarry_ffplayer_player
  * Method:    nativeOpen
- * Signature: (Ljava/lang/String;Ljava/lang/Object;)I
+ * Signature: (Ljava/lang/String;Ljava/lang/Object;II)I
  */
 JNIEXPORT jint JNICALL Java_com_rockcarry_ffplayer_player_nativeOpen
-  (JNIEnv *, jclass, jstring, jobject);
+  (JNIEnv *, jclass, jstring, jobject, jint, jint);
 
 /*
  * Class:     com_rockcarry_ffplayer_player

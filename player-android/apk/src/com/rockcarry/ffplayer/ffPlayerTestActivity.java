@@ -29,7 +29,7 @@ public class ffPlayerTestActivity extends Activity {
 
                 @Override
                 public void surfaceCreated(SurfaceHolder holder) {
-                    mplayer.open("/sdcard/test.mp4", holder.getSurface());
+                    mplayer.open("/sdcard/test.mp4", holder.getSurface(), mview.getWidth(), mview.getHeight());
                     mplayer.play();
                 }
 

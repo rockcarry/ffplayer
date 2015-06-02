@@ -2,7 +2,7 @@
 #include "bmpqueue.h"
 
 // º¯ÊýÊµÏÖ
-bool bmpqueue_create(BMPQUEUE *pbq)
+bool bmpqueue_create(BMPQUEUE *pbq, sp<ANativeWindow> win)
 {
     return true;
 }

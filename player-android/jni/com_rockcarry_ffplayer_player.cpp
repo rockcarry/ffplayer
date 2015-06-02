@@ -6,9 +6,9 @@
 #include <android_runtime/AndroidRuntime.h>
 #include <android_runtime/android_view_Surface.h>
 #include <gui/Surface.h>
-#include "com_rockcarry_ffplayer_player.h"
 #include "pktqueue.h"
 #include "corerender.h"
+#include "com_rockcarry_ffplayer_player.h"
 
 extern "C" {
 #include "libavformat/avformat.h"
@@ -236,15 +236,15 @@ static void* VideoDecodeThreadProc(void *param)
 /*
  * Class:     com_rockcarry_ffplayer_player
  * Method:    nativeOpen
- * Signature: (Ljava/lang/String;Ljava/lang/Object;)I
+ * Signature: (Ljava/lang/String;Ljava/lang/Object;II)I
  */
 JNIEXPORT jint JNICALL Java_com_rockcarry_ffplayer_player_nativeOpen
-  (JNIEnv *env, jclass cls, jstring url, jobject surface)
+  (JNIEnv *env, jclass cls, jstring url, jobject surface, jint w, jint h);
 {
     ALOGD("Java_com_rockcarry_ffplayer_player_open.");
-#if 0
-    sp<Surface> surface = android_view_Surface_getSurface(env, surface);
-    if (android::Surface::isValid(surface)) {
+#if 1
+    sp<Surface> surf = android_view_Surface_getSurface(env, surface);
+    if (android::Surface::isValid(surf)) {
 		ALOGE("surface is valid .");
 	} else {
 		ALOGE("surface is invalid.");
@@ -350,7 +350,7 @@ JNIEXPORT jint JNICALL Java_com_rockcarry_ffplayer_player_nativeOpen
     }
 
     // open core render
-    player->hCoreRender = renderopen(surface, vrate, vformat, width, height,
+    player->hCoreRender = renderopen(surf, vrate, vformat, width, height,
         alayout, (AVSampleFormat)aformat, arate);
 
     // make sure player status paused

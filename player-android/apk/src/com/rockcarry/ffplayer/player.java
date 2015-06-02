@@ -12,9 +12,9 @@ public final class player
     public static final int PARAM_RENDER_MODE    = 4;
 
     private int m_hPlayer;
-    public boolean open(String url, Object surface)
+    public boolean open(String url, Object surface, int w, int h)
     {
-        m_hPlayer = nativeOpen(url, surface);
+        m_hPlayer = nativeOpen(url, surface, w, h);
         return (m_hPlayer != 0);
     }
 
@@ -25,7 +25,7 @@ public final class player
     public void setParam(int id, int value) { nativeSetParam(m_hPlayer, id, value); }
     public int  getParam(int id)            { return nativeGetParam(m_hPlayer, id); }
 
-    private static native int  nativeOpen (String url, Object surface);
+    private static native int  nativeOpen (String url, Object surface, int w, int h);
     private static native void nativeClose(int hplayer);
     private static native void nativePlay (int hplayer);
     private static native void nativePause(int hplayer);

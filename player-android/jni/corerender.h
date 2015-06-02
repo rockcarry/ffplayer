@@ -1,12 +1,16 @@
 #ifndef _CORERENDER_H_
 #define _CORERENDER_H_
 
-#ifdef __cplusplus
-extern "C" {
-#endif
+// 包含头文件
+#include <android_runtime/AndroidRuntime.h>
+#include <system/window.h>
 
+extern "C" {
 #include "libavformat/avformat.h"
-#include "libavcodec/avcodec.h"
+}
+
+// namespace android
+using namespace android;
 
 // 类型定义
 typedef struct
@@ -16,7 +20,7 @@ typedef struct
 } AUDIOBUF;
 
 // 函数声明
-void* renderopen(void *surface, AVRational frate, int pixfmt, int w, int h,
+void* renderopen(sp<ANativeWindow> win, AVRational frate, int pixfmt, int w, int h,
                   int64_t ch_layout, AVSampleFormat sndfmt, int srate);
 
 void renderclose     (void *hrender);
@@ -24,12 +28,8 @@ void renderaudiowrite(void *hrender, AVFrame *audio);
 void rendervideowrite(void *hrender, AVFrame *video);
 void renderstart     (void *hrender);
 void renderpause     (void *hrender);
-void renderseek      (void *hrender, int  sec );
+void renderseek      (void *hrender, int sec);
 int  rendertime      (void *hrender);
-
-#ifdef __cplusplus
-}
-#endif
 
 #endif
 

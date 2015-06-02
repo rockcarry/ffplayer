@@ -4,12 +4,9 @@
 // 包含头文件
 #include <semaphore.h>
 
-#ifdef __cplusplus
 extern "C" {
-#endif
-
-// avformat.h
 #include "libavformat/avformat.h"
+}
 
 // 常量定义
 #define DEF_PKT_QUEUE_ASIZE   50
@@ -55,10 +52,6 @@ void pktqueue_read_done_a  (PKTQUEUE *ppq);
 
 void pktqueue_read_request_v(PKTQUEUE *ppq, AVPacket **pppkt);
 void pktqueue_read_done_v  (PKTQUEUE *ppq);
-
-#ifdef __cplusplus
-}
-#endif
 
 #endif
 

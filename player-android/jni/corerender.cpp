@@ -1,13 +1,11 @@
 // 包含头文件
 #include <pthread.h>
 #include <unistd.h>
-#include "corerender.h"
 #include "wavqueue.h"
 #include "bmpqueue.h"
+#include "corerender.h"
 
 extern "C" {
-#include "libavformat/avformat.h"
-#include "libavcodec/avcodec.h"
 #include "libswscale/swscale.h"
 #include "libswresample/swresample.h"
 }
@@ -53,7 +51,7 @@ static void* VideoRenderThreadProc(void *param)
 }
 
 // 函数实现
-void* renderopen(void *surface, AVRational frate, int pixfmt, int w, int h,
+void* renderopen(sp<ANativeWindow> win, AVRational frate, int pixfmt, int w, int h,
                   int64_t ch_layout, AVSampleFormat sndfmt, int srate)
 {
     RENDER *render = (RENDER*)malloc(sizeof(RENDER));
@@ -83,7 +81,7 @@ void* renderopen(void *surface, AVRational frate, int pixfmt, int w, int h,
         0, 0, 0);
 
     // create bmp queue
-    bmpqueue_create(&(render->BmpQueue));
+    bmpqueue_create(&(render->BmpQueue), win);
 
     render->nRenderStatus = 0;
     pthread_create(&(render->hVideoThread), NULL, VideoRenderThreadProc, render);
