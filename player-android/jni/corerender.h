@@ -20,8 +20,9 @@ typedef struct
 } AUDIOBUF;
 
 // º¯ÊıÉùÃ÷
-void* renderopen(sp<ANativeWindow> win, AVRational frate, int pixfmt, int w, int h,
-                  int64_t ch_layout, AVSampleFormat sndfmt, int srate);
+void* renderopen(sp<ANativeWindow> win, int ww, int wh,
+                 AVRational frate, int pixfmt, int vw, int vh,
+                 int srate, int sndfmt, int64_t ch_layout);
 
 void renderclose     (void *hrender);
 void renderaudiowrite(void *hrender, AVFrame *audio);

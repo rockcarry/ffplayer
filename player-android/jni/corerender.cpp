@@ -51,22 +51,23 @@ static void* VideoRenderThreadProc(void *param)
 }
 
 // º¯ÊýÊµÏÖ
-void* renderopen(sp<ANativeWindow> win, AVRational frate, int pixfmt, int w, int h,
-                  int64_t ch_layout, AVSampleFormat sndfmt, int srate)
+void* renderopen(sp<ANativeWindow> win, int ww, int wh,
+                 AVRational frate, int pixfmt, int vw, int vh,
+                 int srate, int sndfmt, int64_t ch_layout)
 {
     RENDER *render = (RENDER*)malloc(sizeof(RENDER));
     memset(render, 0, sizeof(RENDER));
 
     /* allocate & init swr context */
     render->pSWRContext = swr_alloc_set_opts(NULL, AV_CH_LAYOUT_STEREO, AV_SAMPLE_FMT_S16, 44100,
-                                             ch_layout, sndfmt, srate, 0, NULL);
+                                             ch_layout, (AVSampleFormat)sndfmt, srate, 0, NULL);
     swr_init(render->pSWRContext);
 
     // init for video
-    render->nVideoWidth  = w;
-    render->nVideoHeight = h;
-    render->nRenderWidth = w;
-    render->nRenderHeight= h;
+    render->nVideoWidth  = vw;
+    render->nVideoHeight = vh;
+    render->nRenderWidth = ww;
+    render->nRenderHeight= wh;
     render->nPixelFormat = (PixelFormat)pixfmt;
 
     // create sws context

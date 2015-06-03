@@ -239,7 +239,7 @@ static void* VideoDecodeThreadProc(void *param)
  * Signature: (Ljava/lang/String;Ljava/lang/Object;II)I
  */
 JNIEXPORT jint JNICALL Java_com_rockcarry_ffplayer_player_nativeOpen
-  (JNIEnv *env, jclass cls, jstring url, jobject surface, jint w, jint h);
+  (JNIEnv *env, jclass cls, jstring url, jobject surface, jint w, jint h)
 {
     ALOGD("Java_com_rockcarry_ffplayer_player_open.");
 #if 1
@@ -350,8 +350,9 @@ JNIEXPORT jint JNICALL Java_com_rockcarry_ffplayer_player_nativeOpen
     }
 
     // open core render
-    player->hCoreRender = renderopen(surf, vrate, vformat, width, height,
-        alayout, (AVSampleFormat)aformat, arate);
+    player->hCoreRender = renderopen(surf, w, h,
+        vrate, vformat, width, height,
+        arate, aformat, alayout);
 
     // make sure player status paused
     player->nPlayerStatus = 0xf;
