@@ -1,6 +1,7 @@
 // 包含头文件
 #include <pthread.h>
 #include <unistd.h>
+#include <time.h>
 #include "wavqueue.h"
 #include "bmpqueue.h"
 #include "corerender.h"
@@ -13,28 +14,44 @@ extern "C" {
 // 内部类型定义
 typedef struct
 {
-    int           nVideoWidth;
-    int           nVideoHeight;
-    AVPixelFormat nPixelFormat;
-    SwrContext   *pSWRContext;
-    SwsContext   *pSWSContext;
-
-    WAVQUEUE      WavQueue;
+    int               nVideoWidth;
+    int               nVideoHeight;
+    int               iPixelFormat;
+    SwrContext       *pSWRContext;
+    SwsContext       *pSWSContext;
 
     #define RS_PAUSE  (1 << 0)
     #define RS_SEEK   (1 << 1)
     #define RS_CLOSE  (1 << 2)
-    int           nRenderWidth;
-    int           nRenderHeight;
-    int           nRenderStatus;
-    BMPQUEUE      BmpQueue;
-    pthread_t     hVideoThread;
+    int               nRenderStatus;
 
-    int64_t       i64CurTimeA;
-    int64_t       i64CurTimeV;
+    // audio
+    WAVQUEUE          WavQueue;
+
+    // video
+    int               nRenderWidth;
+    int               nRenderHeight;
+    sp<ANativeWindow> pRenderWin;
+    BMPQUEUE          BmpQueue;
+    pthread_t         hVideoThread;
+
+    unsigned long     ulCurTick;
+    unsigned long     ulLastTick;
+    int               iFrameTick;
+    int               iSleepTick;
+
+    int64_t           i64CurTimeA;
+    int64_t           i64CurTimeV;
 } RENDER;
 
 // 内部函数实现
+static unsigned long GetTickCount(void)
+{
+    struct timespec ts;
+    clock_gettime(CLOCK_MONOTONIC, &ts);
+    return (ts.tv_sec * 1000 + ts.tv_nsec / 1000000);
+}
+
 static void* VideoRenderThreadProc(void *param)
 {
     RENDER *render = (RENDER*)param;
@@ -45,6 +62,46 @@ static void* VideoRenderThreadProc(void *param)
             usleep(20*1000);
             continue;
         }
+        ANativeWindowBuffer *buf  = NULL;
+        int64_t             *ppts = NULL;
+        bmpqueue_read_request(&(render->BmpQueue), &ppts, &buf);
+        if (!(render->nRenderStatus & RS_SEEK)) {
+            render->i64CurTimeV = *ppts; // the current play time
+            render->pRenderWin->queueBuffer(render->pRenderWin.get(), buf, -1);
+        }
+        bmpqueue_read_done(&(render->BmpQueue));
+
+        // ++ frame rate control ++ //
+        render->ulLastTick = render->ulCurTick;
+        render->ulCurTick  = GetTickCount();
+        int64_t diff = render->ulCurTick - render->ulLastTick;
+        if (diff > render->iFrameTick) {
+            render->iSleepTick--;
+        }
+        else if (diff < render->iFrameTick) {
+            render->iSleepTick++;
+        }
+        // -- frame rate control -- //
+
+        // ++ av sync control ++ //
+        diff = render->i64CurTimeV - render->i64CurTimeA;
+        if ((diff > 0 ? diff : -diff) < 60000) {
+            if (diff >  5) render->iSleepTick++;
+            if (diff < -5) render->iSleepTick--;
+        }
+        // -- av sync control -- //
+
+        //++ for seek ++//
+        if (render->nRenderStatus & RS_SEEK) {
+            render->iSleepTick = render->iFrameTick;
+        }
+        //-- for seek --//
+
+        // do sleep
+        if (render->iSleepTick > 0) usleep(render->iSleepTick * 1000);
+
+        ALOGD("i64CurTimeV = %lld", render->i64CurTimeV);
+        ALOGD("%lld, %d", diff, render->iSleepTick);
     }
 
     return NULL;
@@ -57,6 +114,7 @@ void* renderopen(sp<ANativeWindow> win, int ww, int wh,
 {
     RENDER *render = (RENDER*)malloc(sizeof(RENDER));
     memset(render, 0, sizeof(RENDER));
+    render->pRenderWin = win; // save win
 
     /* allocate & init swr context */
     render->pSWRContext = swr_alloc_set_opts(NULL, AV_CH_LAYOUT_STEREO, AV_SAMPLE_FMT_S16, 44100,
@@ -68,21 +126,19 @@ void* renderopen(sp<ANativeWindow> win, int ww, int wh,
     render->nVideoHeight = vh;
     render->nRenderWidth = ww;
     render->nRenderHeight= wh;
-    render->nPixelFormat = (PixelFormat)pixfmt;
+    render->iPixelFormat = pixfmt;
 
     // create sws context
     render->pSWSContext = sws_getContext(
-        render->nVideoWidth,
-        render->nVideoHeight,
-        render->nPixelFormat,
-        render->nRenderWidth,
-        render->nRenderHeight,
-        PIX_FMT_RGB32,
-        SWS_BILINEAR,
-        0, 0, 0);
+        render->nVideoWidth, render->nVideoHeight, (AVPixelFormat)render->iPixelFormat,
+        render->nRenderWidth, render->nRenderHeight, AV_PIX_FMT_YUV420P,
+        SWS_BILINEAR, 0, 0, 0);
+
+    render->iFrameTick = 1000 * frate.den / frate.num;
+    render->iSleepTick = render->iFrameTick;
 
     // create bmp queue
-    bmpqueue_create(&(render->BmpQueue), win);
+    bmpqueue_create(&(render->BmpQueue), win, render->nRenderWidth, render->nRenderHeight);
 
     render->nRenderStatus = 0;
     pthread_create(&(render->hVideoThread), NULL, VideoRenderThreadProc, render);
@@ -102,7 +158,7 @@ void renderclose(void *hrender)
     // set nRenderStatus to RS_CLOSE
     render->nRenderStatus |= RS_CLOSE;
     if (bmpqueue_isempty(&(render->BmpQueue))) {
-        bmpqueue_write_request(&(render->BmpQueue), NULL);
+        bmpqueue_write_request(&(render->BmpQueue), NULL, NULL, NULL);
         bmpqueue_write_done   (&(render->BmpQueue));
     }
 
@@ -132,8 +188,19 @@ void rendervideowrite(void *hrender, AVFrame *video)
 {
     if (!hrender) return;
     RENDER   *render  = (RENDER*)hrender;
+    AVPicture picture = {{0}, {0}};
+    uint8_t  *buffer  = NULL;
+    int       stride  = 0;
+    int64_t  *ppts    = NULL;
 
     if (render->nRenderStatus & RS_SEEK) return;
+
+    bmpqueue_write_request(&(render->BmpQueue), &ppts, &buffer, &stride);
+    *ppts               = video->pts;
+    picture.data[0]     = buffer;
+    picture.linesize[0] = stride;
+    sws_scale(render->pSWSContext, video->data, video->linesize, 0, render->nVideoHeight, picture.data, picture.linesize);
+    bmpqueue_write_done(&(render->BmpQueue));
 }
 
 void renderstart(void *hrender)

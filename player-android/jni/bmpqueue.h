@@ -26,7 +26,7 @@ typedef struct {
 } BMPQUEUE;
 
 // 函数声明
-bool bmpqueue_create (BMPQUEUE *pbq, sp<ANativeWindow> win);
+bool bmpqueue_create (BMPQUEUE *pbq, sp<ANativeWindow> win, int w, int h);
 void bmpqueue_destroy(BMPQUEUE *pbq);
 bool bmpqueue_isempty(BMPQUEUE *pbq);
 
@@ -41,13 +41,13 @@ bool bmpqueue_isempty(BMPQUEUE *pbq);
 //     bmpqueue_write_post
 // 如果填充失败，则执行
 //     bmpqueue_write_release
-void bmpqueue_write_request(BMPQUEUE *pbq, int64_t **ppts);
+void bmpqueue_write_request(BMPQUEUE *pbq, int64_t **ppts, uint8_t **pbuf, int *stride);
 void bmpqueue_write_release(BMPQUEUE *pbq);
 void bmpqueue_write_done   (BMPQUEUE *pbq);
 //-- 以上三个接口函数用于空闲可写 bitmap 的管理 --//
 
 //++ 以下三个接口函数用于空闲可读 bitmap 的管理 ++//
-void bmpqueue_read_request(BMPQUEUE *pbq, int64_t **ppts);
+void bmpqueue_read_request(BMPQUEUE *pbq, int64_t **ppts, ANativeWindowBuffer **buf);
 void bmpqueue_read_release(BMPQUEUE *pbq);
 void bmpqueue_read_done   (BMPQUEUE *pbq);
 //-- 以上三个接口函数用于空闲可读 bitmap 的管理 --//

@@ -2,7 +2,7 @@
 #include "bmpqueue.h"
 
 // º¯ÊýÊµÏÖ
-bool bmpqueue_create(BMPQUEUE *pbq, sp<ANativeWindow> win)
+bool bmpqueue_create(BMPQUEUE *pbq, sp<ANativeWindow> win, int w, int h)
 {
     return true;
 }
@@ -18,7 +18,7 @@ bool bmpqueue_isempty(BMPQUEUE *pbq)
     return (value <= 0);
 }
 
-void bmpqueue_write_request(BMPQUEUE *pbq, int64_t **ppts)
+void bmpqueue_write_request(BMPQUEUE *pbq, int64_t **ppts, uint8_t **pbuf, int *stride)
 {
     sem_wait(&(pbq->semw));
 }
@@ -34,7 +34,7 @@ void bmpqueue_write_done(BMPQUEUE *pbq)
     sem_post(&(pbq->semr));
 }
 
-void bmpqueue_read_request(BMPQUEUE *pbq, int64_t **ppts)
+void bmpqueue_read_request(BMPQUEUE *pbq, int64_t **ppts, ANativeWindowBuffer **buf)
 {
     sem_wait(&(pbq->semr));
     if (ppts) *ppts = &(pbq->ppts[pbq->head]);
