@@ -1,11 +1,8 @@
 #define LOG_TAG "ffplayer_jni"
 
-#include <pthread.h>
-#include <unistd.h>
 #include <jni.h>
-#include <android_runtime/AndroidRuntime.h>
-#include <android_runtime/android_view_Surface.h>
-#include <gui/Surface.h>
+#include <pthread.h>
+#include <utils/Log.h>
 #include "pktqueue.h"
 #include "corerender.h"
 #include "com_rockcarry_ffplayer_player.h"
@@ -273,11 +270,13 @@ JNIEXPORT jint JNICALL Java_com_rockcarry_ffplayer_player_nativeOpen
 
     // open input file
     if (avformat_open_input(&(player->pAVFormatContext), env->GetStringUTFChars(url, NULL), NULL, 0) != 0) {
+        ALOGE("failed to open input url: %s !", env->GetStringUTFChars(url, NULL));
         goto error_handler;
     }
 
     // find stream info
     if (avformat_find_stream_info(player->pAVFormatContext, NULL) < 0) {
+        ALOGE("failed to find stream info !");
         goto error_handler;
     }
 

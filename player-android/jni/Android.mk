@@ -8,9 +8,7 @@ LOCAL_MODULE := libffplayer_jni
 LOCAL_SRC_FILES := \
     com_rockcarry_ffplayer_player.cpp \
     corerender.cpp \
-    pktqueue.cpp \
-    bmpqueue.cpp \
-    wavqueue.cpp
+    pktqueue.cpp
 
 LOCAL_C_INCLUDES += \
     $(JNI_H_INCLUDE) \
@@ -34,6 +32,6 @@ LOCAL_LDFLAGS += \
     $(LOCAL_PATH)/../../ffmpeg-android/lib/libswscale.a \
     $(LOCAL_PATH)/../../ffmpeg-android/lib/libavutil.a \
 
-LOCAL_SHARED_LIBRARIES := libcutils libutils libgui libandroid_runtime libz
+LOCAL_SHARED_LIBRARIES := libcutils libutils libui libgui libandroid_runtime libz
 
 include $(BUILD_SHARED_LIBRARY)

@@ -3,13 +3,13 @@
 
 // 包含头文件
 #include <android_runtime/AndroidRuntime.h>
-#include <system/window.h>
+#include <android_runtime/android_view_Surface.h>
+#include <gui/Surface.h>
 
 extern "C" {
 #include "libavformat/avformat.h"
 }
 
-// namespace android
 using namespace android;
 
 // 类型定义
