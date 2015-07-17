@@ -29,7 +29,7 @@
 			<Tool
 				Name="VCCustomBuildTool"
 				Description="copy ffmpeg and pthreads dlls"
-				CommandLine="copy &quot;$(SolutionDir)\..\ffmpeg-win32\bin\*.dll&quot; &quot;$(TargetDir)&quot; /y"
+				CommandLine="copy &quot;$(SolutionDir)\..\ffmpeg-win32\bin\*.dll&quot; &quot;$(TargetDir)&quot; /y&#x0D;&#x0A;copy &quot;$(SolutionDir)\..\pthreads-win32\dll\pthreadVC2.dll&quot; &quot;$(TargetDir)&quot; /y"
 				Outputs="avcodec-56.dll"
 			/>
 			<Tool
