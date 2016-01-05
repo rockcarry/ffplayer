@@ -1,14 +1,14 @@
-#ifndef _PLAYER_H_
-#define _PLAYER_H_
+ï»¿#ifndef __CORE_PLAYER_H__
+#define __CORE_PLAYER_H__
 
-// °üº¬Í·ÎÄ¼ş
+// åŒ…å«å¤´æ–‡ä»¶
 #include "stdefine.h"
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-// ³£Á¿¶¨Òå
+// å¸¸é‡å®šä¹‰
 // message
 #define MSG_COREPLAYER  (WM_APP + 1)
 #define PLAY_COMPLETED  (('E' << 24) | ('N' << 16) | ('D' << 8))
@@ -28,8 +28,8 @@ enum {
     PARAM_RENDER_MODE,
 };
 
-// º¯ÊıÉùÃ÷
-void* playeropen    (char *file, void *surface);
+// å‡½æ•°å£°æ˜
+void* playeropen    (char *file, void *extra);
 void  playerclose   (void *hplayer);
 void  playerplay    (void *hplayer);
 void  playerpause   (void *hplayer);

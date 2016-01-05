@@ -1,4 +1,4 @@
-// °üº¬Í·ÎÄ¼ş
+ï»¿// åŒ…å«å¤´æ–‡ä»¶
 #include <pthread.h>
 #include "pktqueue.h"
 #include "coreplayer.h"
@@ -10,11 +10,12 @@ extern "C" {
 #include "libavcodec/avcodec.h"
 }
 
-// ÄÚ²¿³£Á¿¶¨Òå
+// å†…éƒ¨å¸¸é‡å®šä¹‰
 #define avcodec_decode_video avcodec_decode_video2
 #define avcodec_decode_audio avcodec_decode_audio4
+#define avcodec_open         avcodec_open2
 
-// ÄÚ²¿ÀàĞÍ¶¨Òå
+// å†…éƒ¨ç±»å‹å®šä¹‰
 typedef struct
 {
     // audio
@@ -47,7 +48,7 @@ typedef struct
     PKTQUEUE         PacketQueue;
 } PLAYER;
 
-// ÄÚ²¿º¯ÊıÊµÏÖ
+// å†…éƒ¨å‡½æ•°å®ç°
 static void* AVDemuxThreadProc(void *param)
 {
     PLAYER   *player = (PLAYER*)param;
@@ -122,7 +123,7 @@ static void* AudioDecodeThreadProc(void *param)
 
         //++ play completed ++//
         if (packet->pts == -1) {
-            renderaudiowrite(player->hCoreRender, (AVFrame*)-1);
+            renderwriteaudio(player->hCoreRender, (AVFrame*)-1);
             pktqueue_read_done_a(&(player->PacketQueue));
             continue;
         }
@@ -141,7 +142,7 @@ static void* AudioDecodeThreadProc(void *param)
 
                 if (gotaudio) {
                     aframe->pts = (int64_t)(aframe->pkt_pts * player->dAudioTimeBase);
-                    renderaudiowrite(player->hCoreRender, aframe);
+                    renderwriteaudio(player->hCoreRender, aframe);
                 }
 
                 packet->data += consumed;
@@ -196,7 +197,7 @@ static void* VideoDecodeThreadProc(void *param)
                 if (gotvideo) {
 //                  vframe->pts = av_frame_get_best_effort_timestamp(vframe);
                     vframe->pts = (int64_t)(vframe->pkt_pts * player->dVideoTimeBase);
-                    rendervideowrite(player->hCoreRender, vframe);
+                    renderwritevideo(player->hCoreRender, vframe);
                 }
 
                 packet->data += consumed;
@@ -215,8 +216,8 @@ static void* VideoDecodeThreadProc(void *param)
     return NULL;
 }
 
-// º¯ÊıÊµÏÖ
-void* playeropen(char *file, void *surface)
+// å‡½æ•°å®ç°
+void* playeropen(char *file, void *extra)
 {
     PLAYER        *player   = NULL;
     AVCodec       *pAVCodec = NULL;
@@ -230,7 +231,7 @@ void* playeropen(char *file, void *surface)
     uint32_t       i        = 0;
 
     // init log
-    log_init(TEXT("DEBUGER"));
+//  log_init(TEXT("DEBUGER"));
 
     // av register all
     av_register_all();
@@ -280,7 +281,7 @@ void* playeropen(char *file, void *surface)
         pAVCodec = avcodec_find_decoder(player->pAudioCodecContext->codec_id);
         if (pAVCodec)
         {
-            if (avcodec_open2(player->pAudioCodecContext, pAVCodec, NULL) < 0)
+            if (avcodec_open(player->pAudioCodecContext, pAVCodec, NULL) < 0)
             {
                 player->iAudioStreamIndex = -1;
             }
@@ -294,7 +295,7 @@ void* playeropen(char *file, void *surface)
         pAVCodec = avcodec_find_decoder(player->pVideoCodecContext->codec_id);
         if (pAVCodec)
         {
-            if (avcodec_open2(player->pVideoCodecContext, pAVCodec, NULL) < 0)
+            if (avcodec_open(player->pVideoCodecContext, pAVCodec, NULL) < 0)
             {
                 player->iVideoStreamIndex = -1;
             }
@@ -319,8 +320,8 @@ void* playeropen(char *file, void *surface)
     }
 
     // open core render
-    player->hCoreRender = renderopen(surface, vrate, vformat, width, height,
-        alayout, (AVSampleFormat)aformat, arate);
+    player->hCoreRender = renderopen(extra, vrate, vformat, width, height,
+        arate, (AVSampleFormat)aformat, alayout);
 
     // make sure player status paused
     player->nPlayerStatus = 0xf;
@@ -375,7 +376,7 @@ void playerclose(void *hplayer)
     free(player);
 
     // close log
-    log_done();
+//  log_done();
 }
 
 void playerplay(void *hplayer)

@@ -1,4 +1,4 @@
-// °üº¬Í·ÎÄ¼ş
+ï»¿// åŒ…å«å¤´æ–‡ä»¶
 #include <pthread.h>
 #include "coreplayer.h"
 #include "corerender.h"
@@ -13,7 +13,7 @@ extern "C" {
 #include "libswresample/swresample.h"
 }
 
-// ÄÚ²¿ÀàĞÍ¶¨Òå
+// å†…éƒ¨ç±»å‹å®šä¹‰
 typedef struct
 {
     int         nVideoWidth;
@@ -53,7 +53,7 @@ typedef struct
     int64_t     i64CurTimeV;
 } RENDER;
 
-// ÄÚ²¿º¯ÊıÊµÏÖ
+// å†…éƒ¨å‡½æ•°å®ç°
 static void CALLBACK waveOutProc(HWAVEOUT hwo, UINT uMsg, DWORD dwInstance, DWORD dwParam1, DWORD dwParam2)
 {
     RENDER  *render = (RENDER*)dwInstance;
@@ -137,9 +137,9 @@ static void* VideoRenderThreadProc(void *param)
     return NULL;
 }
 
-// º¯ÊıÊµÏÖ
+// å‡½æ•°å®ç°
 void* renderopen(void *surface, AVRational frate, int pixfmt, int w, int h,
-                  int64_t ch_layout, AVSampleFormat sndfmt, int srate)
+                 int srate, AVSampleFormat sndfmt, int64_t ch_layout)
 {
     WAVEFORMATEX wfx = {0};
 
@@ -240,7 +240,7 @@ void renderclose(void *hrender)
     free(render);
 }
 
-void renderaudiowrite(void *hrender, AVFrame *audio)
+void renderwriteaudio(void *hrender, AVFrame *audio)
 {
     if (!hrender) return;
     RENDER  *render  = (RENDER*)hrender;
@@ -293,7 +293,7 @@ void renderaudiowrite(void *hrender, AVFrame *audio)
     } while (sampnum > 0);
 }
 
-void rendervideowrite(void *hrender, AVFrame *video)
+void renderwritevideo(void *hrender, AVFrame *video)
 {
     if (!hrender) return;
     RENDER   *render  = (RENDER*)hrender;
@@ -404,4 +404,6 @@ void rendertime(void *hrender, DWORD *time)
         *time = atime > vtime ? atime : vtime;
     }
 }
+
+
 

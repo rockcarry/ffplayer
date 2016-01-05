@@ -1,7 +1,7 @@
-#ifndef _CORERENDER_H_
+ï»¿#ifndef _CORERENDER_H_
 #define _CORERENDER_H_
 
-// °üº¬Í·ÎÄ¼ş
+// åŒ…å«å¤´æ–‡ä»¶
 #include "stdefine.h"
 
 #ifdef __cplusplus
@@ -11,20 +11,20 @@ extern "C" {
 #include "libavformat/avformat.h"
 #include "libavcodec/avcodec.h"
 
-// ÀàĞÍ¶¨Òå
+// ç±»å‹å®šä¹‰
 typedef struct
 {
     int16_t *data;
     int32_t  size;
 } AUDIOBUF;
 
-// º¯ÊıÉùÃ÷
+// å‡½æ•°å£°æ˜
 void* renderopen(void *surface, AVRational frate, int pixfmt, int w, int h,
-                  int64_t ch_layout, AVSampleFormat sndfmt, int srate);
+                 int srate, AVSampleFormat sndfmt, int64_t ch_layout);
 
 void renderclose     (void *hrender);
-void renderaudiowrite(void *hrender, AVFrame *audio);
-void rendervideowrite(void *hrender, AVFrame *video);
+void renderwriteaudio(void *hrender, AVFrame *audio);
+void renderwritevideo(void *hrender, AVFrame *video);
 void rendersetrect   (void *hrender, int x, int y, int w, int h);
 void renderstart     (void *hrender);
 void renderpause     (void *hrender);
