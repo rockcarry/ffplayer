@@ -16,41 +16,41 @@ extern "C" {
 // 内部类型定义
 typedef struct
 {
-    int         nVideoWidth;
-    int         nVideoHeight;
-    PixelFormat PixelFormat;
-    SwrContext *pSWRContext;
-    SwsContext *pSWSContext;
+    int           nVideoWidth;
+    int           nVideoHeight;
+    AVPixelFormat PixelFormat;
+    SwrContext   *pSWRContext;
+    SwsContext   *pSWSContext;
 
-    HWAVEOUT    hWaveOut;
-    WAVQUEUE    WavQueue;
-    int         nWavBufAvail;
-    BYTE       *pWavBufCur;
-    WAVEHDR    *pWavHdrCur;
+    HWAVEOUT      hWaveOut;
+    WAVQUEUE      WavQueue;
+    int           nWavBufAvail;
+    BYTE         *pWavBufCur;
+    WAVEHDR      *pWavHdrCur;
 
     #define RS_PAUSE  (1 << 0)
     #define RS_SEEK   (1 << 1)
     #define RS_CLOSE  (1 << 2)
-    int         nRenderStatus;
-    int         nRenderPosX;
-    int         nRenderPosY;
-    int         nRenderWidth;
-    int         nRenderHeight;
-    int         nRenderNewW;
-    int         nRenderNewH;
-    HWND        hRenderWnd;
-    HDC         hRenderDC;
-    HDC         hBufferDC;
-    BMPQUEUE    BmpQueue;
-    pthread_t   hVideoThread;
+    int           nRenderStatus;
+    int           nRenderPosX;
+    int           nRenderPosY;
+    int           nRenderWidth;
+    int           nRenderHeight;
+    int           nRenderNewW;
+    int           nRenderNewH;
+    HWND          hRenderWnd;
+    HDC           hRenderDC;
+    HDC           hBufferDC;
+    BMPQUEUE      BmpQueue;
+    pthread_t     hVideoThread;
 
-    DWORD       dwCurTick;
-    DWORD       dwLastTick;
-    int         iFrameTick;
-    int         iSleepTick;
+    DWORD         dwCurTick;
+    DWORD         dwLastTick;
+    int           iFrameTick;
+    int           iSleepTick;
 
-    int64_t     i64CurTimeA;
-    int64_t     i64CurTimeV;
+    int64_t       i64CurTimeA;
+    int64_t       i64CurTimeV;
 } RENDER;
 
 // 内部函数实现
@@ -171,7 +171,7 @@ void* renderopen(void *surface, AVRational frate, int pixfmt, int w, int h,
     render->nRenderHeight= GetSystemMetrics(SM_CYSCREEN);
     render->nRenderNewW  = render->nRenderWidth;
     render->nRenderNewH  = render->nRenderHeight;
-    render->PixelFormat  = (PixelFormat)pixfmt;
+    render->PixelFormat  = (AVPixelFormat)pixfmt;
 
     // create sws context
     render->pSWSContext = sws_getContext(
@@ -180,7 +180,7 @@ void* renderopen(void *surface, AVRational frate, int pixfmt, int w, int h,
         render->PixelFormat,
         render->nRenderWidth,
         render->nRenderHeight,
-        PIX_FMT_RGB32,
+        AV_PIX_FMT_RGB32,
         SWS_BILINEAR,
         0, 0, 0);
 
@@ -297,7 +297,7 @@ void renderwritevideo(void *hrender, AVFrame *video)
 {
     if (!hrender) return;
     RENDER   *render  = (RENDER*)hrender;
-    AVPicture picture = {0};
+    AVFrame   picture = {0};
     BYTE     *bmpbuf  = NULL;
     int       stride  = 0;
     int64_t  *ppts    = NULL;
@@ -316,7 +316,7 @@ void renderwritevideo(void *hrender, AVFrame *video)
 
         if (render->pSWSContext) sws_freeContext(render->pSWSContext);
         render->pSWSContext = sws_getContext(render->nVideoWidth, render->nVideoHeight, render->PixelFormat,
-                        render->nRenderWidth, render->nRenderHeight, PIX_FMT_RGB32, SWS_BILINEAR, 0, 0, 0);
+                        render->nRenderWidth, render->nRenderHeight, AV_PIX_FMT_RGB32, SWS_BILINEAR, 0, 0, 0);
     }
     sws_scale(render->pSWSContext, video->data, video->linesize, 0, render->nVideoHeight, picture.data, picture.linesize);
     bmpqueue_write_done(&(render->BmpQueue));

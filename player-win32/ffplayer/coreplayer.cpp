@@ -92,7 +92,7 @@ static void* AVDemuxThreadProc(void *param)
         if (  packet->stream_index != player->iAudioStreamIndex
            && packet->stream_index != player->iVideoStreamIndex )
         {
-            av_free_packet(packet); // free packet
+            av_packet_unref(packet); // free packet
             pktqueue_write_release(&(player->PacketQueue));
         }
     }
@@ -152,7 +152,7 @@ static void* AudioDecodeThreadProc(void *param)
         //-- decode audio packet --//
 
         // free packet
-        av_free_packet(packet);
+        av_packet_unref(packet);
 
         pktqueue_read_done_a(&(player->PacketQueue));
     }
@@ -207,7 +207,7 @@ static void* VideoDecodeThreadProc(void *param)
         //-- decode video packet --//
 
         // free packet
-        av_free_packet(packet);
+        av_packet_unref(packet);
 
         pktqueue_read_done_v(&(player->PacketQueue));
     }
