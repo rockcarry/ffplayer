@@ -271,6 +271,10 @@ void* playeropen(char *file, void *extra)
             player->pVideoCodecContext = player->pAVFormatContext->streams[i]->codec;
             player->dVideoTimeBase     = av_q2d(player->pAVFormatContext->streams[i]->time_base) * 1000;
             vrate = player->pAVFormatContext->streams[i]->r_frame_rate;
+            if (vrate.num / vrate.den > 100) {
+                vrate.num = 30;
+                vrate.den = 1;
+            }
             break;
         }
     }
