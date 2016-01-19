@@ -28,6 +28,7 @@ typedef struct
     AVCodecContext  *pVideoCodecContext;
     int              iVideoStreamIndex;
     double           dVideoTimeBase;
+    AVRational       tVideoFrameRate;
 
     // render
     int              nRenderMode;
@@ -195,8 +196,10 @@ static void* VideoDecodeThreadProc(void *param)
                 }
 
                 if (gotvideo) {
-//                  vframe->pts = av_frame_get_best_effort_timestamp(vframe);
                     vframe->pts = (int64_t)(vframe->pkt_pts * player->dVideoTimeBase);
+                    if (vframe->pts == AV_NOPTS_VALUE) {
+                        vframe->pts = av_frame_get_best_effort_timestamp(vframe) * 1000 * player->tVideoFrameRate.den / player->tVideoFrameRate.num;
+                    }
                     renderwritevideo(player->hCoreRender, vframe);
                 }
 
@@ -224,7 +227,6 @@ void* playeropen(char *file, void *extra)
     int            vformat  = 0;
     int            width    = 0;
     int            height   = 0;
-    AVRational     vrate    = {1, 1};
     uint64_t       alayout  = 0;
     int            aformat  = 0;
     int            arate    = 0;
@@ -270,10 +272,10 @@ void* playeropen(char *file, void *extra)
             player->iVideoStreamIndex  = i;
             player->pVideoCodecContext = player->pAVFormatContext->streams[i]->codec;
             player->dVideoTimeBase     = av_q2d(player->pAVFormatContext->streams[i]->time_base) * 1000;
-            vrate = player->pAVFormatContext->streams[i]->r_frame_rate;
-            if (vrate.num / vrate.den > 100) {
-                vrate.num = 30;
-                vrate.den = 1;
+            player->tVideoFrameRate    = player->pAVFormatContext->streams[i]->r_frame_rate;
+            if (player->tVideoFrameRate.num / player->tVideoFrameRate.den > 100) {
+                player->tVideoFrameRate.num = 30;
+                player->tVideoFrameRate.den = 1;
             }
             break;
         }
@@ -324,7 +326,7 @@ void* playeropen(char *file, void *extra)
     }
 
     // open core render
-    player->hCoreRender = renderopen(extra, vrate, vformat, width, height,
+    player->hCoreRender = renderopen(extra, player->tVideoFrameRate, vformat, width, height,
         arate, (AVSampleFormat)aformat, alayout);
 
     // make sure player status paused
