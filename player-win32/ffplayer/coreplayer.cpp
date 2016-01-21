@@ -142,7 +142,7 @@ static void* AudioDecodeThreadProc(void *param)
                 }
 
                 if (gotaudio) {
-                    aframe->pts = (int64_t)(aframe->pkt_pts * player->dAudioTimeBase);
+                    aframe->pts = (int64_t)(av_frame_get_best_effort_timestamp(aframe) * player->dAudioTimeBase);
                     renderwriteaudio(player->hCoreRender, aframe);
                 }
 
@@ -196,10 +196,7 @@ static void* VideoDecodeThreadProc(void *param)
                 }
 
                 if (gotvideo) {
-                    vframe->pts = (int64_t)(vframe->pkt_pts * player->dVideoTimeBase);
-                    if (vframe->pts == AV_NOPTS_VALUE) {
-                        vframe->pts = av_frame_get_best_effort_timestamp(vframe) * 1000 * player->tVideoFrameRate.den / player->tVideoFrameRate.num;
-                    }
+                    vframe->pts = (int64_t)(av_frame_get_best_effort_timestamp(vframe) * player->dVideoTimeBase);
                     renderwritevideo(player->hCoreRender, vframe);
                 }
 
