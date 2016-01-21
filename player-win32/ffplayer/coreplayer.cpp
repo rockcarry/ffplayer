@@ -223,7 +223,7 @@ static void* VideoDecodeThreadProc(void *param)
 void* playeropen(char *file, void *extra)
 {
     PLAYER        *player   = NULL;
-    AVCodec       *pAVCodec = NULL;
+    AVCodec       *decoder = NULL;
     int            vformat  = 0;
     int            width    = 0;
     int            height   = 0;
@@ -284,29 +284,23 @@ void* playeropen(char *file, void *extra)
     // open audio codec
     if (player->iAudioStreamIndex != -1)
     {
-        pAVCodec = avcodec_find_decoder(player->pAudioCodecContext->codec_id);
-        if (pAVCodec)
+        decoder = avcodec_find_decoder(player->pAudioCodecContext->codec_id);
+        if (!decoder || avcodec_open(player->pAudioCodecContext, decoder, NULL) < 0)
         {
-            if (avcodec_open(player->pAudioCodecContext, pAVCodec, NULL) < 0)
-            {
-                player->iAudioStreamIndex = -1;
-            }
+            log_printf(TEXT("failed to find or open decoder for audio !\n"));
+            player->iAudioStreamIndex = -1;
         }
-        else player->iAudioStreamIndex = -1;
     }
 
     // open video codec
     if (player->iVideoStreamIndex != -1)
     {
-        pAVCodec = avcodec_find_decoder(player->pVideoCodecContext->codec_id);
-        if (pAVCodec)
+        decoder = avcodec_find_decoder(player->pVideoCodecContext->codec_id);
+        if (!decoder || avcodec_open(player->pVideoCodecContext, decoder, NULL) < 0)
         {
-            if (avcodec_open(player->pVideoCodecContext, pAVCodec, NULL) < 0)
-            {
-                player->iVideoStreamIndex = -1;
-            }
+            log_printf(TEXT("failed to find or open decoder for video !\n"));
+            player->iVideoStreamIndex = -1;
         }
-        else player->iVideoStreamIndex = -1;
     }
 
     // for video
