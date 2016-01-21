@@ -13,8 +13,7 @@ extern "C" {
 #include "libavformat/avformat.h"
 
 // 常量定义
-#define DEF_PKT_QUEUE_ASIZE   50
-#define DEF_PKT_QUEUE_VSIZE   50
+#define DEF_PKT_QUEUE_SIZE 120
 
 typedef struct {
     long       fsize;
@@ -28,11 +27,9 @@ typedef struct {
     long       vtail;
     long       apktnum;
     long       vpktnum;
-    sem_t      fsemr;
-    sem_t      asemr;
-    sem_t      asemw;
-    sem_t      vsemr;
-    sem_t      vsemw;
+    sem_t      fsem;
+    sem_t      asem;
+    sem_t      vsem;
     AVPacket  *bpkts; // packet buffers
     AVPacket **fpkts; // free packets
     AVPacket **apkts; // audio packets

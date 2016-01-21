@@ -7,20 +7,18 @@ BOOL pktqueue_create(PKTQUEUE *ppq)
     int i;
 
     // default size
-    if (ppq->asize == 0) ppq->asize = DEF_PKT_QUEUE_ASIZE;
-    if (ppq->vsize == 0) ppq->vsize = DEF_PKT_QUEUE_VSIZE;
-    ppq->fsize = ppq->asize + ppq->vsize;
+    if (ppq->fsize == 0) {
+        ppq->fsize = ppq->asize = ppq->vsize = DEF_PKT_QUEUE_SIZE;
+    }
 
     // alloc buffer & semaphore
     ppq->bpkts = (AVPacket* )malloc(ppq->fsize * sizeof(AVPacket ));
     ppq->fpkts = (AVPacket**)malloc(ppq->fsize * sizeof(AVPacket*));
     ppq->apkts = (AVPacket**)malloc(ppq->asize * sizeof(AVPacket*));
     ppq->vpkts = (AVPacket**)malloc(ppq->vsize * sizeof(AVPacket*));
-    sem_init(&(ppq->fsemr), 0, ppq->fsize);
-    sem_init(&(ppq->asemr), 0, 0         );
-    sem_init(&(ppq->asemw), 0, ppq->asize);
-    sem_init(&(ppq->vsemr), 0, 0         );
-    sem_init(&(ppq->vsemw), 0, ppq->vsize);
+    sem_init(&(ppq->fsem), 0, ppq->fsize);
+    sem_init(&(ppq->asem), 0, 0         );
+    sem_init(&(ppq->vsem), 0, 0         );
 
     // check invalid
     if (!ppq->bpkts || !ppq->fpkts || !ppq->apkts || !ppq->vpkts) {
@@ -49,11 +47,9 @@ void pktqueue_destroy(PKTQUEUE *ppq)
     if (ppq->vpkts) free(ppq->vpkts);
 
     // close
-    sem_destroy(&(ppq->fsemr));
-    sem_destroy(&(ppq->asemr));
-    sem_destroy(&(ppq->asemw));
-    sem_destroy(&(ppq->vsemr));
-    sem_destroy(&(ppq->vsemw));
+    sem_destroy(&(ppq->fsem));
+    sem_destroy(&(ppq->asem));
+    sem_destroy(&(ppq->vsem));
 
     // clear members
     memset(ppq, 0, sizeof(PKTQUEUE));
@@ -62,53 +58,51 @@ void pktqueue_destroy(PKTQUEUE *ppq)
 BOOL pktqueue_isempty_a(PKTQUEUE *ppq)
 {
     int value = 0;
-    sem_getvalue(&(ppq->asemr), &value);
+    sem_getvalue(&(ppq->asem), &value);
     return (value <= 0);
 }
 
 BOOL pktqueue_isempty_v(PKTQUEUE *ppq)
 {
     int value = 0;
-    sem_getvalue(&(ppq->vsemr), &value);
+    sem_getvalue(&(ppq->vsem), &value);
     return (value <= 0);
 }
 
 void pktqueue_write_request(PKTQUEUE *ppq, AVPacket **pppkt)
 {
-    sem_wait(&(ppq->fsemr));
+    sem_wait(&(ppq->fsem));
     if (pppkt) *pppkt = ppq->fpkts[ppq->fhead];
 }
 
 void pktqueue_write_release(PKTQUEUE *ppq)
 {
-    sem_post(&(ppq->fsemr));
+    sem_post(&(ppq->fsem));
 }
 
 void pktqueue_write_done_a(PKTQUEUE *ppq)
 {
-    sem_wait(&(ppq->asemw));
     ppq->apkts[ppq->atail] = ppq->fpkts[ppq->fhead];
 
     if (++ppq->fhead == ppq->fsize) ppq->fhead = 0;
     if (++ppq->atail == ppq->asize) ppq->atail = 0;
 
-    sem_post(&(ppq->asemr));
+    sem_post(&(ppq->asem));
 }
 
 void pktqueue_write_done_v(PKTQUEUE *ppq)
 {
-    sem_wait(&(ppq->vsemw));
     ppq->vpkts[ppq->vtail] = ppq->fpkts[ppq->fhead];
 
     if (++ppq->fhead == ppq->fsize) ppq->fhead = 0;
     if (++ppq->vtail == ppq->vsize) ppq->vtail = 0;
 
-    sem_post(&(ppq->vsemr));
+    sem_post(&(ppq->vsem));
 }
 
 void pktqueue_read_request_a(PKTQUEUE *ppq, AVPacket **pppkt)
 {
-    sem_wait(&(ppq->asemr));
+    sem_wait(&(ppq->asem));
     if (pppkt) *pppkt = ppq->apkts[ppq->ahead];
 }
 
@@ -119,13 +113,12 @@ void pktqueue_read_done_a(PKTQUEUE *ppq)
     if (++ppq->ahead == ppq->asize) ppq->ahead = 0;
     if (++ppq->ftail == ppq->fsize) ppq->ftail = 0;
 
-    sem_post(&(ppq->asemw));
-    sem_post(&(ppq->fsemr));
+    sem_post(&(ppq->fsem));
 }
 
 void pktqueue_read_request_v(PKTQUEUE *ppq, AVPacket **pppkt)
 {
-    sem_wait(&(ppq->vsemr));
+    sem_wait(&(ppq->vsem));
     if (pppkt) *pppkt = ppq->vpkts[ppq->vhead];
 }
 
@@ -136,8 +129,7 @@ void pktqueue_read_done_v(PKTQUEUE *ppq)
     if (++ppq->vhead == ppq->vsize) ppq->vhead = 0;
     if (++ppq->ftail == ppq->fsize) ppq->ftail = 0;
 
-    sem_post(&(ppq->vsemw));
-    sem_post(&(ppq->fsemr));
+    sem_post(&(ppq->fsem));
 }
 
 
