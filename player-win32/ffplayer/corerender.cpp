@@ -157,7 +157,7 @@ void* renderopen(void *surface, AVRational frate, int pixfmt, int w, int h,
     wfx.nAvgBytesPerSec = wfx.nBlockAlign * wfx.nSamplesPerSec;
     waveOutOpen(&(render->hWaveOut), WAVE_MAPPER, &wfx, (DWORD_PTR)waveOutProc, (DWORD)render, CALLBACK_FUNCTION);
     waveOutPause(render->hWaveOut);
-    wavqueue_create(&(render->WavQueue), render->hWaveOut, ((int64_t)44100 * 4 * frate.den / frate.num) & ~0x3);
+    wavqueue_create(&(render->WavQueue), render->hWaveOut, (int)(44100.0 * frate.den / frate.num + 0.5) * 4);
 
     /* allocate & init swr context */
     render->pSWRContext = swr_alloc_set_opts(NULL, AV_CH_LAYOUT_STEREO, AV_SAMPLE_FMT_S16, 44100,
