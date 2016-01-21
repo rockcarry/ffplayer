@@ -315,6 +315,11 @@ void* playeropen(char *file, void *extra)
     if (player->iAudioStreamIndex != -1)
     {
         alayout = player->pAudioCodecContext->channel_layout;
+        //++ fix audio channel layout issue
+        if (alayout == 0) {
+            alayout = av_get_default_channel_layout(player->pAudioCodecContext->channels);
+        }
+        //-- fix audio channel layout issue
         aformat = player->pAudioCodecContext->sample_fmt;
         arate   = player->pAudioCodecContext->sample_rate;
     }
