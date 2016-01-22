@@ -420,6 +420,9 @@ void playersetrect(void *hplayer, int x, int y, int w, int h)
         rh = h;
         break;
     }
+
+    if (rw <= 0) rw = 1;
+    if (rh <= 0) rh = 1;
     rendersetrect(player->hCoreRender, x + (w - rw) / 2, y + (h - rh) / 2, rw, rh);
 }
 
