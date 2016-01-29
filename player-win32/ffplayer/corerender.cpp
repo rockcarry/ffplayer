@@ -101,6 +101,12 @@ static void* VideoRenderThreadProc(void *param)
         }
         bmpqueue_read_done(&(render->BmpQueue));
 
+        //++ for seek ++//
+        if (render->nRenderStatus & RS_SEEK) {
+            continue;
+        }
+        //-- for seek --//
+
         // ++ frame rate control ++ //
         render->dwLastTick = render->dwCurTick;
         render->dwCurTick  = GetTickCount();
@@ -120,12 +126,6 @@ static void* VideoRenderThreadProc(void *param)
             if (diff < -5) render->iSleepTick--;
         }
         // -- av sync control -- //
-
-        //++ for seek ++//
-        if (render->nRenderStatus & RS_SEEK) {
-            render->iSleepTick = 1;
-        }
-        //-- for seek --//
 
         // do sleep
         if (render->iSleepTick > 0) Sleep(render->iSleepTick);
