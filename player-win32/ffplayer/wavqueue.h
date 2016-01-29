@@ -11,7 +11,7 @@ extern "C" {
 #endif
 
 // 常量定义
-#define DEF_WAV_QUEUE_SIZE   5
+#define DEF_WAV_QUEUE_SIZE   3
 #define DEF_WAV_BUFFER_SIZE  8192
 
 typedef struct {

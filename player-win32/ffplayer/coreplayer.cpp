@@ -35,11 +35,14 @@ typedef struct
     void            *hCoreRender;
 
     // thread
-    #define PS_D_PAUSE  (1 << 0)  // demux pause
-    #define PS_A_PAUSE  (1 << 1)  // audio decoding pause
-    #define PS_V_PAUSE  (1 << 2)  // video decoding pause
-    #define PS_R_PAUSE  (1 << 3)  // rendering pause
-    #define PS_CLOSE    (1 << 4)  // close player
+    #define PS_D_PAUSE    (1 << 0)  // demux pause
+    #define PS_A_PAUSE    (1 << 1)  // audio decoding pause
+    #define PS_V_PAUSE    (1 << 2)  // video decoding pause
+    #define PS_R_PAUSE    (1 << 3)  // rendering pause
+    #define PS_CLOSE      (1 << 4)  // close player
+    #define PS_P_READING  (1 << 8)  // packet reading in progress
+    #define PS_A_DECODING (1 << 9)  // audio decoding in progress
+    #define PS_V_DECODING (1 <<10)  // video decoding in progress
     int              nPlayerStatus;
     pthread_t        hAVDemuxThread;
     pthread_t        hADecodeThread;
@@ -66,7 +69,9 @@ static void* AVDemuxThreadProc(void *param)
         //-- when demux pause --//
 
         pktqueue_write_request(&(player->PacketQueue), &packet);
+        player->nPlayerStatus |=  PS_P_READING;
         retv = av_read_frame(player->pAVFormatContext, packet);
+        player->nPlayerStatus &= ~PS_P_READING;
 
         //++ play completed ++//
         if (retv < 0)
@@ -112,13 +117,6 @@ static void* AudioDecodeThreadProc(void *param)
 
     while (!(player->nPlayerStatus & PS_CLOSE))
     {
-        //++ when audio decoding pause ++//
-        if (player->nPlayerStatus & PS_A_PAUSE) {
-            Sleep(20);
-            continue;
-        }
-        //-- when audio decoding pause --//
-
         // read packet
         pktqueue_read_request_a(&(player->PacketQueue), &packet);
 
@@ -131,10 +129,12 @@ static void* AudioDecodeThreadProc(void *param)
         //-- play completed --//
 
         //++ decode audio packet ++//
-        if (player->iAudioStreamIndex != -1) {
+        if (player->iAudioStreamIndex != -1 && !(player->nPlayerStatus & PS_A_PAUSE)) {
+            player->nPlayerStatus |=  PS_A_DECODING;
             while (packet->size > 0) {
                 int consumed = 0;
                 int gotaudio = 0;
+
                 consumed = avcodec_decode_audio(player->pAudioCodecContext, aframe, &gotaudio, packet);
                 if (consumed < 0) {
                     log_printf(TEXT("an error occurred during decoding audio.\n"));
@@ -149,6 +149,7 @@ static void* AudioDecodeThreadProc(void *param)
                 packet->data += consumed;
                 packet->size -= consumed;
             }
+            player->nPlayerStatus &= ~PS_A_DECODING;
         }
         //-- decode audio packet --//
 
@@ -173,18 +174,12 @@ static void* VideoDecodeThreadProc(void *param)
 
     while (!(player->nPlayerStatus & PS_CLOSE))
     {
-        //++ when video decoding pause ++//
-        if (player->nPlayerStatus & PS_V_PAUSE) {
-            Sleep(20);
-            continue;
-        }
-        //-- when video decoding pause --//
-
         // read packet
         pktqueue_read_request_v(&(player->PacketQueue), &packet);
 
         //++ decode video packet ++//
-        if (player->iVideoStreamIndex != -1) {
+        if (player->iVideoStreamIndex != -1 && !(player->nPlayerStatus & PS_V_PAUSE)) {
+            player->nPlayerStatus |=  PS_V_DECODING;
             while (packet->size > 0) {
                 int consumed = 0;
                 int gotvideo = 0;
@@ -203,6 +198,7 @@ static void* VideoDecodeThreadProc(void *param)
                 packet->data += consumed;
                 packet->size -= consumed;
             }
+            player->nPlayerStatus &= ~PS_V_DECODING;
         }
         //-- decode video packet --//
 
@@ -435,12 +431,16 @@ void playerseek(void *hplayer, DWORD sec)
     if (player->nPlayerStatus & PS_R_PAUSE) renderstart(player->hCoreRender);
 
     // render seek start
-    player->nPlayerStatus |= PS_D_PAUSE;
+    player->nPlayerStatus |= (PS_D_PAUSE|PS_A_PAUSE|PS_V_PAUSE);
     renderseek(player->hCoreRender, sec);
 
     // wait for packet queue empty
-    while (!pktqueue_isempty_a(&(player->PacketQueue))) Sleep(20);
-    while (!pktqueue_isempty_v(&(player->PacketQueue))) Sleep(20);
+    while (  (player->nPlayerStatus & (PS_P_READING|PS_A_DECODING|PS_V_DECODING))
+          || !pktqueue_isempty_a(&(player->PacketQueue))
+          || !pktqueue_isempty_v(&(player->PacketQueue)) )
+    {
+        Sleep(10);
+    }
 
     // seek frame
     av_seek_frame(player->pAVFormatContext, -1, (int64_t)sec * AV_TIME_BASE, 0);
@@ -449,10 +449,10 @@ void playerseek(void *hplayer, DWORD sec)
 
     // render seek done, -1 means done
     renderseek(player->hCoreRender, -1);
-    player->nPlayerStatus &= ~PS_D_PAUSE;
+    player->nPlayerStatus &= ~(PS_D_PAUSE|PS_A_PAUSE|PS_V_PAUSE);
 
-    // wait for video packet queue not empty witch timeout 200ms
-    int i = 10; while (i-- && pktqueue_isempty_v(&(player->PacketQueue))) Sleep(20);
+    // wait for video packet queue not empty with timeout 500ms
+    int i = 50; while (i-- && pktqueue_isempty_v(&(player->PacketQueue))) Sleep(10);
 
     // pause render if needed
     if (player->nPlayerStatus & PS_R_PAUSE) renderpause(player->hCoreRender);

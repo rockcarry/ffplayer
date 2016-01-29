@@ -123,7 +123,7 @@ static void* VideoRenderThreadProc(void *param)
 
         //++ for seek ++//
         if (render->nRenderStatus & RS_SEEK) {
-            render->iSleepTick = render->iFrameTick;
+            render->iSleepTick = 1;
         }
         //-- for seek --//
 
@@ -247,8 +247,6 @@ void renderwriteaudio(void *hrender, AVFrame *audio)
     int      sampnum = 0;
     int64_t *ppts    = NULL;
 
-    if (render->nRenderStatus & RS_SEEK) return;
-
     //++ play completed ++//
     if (audio == (AVFrame*)-1) {
         if (render->nWavBufAvail > 0) {
@@ -301,8 +299,6 @@ void renderwritevideo(void *hrender, AVFrame *video)
     BYTE     *bmpbuf  = NULL;
     int       stride  = 0;
     int64_t  *ppts    = NULL;
-
-    if (render->nRenderStatus & RS_SEEK) return;
 
     bmpqueue_write_request(&(render->BmpQueue), &ppts, &bmpbuf, &stride);
     *ppts               = video->pts;

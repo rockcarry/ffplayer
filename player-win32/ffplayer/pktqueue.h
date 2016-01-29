@@ -25,8 +25,6 @@ typedef struct {
     long       atail;
     long       vhead;
     long       vtail;
-    long       apktnum;
-    long       vpktnum;
     sem_t      fsem;
     sem_t      asem;
     sem_t      vsem;
