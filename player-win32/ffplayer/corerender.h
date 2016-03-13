@@ -26,6 +26,7 @@ void render_close  (void *hrender);
 void render_audio  (void *hrender, AVFrame *audio);
 void render_video  (void *hrender, AVFrame *video);
 void render_setrect(void *hrender, int x, int y, int w, int h);
+void render_speed  (void *hrender, int   speed);
 void render_start  (void *hrender);
 void render_pause  (void *hrender);
 void render_reset  (void *hrender, DWORD  time);

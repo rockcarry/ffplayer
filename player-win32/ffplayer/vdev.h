@@ -17,6 +17,7 @@ void  vdev_gdi_setrect (void *ctxt, int x, int y, int w, int h);
 void  vdev_gdi_pause   (void *ctxt, BOOL pause);
 void  vdev_gdi_reset   (void *ctxt);
 void  vdev_gdi_getavpts(void *ctxt, int64_t **ppapts, int64_t **ppvpts);
+void  vdev_gdi_setfrate(void *ctxt, int frate);
 
 #define vdev_create     vdev_gdi_create
 #define vdev_destroy    vdev_gdi_destroy
@@ -26,6 +27,7 @@ void  vdev_gdi_getavpts(void *ctxt, int64_t **ppapts, int64_t **ppvpts);
 #define vdev_pause      vdev_gdi_pause
 #define vdev_reset      vdev_gdi_reset
 #define vdev_getavpts   vdev_gdi_getavpts
+#define vdev_setfrate   vdev_gdi_setfrate
 
 #ifdef __cplusplus
 }

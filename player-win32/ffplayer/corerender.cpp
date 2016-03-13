@@ -18,23 +18,32 @@ extern "C" {
 // 内部类型定义
 typedef struct
 {
-    void         *adev;
-    void         *vdev;
+    void          *adev;
+    void          *vdev;
 
-    int           nVideoWidth;
-    int           nVideoHeight;
-    int           nFramePeriod;
-    int           nRenderWidth;
-    int           nRenderHeight;
-    AVPixelFormat PixelFormat;
-    SwrContext   *pSWRContext;
-    SwsContext   *pSWSContext;
+    SwrContext    *pSWRContext;
+    SwsContext    *pSWSContext;
 
-    int           nAdevBufAvail;
-    BYTE         *pAdevBufCur;
-    AUDIOBUF     *pAdevHdrCur;
+    int            nSampleRate;
+    AVSampleFormat SampleFormat;
+    int64_t        nChanLayout;
 
-    CRITICAL_SECTION  cs;
+    int            nVideoWidth;
+    int            nVideoHeight;
+    int            nFramePeriod;
+    AVRational     FrameRate;
+    AVPixelFormat  PixelFormat;
+
+    int            nAdevBufAvail;
+    BYTE          *pAdevBufCur;
+    AUDIOBUF      *pAdevHdrCur;
+
+    int            nRenderWidth;
+    int            nRenderHeight;
+    int            nRenderSpeed;
+
+    CRITICAL_SECTION  cs1;
+    CRITICAL_SECTION  cs2;
 } RENDER;
 
 // 函数实现
@@ -50,16 +59,17 @@ void* render_open(void *surface, AVRational frate, int pixfmt, int w, int h,
     // clear it first
     memset(render, 0, sizeof(RENDER));
 
-    /* allocate & init swr context */
-    render->pSWRContext = swr_alloc_set_opts(NULL, AV_CH_LAYOUT_STEREO, AV_SAMPLE_FMT_S16, 44100,
-                                             ch_layout, sndfmt, srate, 0, NULL);
-    swr_init(render->pSWRContext);
-
     // init for video
     render->nVideoWidth  = w;
     render->nVideoHeight = h;
     render->nFramePeriod = 1000 * frate.den / frate.num;
+    render->FrameRate    = frate;
     render->PixelFormat  = (AVPixelFormat)pixfmt;
+
+    // init for audio
+    render->nSampleRate  = srate;
+    render->SampleFormat = sndfmt;
+    render->nChanLayout  = ch_layout;
 
     // create adev & vdev
     render->adev = adev_create(0, (int)(44100.0 * frate.den / frate.num + 0.5) * 4);
@@ -70,16 +80,17 @@ void* render_open(void *surface, AVRational frate, int pixfmt, int w, int h,
     vdev_getavpts(render->vdev, &papts, NULL);
     adev_syncapts(render->adev,  papts);
 
-    InitializeCriticalSection(&render->cs);
+    InitializeCriticalSection(&render->cs1);
+    InitializeCriticalSection(&render->cs2);
     RECT rect; GetClientRect((HWND)surface, &rect);
     render_setrect(render, rect.left, rect.top, rect.right, rect.bottom);
+    render_speed  (render, 100);
 
     return render;
 }
 
 void render_close(void *hrender)
 {
-    if (!hrender) return;
     RENDER *render = (RENDER*)hrender;
 
     //++ audio ++//
@@ -106,11 +117,11 @@ void render_close(void *hrender)
 
 void render_audio(void *hrender, AVFrame *audio)
 {
-    if (!hrender) return;
-    RENDER  *render  = (RENDER*)hrender;
-    int      sampnum = 0;
-    DWORD    apts    = (DWORD)audio->pts;
+    RENDER *render  = (RENDER*)hrender;
+    int     sampnum = 0;
+    DWORD   apts    = (DWORD)audio->pts;
 
+    EnterCriticalSection(&render->cs1);
     do {
         if (render->nAdevBufAvail == 0) {
             adev_request(render->adev, &render->pAdevHdrCur);
@@ -133,15 +144,15 @@ void render_audio(void *hrender, AVFrame *audio)
             adev_post(render->adev, apts);
         }
     } while (sampnum > 0);
+    LeaveCriticalSection(&render->cs1);
 }
 
 void render_video(void *hrender, AVFrame *video)
 {
-    if (!hrender) return;
-    RENDER   *render  = (RENDER*)hrender;
-    AVFrame   picture = {0};
-    BYTE     *bmpbuf  = NULL;
-    int       stride  = 0;
+    RENDER  *render  = (RENDER*)hrender;
+    AVFrame  picture = {0};
+    BYTE    *bmpbuf  = NULL;
+    int      stride  = 0;
 
 #if 0 // todo..
     int64_t *papts = NULL;
@@ -152,20 +163,44 @@ void render_video(void *hrender, AVFrame *video)
     }
 #endif
 
-    EnterCriticalSection(&render->cs);
+    EnterCriticalSection(&render->cs2);
     vdev_request(render->vdev, (void**)&bmpbuf, &stride);
     picture.data[0]     = bmpbuf;
     picture.linesize[0] = stride;
     sws_scale(render->pSWSContext, video->data, video->linesize, 0, render->nVideoHeight, picture.data, picture.linesize);
     vdev_post(render->vdev, video->pts);
-    LeaveCriticalSection(&render->cs);
+    LeaveCriticalSection(&render->cs2);
+}
+
+void render_speed(void *hrender, int speed)
+{
+    RENDER *render = (RENDER*)hrender;
+    EnterCriticalSection(&render->cs1);
+    if (render->nRenderSpeed != speed) {
+        int samprate  = 44100 * 100 / speed;
+        int framerate = (render->FrameRate.num * speed) / (render->FrameRate.den * 100);
+
+        if (render->pSWRContext) {
+            swr_free(&render->pSWRContext);
+        }
+
+        /* allocate & init swr context */
+        render->pSWRContext = swr_alloc_set_opts(NULL, AV_CH_LAYOUT_STEREO, AV_SAMPLE_FMT_S16, samprate,
+            render->nChanLayout, render->SampleFormat, render->nSampleRate, 0, NULL);
+        swr_init(render->pSWRContext);
+
+        // set vdev frame rate
+        vdev_setfrate(render->vdev, framerate);
+
+        render->nRenderSpeed = speed;
+    }
+    LeaveCriticalSection(&render->cs1);
 }
 
 void render_setrect(void *hrender, int x, int y, int w, int h)
 {
-    if (!hrender) return;
     RENDER *render = (RENDER*)hrender;
-    EnterCriticalSection(&render->cs);
+    EnterCriticalSection(&render->cs2);
     if (render->nRenderWidth != w || render->nRenderHeight != h)
     {
         if (render->pSWSContext) {
@@ -177,12 +212,11 @@ void render_setrect(void *hrender, int x, int y, int w, int h)
         render->nRenderHeight = h;
     }
     vdev_setrect(render->vdev, x, y, w, h);
-    LeaveCriticalSection(&render->cs);
+    LeaveCriticalSection(&render->cs2);
 }
 
 void render_start(void *hrender)
 {
-    if (!hrender) return;
     RENDER *render = (RENDER*)hrender;
     adev_pause(render->adev, FALSE);
     vdev_pause(render->vdev, FALSE);
@@ -190,7 +224,6 @@ void render_start(void *hrender)
 
 void render_pause(void *hrender)
 {
-    if (!hrender) return;
     RENDER *render = (RENDER*)hrender;
     adev_pause(render->adev, TRUE);
     vdev_pause(render->vdev, TRUE);
@@ -198,7 +231,6 @@ void render_pause(void *hrender)
 
 void render_reset(void *hrender, DWORD sec)
 {
-    if (!hrender) return;
     RENDER *render = (RENDER*)hrender;
     adev_reset(render->adev);
     vdev_reset(render->vdev);
@@ -211,7 +243,6 @@ void render_reset(void *hrender, DWORD sec)
 
 void render_time(void *hrender, DWORD *time)
 {
-    if (!hrender) return;
     RENDER *render = (RENDER*)hrender;
     if (time) {
         int64_t *papts, *pvpts;
@@ -219,6 +250,5 @@ void render_time(void *hrender, DWORD *time)
         *time = (DWORD)((*papts > *pvpts ? *papts : *pvpts) / 1000);
     }
 }
-
 
 

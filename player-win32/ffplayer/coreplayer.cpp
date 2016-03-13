@@ -33,6 +33,7 @@ typedef struct
 
     // render
     int              nRenderMode;
+    int              nRenderSpeed;
     void            *hCoreRender;
 
     // packet queue
@@ -454,6 +455,10 @@ void player_setparam(void *hplayer, DWORD id, DWORD param)
     case PARAM_RENDER_MODE:
         player->nRenderMode = param;
         break;
+    case PARAM_PLAY_SPEED:
+        player->nRenderSpeed= param;
+        render_speed(player->hCoreRender, player->nRenderSpeed);
+        break;
     }
 }
 
@@ -485,6 +490,9 @@ void player_getparam(void *hplayer, DWORD id, void *param)
 
     case PARAM_RENDER_MODE:
         *(int*)param = player->nRenderMode;
+        break;
+    case PARAM_PLAY_SPEED:
+        *(int*)param = player->nRenderSpeed;
         break;
     }
 }

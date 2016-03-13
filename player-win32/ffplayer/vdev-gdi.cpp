@@ -81,10 +81,10 @@ static DWORD WINAPI VideoRenderThreadProc(void *param)
         DWORD tickcur  = GetTickCount();
         int   tickdiff = tickcur - c->ticklast;
         c->ticklast = tickcur;
-        if (tickdiff - c->tickframe >  2) c->ticksleep--;
-        if (tickdiff - c->tickframe < -2) c->ticksleep++;
-        if (apts - vpts >  1) c->ticksleep--;
-        if (apts - vpts < -1) c->ticksleep++;
+        if (tickdiff - c->tickframe >  1) c->ticksleep--;
+        if (tickdiff - c->tickframe < -1) c->ticksleep++;
+        if (apts - vpts >  1) c->ticksleep-=2;
+        if (apts - vpts < -1) c->ticksleep+=2;
         if (c->ticksleep > 0) Sleep(c->ticksleep);
         log_printf(TEXT("diff: %5lld, sleep: %d\n"), apts-vpts, c->ticksleep);
     }
@@ -246,3 +246,8 @@ void vdev_gdi_getavpts(void *ctxt, int64_t **ppapts, int64_t **ppvpts)
     if (ppvpts) *ppvpts = &c->vpts;
 }
 
+void vdev_gdi_setfrate(void *ctxt, int frate)
+{
+    DEVGDICTXT *c = (DEVGDICTXT*)ctxt;
+    c->tickframe = 1000 / frate;
+}
