@@ -1,9 +1,8 @@
-ï»¿// åŒ…å«å¤´æ–‡ä»¶
+// °üº¬Í·ÎÄ¼ş
 #include <pthread.h>
-#include "coreplayer.h"
 #include "corerender.h"
-#include "wavqueue.h"
-#include "bmpqueue.h"
+#include "adev.h"
+#include "vdev.h"
 #include "log.h"
 
 extern "C" {
@@ -13,151 +12,43 @@ extern "C" {
 #include "libswresample/swresample.h"
 }
 
-// å†…éƒ¨ç±»å‹å®šä¹‰
+#pragma warning(disable:4311)
+#pragma warning(disable:4312)
+
+// ÄÚ²¿ÀàĞÍ¶¨Òå
 typedef struct
 {
+    void         *adev;
+    void         *vdev;
+
     int           nVideoWidth;
     int           nVideoHeight;
+    int           nFramePeriod;
+    int           nRenderWidth;
+    int           nRenderHeight;
     AVPixelFormat PixelFormat;
     SwrContext   *pSWRContext;
     SwsContext   *pSWSContext;
 
-    HWAVEOUT      hWaveOut;
-    WAVQUEUE      WavQueue;
-    int           nWavBufAvail;
-    BYTE         *pWavBufCur;
-    WAVEHDR      *pWavHdrCur;
+    int           nAdevBufAvail;
+    BYTE         *pAdevBufCur;
+    AUDIOBUF     *pAdevHdrCur;
 
-    #define RS_PAUSE  (1 << 0)
-    #define RS_SEEK   (1 << 1)
-    #define RS_CLOSE  (1 << 2)
-    int           nRenderStatus;
-    int           nRenderPosX;
-    int           nRenderPosY;
-    int           nRenderWidth;
-    int           nRenderHeight;
-    int           nRenderNewW;
-    int           nRenderNewH;
-    HWND          hRenderWnd;
-    HDC           hRenderDC;
-    HDC           hBufferDC;
-    BMPQUEUE      BmpQueue;
-    pthread_t     hVideoThread;
-
-    DWORD         dwCurTick;
-    DWORD         dwLastTick;
-    int           iFrameTick;
-    int           iSleepTick;
-
-    int64_t       i64CurTimeA;
-    int64_t       i64CurTimeV;
+    CRITICAL_SECTION  cs;
 } RENDER;
 
-// å†…éƒ¨å‡½æ•°å®ç°
-static void CALLBACK waveOutProc(HWAVEOUT hwo, UINT uMsg, DWORD dwInstance, DWORD dwParam1, DWORD dwParam2)
-{
-    RENDER  *render = (RENDER*)dwInstance;
-    WAVEHDR *pwhdr  = NULL;
-    int64_t *ppts   = NULL;
-    switch (uMsg)
-    {
-    case WOM_DONE:
-        wavqueue_read_request(&(render->WavQueue), &ppts, &pwhdr);
-        //++ play completed ++//
-        if (!(render->nRenderStatus & RS_PAUSE) && *ppts == -1) {
-            PostMessage(render->hRenderWnd, MSG_COREPLAYER, PLAY_COMPLETED, 0);
-        }
-        //-- play completed --//
-        else
-        {
-            render->i64CurTimeA = *ppts;
-            log_printf(TEXT("i64CurTimeA = %lld\n"), render->i64CurTimeA);
-        }
-        wavqueue_read_done(&(render->WavQueue));
-        break;
-    }
-}
-
-static void* VideoRenderThreadProc(void *param)
-{
-    RENDER *render = (RENDER*)param;
-
-    while (!(render->nRenderStatus & RS_CLOSE))
-    {
-        if (render->nRenderStatus & RS_PAUSE) {
-            Sleep(20);
-            continue;
-        }
-
-        HBITMAP hbitmap = NULL;
-        int64_t *ppts   = NULL;
-        bmpqueue_read_request(&(render->BmpQueue), &ppts, &hbitmap);
-        if (!(render->nRenderStatus & RS_SEEK)) {
-            render->i64CurTimeV = *ppts; // the current play time
-            SelectObject(render->hBufferDC, hbitmap);
-            BitBlt(render->hRenderDC, render->nRenderPosX, render->nRenderPosY,
-                render->nRenderWidth, render->nRenderHeight,
-                render->hBufferDC, 0, 0, SRCCOPY);
-        }
-        bmpqueue_read_done(&(render->BmpQueue));
-
-        //++ for seek ++//
-        if (render->nRenderStatus & RS_SEEK) {
-            continue;
-        }
-        //-- for seek --//
-
-        // ++ frame rate control ++ //
-        render->dwLastTick = render->dwCurTick;
-        render->dwCurTick  = GetTickCount();
-        int64_t diff = render->dwCurTick - render->dwLastTick;
-        if (diff > render->iFrameTick) {
-            render->iSleepTick--;
-        }
-        else if (diff < render->iFrameTick) {
-            render->iSleepTick++;
-        }
-        // -- frame rate control -- //
-
-        // ++ av sync control ++ //
-        diff = render->i64CurTimeV - render->i64CurTimeA;
-        if ((diff > 0 ? diff : -diff) < 60000) {
-            if (diff >  5) render->iSleepTick++;
-            if (diff < -5) render->iSleepTick--;
-        }
-        // -- av sync control -- //
-
-        // do sleep
-        if (render->iSleepTick > 0) Sleep(render->iSleepTick);
-
-        log_printf(TEXT("i64CurTimeV = %lld\n"), render->i64CurTimeV);
-        log_printf(TEXT("%lld, %d\n"), diff, render->iSleepTick);
-    }
-
-    return NULL;
-}
-
-// å‡½æ•°å®ç°
-void* renderopen(void *surface, AVRational frate, int pixfmt, int w, int h,
+// º¯ÊıÊµÏÖ
+void* render_open(void *surface, AVRational frate, int pixfmt, int w, int h,
                  int srate, AVSampleFormat sndfmt, int64_t ch_layout)
 {
-    WAVEFORMATEX wfx = {0};
-
     RENDER *render = (RENDER*)malloc(sizeof(RENDER));
-    memset(render, 0, sizeof(RENDER));
-    render->hRenderWnd = (HWND)surface; // save hwnd
+    if (!render) {
+        log_printf(TEXT("failed to allocate render context !\n"));
+        exit(0);
+    }
 
-    // init for audio
-    wfx.cbSize          = sizeof(wfx);
-    wfx.wFormatTag      = WAVE_FORMAT_PCM;
-    wfx.wBitsPerSample  = 16;    // 16bit
-    wfx.nSamplesPerSec  = 44100; // 44.1k
-    wfx.nChannels       = 2;     // stereo
-    wfx.nBlockAlign     = wfx.nChannels * wfx.wBitsPerSample / 8;
-    wfx.nAvgBytesPerSec = wfx.nBlockAlign * wfx.nSamplesPerSec;
-    waveOutOpen(&(render->hWaveOut), WAVE_MAPPER, &wfx, (DWORD_PTR)waveOutProc, (DWORD)render, CALLBACK_FUNCTION);
-    waveOutPause(render->hWaveOut);
-    wavqueue_create(&(render->WavQueue), render->hWaveOut, (int)(44100.0 * frate.den / frate.num + 0.5) * 4);
+    // clear it first
+    memset(render, 0, sizeof(RENDER));
 
     /* allocate & init swr context */
     render->pSWRContext = swr_alloc_set_opts(NULL, AV_CH_LAYOUT_STEREO, AV_SAMPLE_FMT_S16, 44100,
@@ -167,236 +58,165 @@ void* renderopen(void *surface, AVRational frate, int pixfmt, int w, int h,
     // init for video
     render->nVideoWidth  = w;
     render->nVideoHeight = h;
-    render->nRenderWidth = GetSystemMetrics(SM_CXSCREEN);
-    render->nRenderHeight= GetSystemMetrics(SM_CYSCREEN);
-    render->nRenderNewW  = render->nRenderWidth;
-    render->nRenderNewH  = render->nRenderHeight;
+    render->nFramePeriod = 1000 * frate.den / frate.num;
     render->PixelFormat  = (AVPixelFormat)pixfmt;
 
-    // create sws context
-    render->pSWSContext = sws_getContext(
-        render->nVideoWidth,
-        render->nVideoHeight,
-        render->PixelFormat,
-        render->nRenderWidth,
-        render->nRenderHeight,
-        AV_PIX_FMT_RGB32,
-        SWS_BILINEAR,
-        0, 0, 0);
+    // create adev & vdev
+    render->adev = adev_create(0, (int)(44100.0 * frate.den / frate.num + 0.5) * 4);
+    render->vdev = vdev_create(surface, 0, render->nRenderWidth, render->nRenderHeight, frate.num / frate.den);
 
-    render->iFrameTick = 1000 * frate.den / frate.num;
-    render->iSleepTick = render->iFrameTick;
+    // make adev & vdev sync together
+    int64_t *papts = NULL;
+    vdev_getavpts(render->vdev, &papts, NULL);
+    adev_syncapts(render->adev,  papts);
 
-    // create dc & bitmaps
-    render->hRenderDC = GetDC(render->hRenderWnd);
-    render->hBufferDC = CreateCompatibleDC(render->hRenderDC);
+    InitializeCriticalSection(&render->cs);
+    RECT rect; GetClientRect((HWND)surface, &rect);
+    render_setrect(render, rect.left, rect.top, rect.right, rect.bottom);
 
-    // create bmp queue
-    bmpqueue_create(&(render->BmpQueue), render->hBufferDC, GetSystemMetrics(SM_CXSCREEN), GetSystemMetrics(SM_CYSCREEN), 32);
-
-    render->nRenderStatus = 0;
-    pthread_create(&(render->hVideoThread), NULL, VideoRenderThreadProc, render);
     return render;
 }
 
-void renderclose(void *hrender)
+void render_close(void *hrender)
 {
     if (!hrender) return;
     RENDER *render = (RENDER*)hrender;
 
     //++ audio ++//
-    // destroy wave queue
-    wavqueue_destroy(&(render->WavQueue));
-
-    // wave out close
-    if (render->hWaveOut) waveOutClose(render->hWaveOut);
+    // destroy adev
+    adev_destroy(render->adev);
 
     // free swr context
     swr_free(&(render->pSWRContext));
     //-- audio --//
 
     //++ video ++//
-    // set nRenderStatus to RS_CLOSE
-    render->nRenderStatus |= RS_CLOSE;
-    if (bmpqueue_isempty(&(render->BmpQueue))) {
-        bmpqueue_write_request(&(render->BmpQueue), NULL, NULL, NULL);
-        bmpqueue_write_done   (&(render->BmpQueue));
-    }
-
-    // wait for video rendering thread exit
-    pthread_join(render->hVideoThread, NULL);
+    // destroy vdev
+    vdev_destroy(render->vdev);
 
     // free sws context
-    if (render->pSWSContext) sws_freeContext(render->pSWSContext);
-
-    if (render->hBufferDC) DeleteDC (render->hBufferDC);
-    if (render->hRenderDC) ReleaseDC(render->hRenderWnd, render->hRenderDC);
-
-    // destroy bmp queue
-    bmpqueue_destroy(&(render->BmpQueue));
+    if (render->pSWSContext) {
+        sws_freeContext(render->pSWSContext);
+    }
     //-- video --//
 
     // free context
     free(render);
 }
 
-void renderwriteaudio(void *hrender, AVFrame *audio)
+void render_audio(void *hrender, AVFrame *audio)
 {
     if (!hrender) return;
     RENDER  *render  = (RENDER*)hrender;
     int      sampnum = 0;
-    int64_t *ppts    = NULL;
-
-    //++ play completed ++//
-    if (audio == (AVFrame*)-1) {
-        if (render->nWavBufAvail > 0) {
-            memset(render->pWavBufCur, 0, render->nWavBufAvail);
-            render->nWavBufAvail -= render->nWavBufAvail;
-            render->pWavBufCur   += render->nWavBufAvail;
-            waveOutWrite(render->hWaveOut, render->pWavHdrCur, sizeof(WAVEHDR));
-            wavqueue_write_done(&(render->WavQueue));
-        }
-
-        wavqueue_write_request(&(render->WavQueue), &ppts, &(render->pWavHdrCur));
-        *ppts = -1; // *ppts == -1, means completed
-        memset(render->pWavHdrCur->lpData, 0, render->pWavHdrCur->dwBufferLength);
-        waveOutWrite(render->hWaveOut, render->pWavHdrCur, sizeof(WAVEHDR));
-        wavqueue_write_done(&(render->WavQueue));
-        return;
-    }
-    //-- play completed --//
+    DWORD    apts    = (DWORD)audio->pts;
 
     do {
-        if (render->nWavBufAvail == 0) {
-            wavqueue_write_request(&(render->WavQueue), &ppts, &(render->pWavHdrCur));
-            *ppts = audio->pts + render->pWavHdrCur->dwBufferLength / 4 * 1000 / 44100;
-            render->nWavBufAvail = (int  )render->pWavHdrCur->dwBufferLength;
-            render->pWavBufCur   = (BYTE*)render->pWavHdrCur->lpData;
+        if (render->nAdevBufAvail == 0) {
+            adev_request(render->adev, &render->pAdevHdrCur);
+            apts += render->nFramePeriod;
+            render->nAdevBufAvail = (int  )render->pAdevHdrCur->size;
+            render->pAdevBufCur   = (BYTE*)render->pAdevHdrCur->data;
         }
 
         //++ do resample audio data ++//
-        sampnum = swr_convert(render->pSWRContext, (uint8_t **)&(render->pWavBufCur),
-            render->nWavBufAvail / 4, (const uint8_t**)audio->extended_data,
+        sampnum = swr_convert(render->pSWRContext, (uint8_t**)&(render->pAdevBufCur),
+            render->nAdevBufAvail / 4, (const uint8_t**)audio->extended_data,
             audio->nb_samples);
         audio->extended_data  = NULL;
         audio->nb_samples     = 0;
-        render->nWavBufAvail -= sampnum * 4;
-        render->pWavBufCur   += sampnum * 4;
+        render->nAdevBufAvail -= sampnum * 4;
+        render->pAdevBufCur   += sampnum * 4;
         //-- do resample audio data --//
 
-        if (render->nWavBufAvail == 0) {
-            waveOutWrite(render->hWaveOut, render->pWavHdrCur, sizeof(WAVEHDR));
-            wavqueue_write_done(&(render->WavQueue));
+        if (render->nAdevBufAvail == 0) {
+            adev_post(render->adev, apts);
         }
     } while (sampnum > 0);
 }
 
-void renderwritevideo(void *hrender, AVFrame *video)
+void render_video(void *hrender, AVFrame *video)
 {
     if (!hrender) return;
     RENDER   *render  = (RENDER*)hrender;
     AVFrame   picture = {0};
     BYTE     *bmpbuf  = NULL;
     int       stride  = 0;
-    int64_t  *ppts    = NULL;
 
-    bmpqueue_write_request(&(render->BmpQueue), &ppts, &bmpbuf, &stride);
-    *ppts               = video->pts;
+#if 0 // todo..
+    int64_t *papts = NULL;
+    int64_t *pvpts = NULL;
+    vdev_getavpts(render->vdev, &papts, &pvpts);
+    if (*papts - *pvpts > 200) {
+        log_printf(TEXT("drop video\n"));
+    }
+#endif
+
+    EnterCriticalSection(&render->cs);
+    vdev_request(render->vdev, (void**)&bmpbuf, &stride);
     picture.data[0]     = bmpbuf;
     picture.linesize[0] = stride;
-    if (  render->nRenderNewW != render->nRenderWidth
-       || render->nRenderNewH != render->nRenderHeight)
-    {
-        render->nRenderWidth  = render->nRenderNewW;
-        render->nRenderHeight = render->nRenderNewH;
-
-        if (render->pSWSContext) sws_freeContext(render->pSWSContext);
-        render->pSWSContext = sws_getContext(render->nVideoWidth, render->nVideoHeight, render->PixelFormat,
-                        render->nRenderWidth, render->nRenderHeight, AV_PIX_FMT_RGB32, SWS_BILINEAR, 0, 0, 0);
-
-        //++ invalidate rects ++//
-        RECT rect, client;
-        GetClientRect(render->hRenderWnd, &client);
-
-        rect.left   = 0;
-        rect.top    = 0;
-        rect.right  = client.right;
-        rect.bottom = render->nRenderPosY;
-        InvalidateRect(render->hRenderWnd, &rect, TRUE);
-
-        rect.left   = 0;
-        rect.top    = render->nRenderPosY + render->nRenderHeight;
-        rect.right  = client.right;
-        rect.bottom = client.bottom;
-        InvalidateRect(render->hRenderWnd, &rect, TRUE);
-
-        rect.left   = 0;
-        rect.top    = render->nRenderPosY;
-        rect.right  = render->nRenderPosX;
-        rect.bottom = render->nRenderPosY + render->nRenderHeight;
-        InvalidateRect(render->hRenderWnd, &rect, TRUE);
-
-        rect.left   = render->nRenderPosX + render->nRenderWidth;
-        rect.top    = render->nRenderPosY;
-        rect.right  = client.right;
-        rect.bottom = render->nRenderPosY + render->nRenderHeight;
-        InvalidateRect(render->hRenderWnd, &rect, TRUE);
-        //-- invalidate rects --//
-    }
     sws_scale(render->pSWSContext, video->data, video->linesize, 0, render->nVideoHeight, picture.data, picture.linesize);
-    bmpqueue_write_done(&(render->BmpQueue));
+    vdev_post(render->vdev, video->pts);
+    LeaveCriticalSection(&render->cs);
 }
 
-void rendersetrect(void *hrender, int x, int y, int w, int h)
+void render_setrect(void *hrender, int x, int y, int w, int h)
 {
     if (!hrender) return;
     RENDER *render = (RENDER*)hrender;
-    render->nRenderPosX = x;
-    render->nRenderPosY = y;
-    render->nRenderNewW = w;
-    render->nRenderNewH = h;
-}
-
-void renderstart(void *hrender)
-{
-    if (!hrender) return;
-    RENDER *render = (RENDER*)hrender;
-    waveOutRestart(render->hWaveOut);
-    render->nRenderStatus &= ~RS_PAUSE;
-}
-
-void renderpause(void *hrender)
-{
-    if (!hrender) return;
-    RENDER *render = (RENDER*)hrender;
-    waveOutPause(render->hWaveOut);
-    render->nRenderStatus |= RS_PAUSE;
-}
-
-void renderseek(void *hrender, DWORD sec)
-{
-    if (!hrender) return;
-    RENDER *render = (RENDER*)hrender;
-
-    if (sec != (DWORD)-1) {
-        render->nRenderStatus |= RS_SEEK;
-        waveOutReset(render->hWaveOut);
-        render->i64CurTimeA = sec * 1000;
-        render->i64CurTimeV = sec * 1000;
+    EnterCriticalSection(&render->cs);
+    if (render->nRenderWidth != w || render->nRenderHeight != h)
+    {
+        if (render->pSWSContext) {
+            sws_freeContext(render->pSWSContext);
+        }
+        render->pSWSContext = sws_getContext(render->nVideoWidth, render->nVideoHeight, render->PixelFormat,
+                                             w, h, AV_PIX_FMT_RGB32, SWS_BILINEAR, 0, 0, 0);
+        render->nRenderWidth = w;
+        render->nRenderHeight = h;
     }
-    else {
-        render->nRenderStatus &= ~RS_SEEK;
-    }
+    vdev_setrect(render->vdev, x, y, w, h);
+    LeaveCriticalSection(&render->cs);
 }
 
-void rendertime(void *hrender, DWORD *time)
+void render_start(void *hrender)
+{
+    if (!hrender) return;
+    RENDER *render = (RENDER*)hrender;
+    adev_pause(render->adev, FALSE);
+    vdev_pause(render->vdev, FALSE);
+}
+
+void render_pause(void *hrender)
+{
+    if (!hrender) return;
+    RENDER *render = (RENDER*)hrender;
+    adev_pause(render->adev, TRUE);
+    vdev_pause(render->vdev, TRUE);
+}
+
+void render_reset(void *hrender, DWORD sec)
+{
+    if (!hrender) return;
+    RENDER *render = (RENDER*)hrender;
+    adev_reset(render->adev);
+    vdev_reset(render->vdev);
+
+    int64_t *papts = NULL;
+    int64_t *pvpts = NULL;
+    vdev_getavpts(render->vdev, &papts, &pvpts);
+    *papts = *pvpts = sec * 1000;
+}
+
+void render_time(void *hrender, DWORD *time)
 {
     if (!hrender) return;
     RENDER *render = (RENDER*)hrender;
     if (time) {
-        DWORD atime = render->i64CurTimeA > 0 ? (DWORD)(render->i64CurTimeA / 1000) : 0;
-        DWORD vtime = render->i64CurTimeV > 0 ? (DWORD)(render->i64CurTimeV / 1000) : 0;
-        *time = atime > vtime ? atime : vtime;
+        int64_t *papts, *pvpts;
+        vdev_getavpts(render->vdev, &papts, &pvpts);
+        *time = (DWORD)((*papts > *pvpts ? *papts : *pvpts) / 1000);
     }
 }
 

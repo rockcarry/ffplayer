@@ -29,14 +29,14 @@ enum {
 };
 
 // 函数声明
-void* playeropen    (char *file, void *extra);
-void  playerclose   (void *hplayer);
-void  playerplay    (void *hplayer);
-void  playerpause   (void *hplayer);
-void  playerseek    (void *hplayer, DWORD sec);
-void  playersetrect (void *hplayer, int x, int y, int w, int h);
-void  playersetparam(void *hplayer, DWORD id, DWORD param);
-void  playergetparam(void *hplayer, DWORD id, void *param);
+void* player_open    (char *file, void *extra);
+void  player_close   (void *hplayer);
+void  player_play    (void *hplayer);
+void  player_pause   (void *hplayer);
+void  player_seek    (void *hplayer, DWORD sec);
+void  player_setrect (void *hplayer, int x, int y, int w, int h);
+void  player_setparam(void *hplayer, DWORD id, DWORD param);
+void  player_getparam(void *hplayer, DWORD id, void *param);
 
 #ifdef __cplusplus
 }

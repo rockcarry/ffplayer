@@ -44,7 +44,7 @@ void CplayerDlg::PlayerOpenFile(void)
     // stop player first
     if (g_hplayer)
     {
-        playerclose(g_hplayer);
+        player_close(g_hplayer);
         g_hplayer = NULL;
     }
 
@@ -61,12 +61,12 @@ void CplayerDlg::PlayerOpenFile(void)
     }
 
     // player open file
-    g_hplayer = playeropen(str, GetSafeHwnd());
+    g_hplayer = player_open(str, GetSafeHwnd());
     if (g_hplayer)
     {
         m_bPlayPause = FALSE;
-        playersetrect(g_hplayer, 0, 0, m_rtClient.right, m_rtClient.bottom - 2);
-        playerplay(g_hplayer);
+        player_setrect(g_hplayer, 0, 0, m_rtClient.right, m_rtClient.bottom - 2);
+        player_play(g_hplayer);
         SetTimer(TIMER_ID_PROGRESS, 500, NULL);
     }
 }
@@ -131,8 +131,8 @@ void CplayerDlg::OnPaint()
         CPaintDC dc(this);
 
         int total = 1, pos = 0;
-        playergetparam(g_hplayer, PARAM_VIDEO_DURATION, &total);
-        playergetparam(g_hplayer, PARAM_VIDEO_POSITION, &pos  );
+        player_getparam(g_hplayer, PARAM_VIDEO_DURATION, &total);
+        player_getparam(g_hplayer, PARAM_VIDEO_POSITION, &pos  );
 
         RECT fill  = m_rtClient;
         fill.right = (LONG)(fill.right * pos / total);
@@ -161,7 +161,7 @@ void CplayerDlg::OnDestroy()
     // close player
     if (g_hplayer)
     {
-        playerclose(g_hplayer);
+        player_close(g_hplayer);
         g_hplayer = NULL;
     }
 }
@@ -196,13 +196,13 @@ void CplayerDlg::OnLButtonDown(UINT nFlags, CPoint point)
     if (point.y > m_rtClient.bottom - 8)
     {
         int total = 1;
-        playergetparam(g_hplayer, PARAM_VIDEO_DURATION, &total);
-        playerseek(g_hplayer, total * point.x / m_rtClient.right);
+        player_getparam(g_hplayer, PARAM_VIDEO_DURATION, &total);
+        player_seek(g_hplayer, total * point.x / m_rtClient.right);
         InvalidateRect(NULL, FALSE);
     }
     else {
-        if (!m_bPlayPause) playerpause(g_hplayer);
-        else playerplay(g_hplayer);
+        if (!m_bPlayPause) player_pause(g_hplayer);
+        else player_play(g_hplayer);
         m_bPlayPause = !m_bPlayPause;
     }
 
@@ -225,7 +225,7 @@ void CplayerDlg::OnSize(UINT nType, int cx, int cy)
 
     if (nType != SIZE_MINIMIZED) {
         GetClientRect(&m_rtClient);
-        playersetrect(g_hplayer, 0, 0, cx, cy - 2);
+        player_setrect(g_hplayer, 0, 0, cx, cy - 2);
     }
 }
 
