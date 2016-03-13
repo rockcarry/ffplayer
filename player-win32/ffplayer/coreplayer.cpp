@@ -216,7 +216,7 @@ void* player_open(char *file, void *extra)
 {
     PLAYER        *player   = NULL;
     AVCodec       *decoder  = NULL;
-    AVRational     vrate    = {0};
+    AVRational     vrate    = { 30, 1 };
     int            vformat  = 0;
     int            width    = 0;
     int            height   = 0;
