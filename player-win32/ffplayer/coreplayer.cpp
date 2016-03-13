@@ -239,7 +239,7 @@ void* player_open(char *file, void *extra)
     player->hPacketQueue = pktqueue_create(0);
 
     // open input file
-    if (avformat_open_input(&(player->pAVFormatContext), file, NULL, 0) != 0) {
+    if (avformat_open_input(&player->pAVFormatContext, file, NULL, 0) != 0) {
         goto error_handler;
     }
 
@@ -323,9 +323,9 @@ void* player_open(char *file, void *extra)
 
     // make sure player status paused
     player->nPlayerStatus = (PS_D_PAUSE|PS_A_PAUSE|PS_V_PAUSE);
-    pthread_create(&(player->hAVDemuxThread), NULL, AVDemuxThreadProc    , player);
-    pthread_create(&(player->hADecodeThread), NULL, AudioDecodeThreadProc, player);
-    pthread_create(&(player->hVDecodeThread), NULL, VideoDecodeThreadProc, player);
+    pthread_create(&player->hAVDemuxThread, NULL, AVDemuxThreadProc    , player);
+    pthread_create(&player->hADecodeThread, NULL, AudioDecodeThreadProc, player);
+    pthread_create(&player->hVDecodeThread, NULL, VideoDecodeThreadProc, player);
     return player;
 
 error_handler:
@@ -356,7 +356,7 @@ void player_close(void *hplayer)
     if (player->hCoreRender       ) render_close (player->hCoreRender);
     if (player->pVideoCodecContext) avcodec_close(player->pVideoCodecContext);
     if (player->pAudioCodecContext) avcodec_close(player->pAudioCodecContext);
-    if (player->pAVFormatContext  ) avformat_close_input(&(player->pAVFormatContext));
+    if (player->pAVFormatContext  ) avformat_close_input(&player->pAVFormatContext);
 
     free(player);
 

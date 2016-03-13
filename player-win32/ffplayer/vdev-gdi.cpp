@@ -185,7 +185,7 @@ void vdev_gdi_request(void *ctxt, void **buffer, int *stride)
         bmpinfo.bmiHeader.biBitCount    =  32;
         bmpinfo.bmiHeader.biCompression =  BI_RGB;
         c->hbitmaps[c->tail] = CreateDIBSection(c->hdcsrc, &bmpinfo, DIB_RGB_COLORS,
-                                        (void**)&(c->pbmpbufs[c->tail]), NULL, 0);
+                                        (void**)&c->pbmpbufs[c->tail], NULL, 0);
         GetObject(c->hbitmaps[c->tail], sizeof(BITMAP), &bitmap);
     }
 

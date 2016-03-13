@@ -87,7 +87,7 @@ void render_close(void *hrender)
     adev_destroy(render->adev);
 
     // free swr context
-    swr_free(&(render->pSWRContext));
+    swr_free(&render->pSWRContext);
     //-- audio --//
 
     //++ video ++//
@@ -120,7 +120,7 @@ void render_audio(void *hrender, AVFrame *audio)
         }
 
         //++ do resample audio data ++//
-        sampnum = swr_convert(render->pSWRContext, (uint8_t**)&(render->pAdevBufCur),
+        sampnum = swr_convert(render->pSWRContext, (uint8_t**)&render->pAdevBufCur,
             render->nAdevBufAvail / 4, (const uint8_t**)audio->extended_data,
             audio->nb_samples);
         audio->extended_data  = NULL;

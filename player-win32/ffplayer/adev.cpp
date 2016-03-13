@@ -75,7 +75,7 @@ void* adev_create(int bufnum, int buflen)
     wfx.nChannels       = 2;     // stereo
     wfx.nBlockAlign     = wfx.nChannels * wfx.wBitsPerSample / 8;
     wfx.nAvgBytesPerSec = wfx.nBlockAlign * wfx.nSamplesPerSec;
-    waveOutOpen(&(ctxt->hWaveOut), WAVE_MAPPER, &wfx, (DWORD_PTR)waveOutProc, (DWORD_PTR)ctxt, CALLBACK_FUNCTION);
+    waveOutOpen(&ctxt->hWaveOut, WAVE_MAPPER, &wfx, (DWORD_PTR)waveOutProc, (DWORD_PTR)ctxt, CALLBACK_FUNCTION);
 
     // init wavebuf
     memset(ctxt->ppts    , 0, bufnum * sizeof(int64_t));
@@ -84,7 +84,7 @@ void* adev_create(int bufnum, int buflen)
     for (i=0; i<bufnum; i++) {
         ctxt->pWaveHdr[i].lpData         = (LPSTR)(pwavbuf + i * buflen);
         ctxt->pWaveHdr[i].dwBufferLength = buflen;
-        waveOutPrepareHeader(ctxt->hWaveOut, &(ctxt->pWaveHdr[i]), sizeof(WAVEHDR));
+        waveOutPrepareHeader(ctxt->hWaveOut, &ctxt->pWaveHdr[i], sizeof(WAVEHDR));
     }
 
     return ctxt;
@@ -97,7 +97,7 @@ void adev_destroy(void *ctxt)
 
     // unprepare wave header & close waveout device
     for (i=0; i<c->bufnum; i++) {
-        waveOutUnprepareHeader(c->hWaveOut, &(c->pWaveHdr[i]), sizeof(WAVEHDR));
+        waveOutUnprepareHeader(c->hWaveOut, &c->pWaveHdr[i], sizeof(WAVEHDR));
     }
     waveOutClose(c->hWaveOut);
 
@@ -114,7 +114,7 @@ void adev_request(void *ctxt, AUDIOBUF **ppab)
 {
     ADEV_CONTEXT *c = (ADEV_CONTEXT*)ctxt;
     WaitForSingleObject(c->bufsem, -1);
-    *ppab = (AUDIOBUF*)&(c->pWaveHdr[c->tail]);
+    *ppab = (AUDIOBUF*)&c->pWaveHdr[c->tail];
 }
 
 void adev_post(void *ctxt, int64_t pts)
