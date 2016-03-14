@@ -46,6 +46,31 @@ typedef struct
     CRITICAL_SECTION  cs2;
 } RENDER;
 
+// 内部函数实现
+static void render_setspeed(RENDER *render, int speed)
+{
+    EnterCriticalSection(&render->cs1);
+    if (render->nRenderSpeed != speed) {
+        int samprate  = 44100 * 100 / speed;
+        int framerate = (render->FrameRate.num * speed) / (render->FrameRate.den * 100);
+
+        if (render->pSWRContext) {
+            swr_free(&render->pSWRContext);
+        }
+
+        /* allocate & init swr context */
+        render->pSWRContext = swr_alloc_set_opts(NULL, AV_CH_LAYOUT_STEREO, AV_SAMPLE_FMT_S16, samprate,
+            render->nChanLayout, render->SampleFormat, render->nSampleRate, 0, NULL);
+        swr_init(render->pSWRContext);
+
+        // set vdev frame rate
+        vdev_setfrate(render->vdev, framerate);
+
+        render->nRenderSpeed = speed;
+    }
+    LeaveCriticalSection(&render->cs1);
+}
+
 // 函数实现
 void* render_open(void *surface, AVRational frate, int pixfmt, int w, int h,
                  int srate, AVSampleFormat sndfmt, int64_t ch_layout)
@@ -83,8 +108,8 @@ void* render_open(void *surface, AVRational frate, int pixfmt, int w, int h,
     InitializeCriticalSection(&render->cs1);
     InitializeCriticalSection(&render->cs2);
     RECT rect; GetClientRect((HWND)surface, &rect);
-    render_setrect(render, rect.left, rect.top, rect.right, rect.bottom);
-    render_speed  (render, 100);
+    render_setrect (render, rect.left, rect.top, rect.right, rect.bottom);
+    render_setspeed(render, 100);
 
     return render;
 }
@@ -172,31 +197,6 @@ void render_video(void *hrender, AVFrame *video)
     LeaveCriticalSection(&render->cs2);
 }
 
-void render_speed(void *hrender, int speed)
-{
-    RENDER *render = (RENDER*)hrender;
-    EnterCriticalSection(&render->cs1);
-    if (render->nRenderSpeed != speed) {
-        int samprate  = 44100 * 100 / speed;
-        int framerate = (render->FrameRate.num * speed) / (render->FrameRate.den * 100);
-
-        if (render->pSWRContext) {
-            swr_free(&render->pSWRContext);
-        }
-
-        /* allocate & init swr context */
-        render->pSWRContext = swr_alloc_set_opts(NULL, AV_CH_LAYOUT_STEREO, AV_SAMPLE_FMT_S16, samprate,
-            render->nChanLayout, render->SampleFormat, render->nSampleRate, 0, NULL);
-        swr_init(render->pSWRContext);
-
-        // set vdev frame rate
-        vdev_setfrate(render->vdev, framerate);
-
-        render->nRenderSpeed = speed;
-    }
-    LeaveCriticalSection(&render->cs1);
-}
-
 void render_setrect(void *hrender, int x, int y, int w, int h)
 {
     RENDER *render = (RENDER*)hrender;
@@ -229,16 +229,11 @@ void render_pause(void *hrender)
     vdev_pause(render->vdev, TRUE);
 }
 
-void render_reset(void *hrender, DWORD sec)
+void render_reset(void *hrender)
 {
     RENDER *render = (RENDER*)hrender;
     adev_reset(render->adev);
     vdev_reset(render->vdev);
-
-    int64_t *papts = NULL;
-    int64_t *pvpts = NULL;
-    vdev_getavpts(render->vdev, &papts, &pvpts);
-    *papts = *pvpts = sec * 1000;
 }
 
 void render_time(void *hrender, DWORD *time)
@@ -248,6 +243,43 @@ void render_time(void *hrender, DWORD *time)
         int64_t *papts, *pvpts;
         vdev_getavpts(render->vdev, &papts, &pvpts);
         *time = (DWORD)((*papts > *pvpts ? *papts : *pvpts) / 1000);
+    }
+}
+
+void render_setparam(void *hrender, DWORD id, DWORD param)
+{
+    RENDER *render = (RENDER*)hrender;
+    switch (id)
+    {
+    case PARAM_RENDER_TIME:
+        {
+            int64_t *papts = NULL;
+            int64_t *pvpts = NULL;
+            vdev_getavpts(render->vdev, &papts, &pvpts);
+            *papts = *pvpts = param * 1000;
+        }
+        break;
+    case PARAM_RENDER_SPEED:
+        render_setspeed(render, (int)param);
+        break;
+    }
+}
+
+void render_getparam(void *hrender, DWORD id, void *param)
+{
+    RENDER *render = (RENDER*)hrender;
+    switch (id)
+    {
+    case PARAM_RENDER_TIME:
+        {
+            int64_t *papts, *pvpts;
+            vdev_getavpts(render->vdev, &papts, &pvpts);
+            *(DWORD*)param = (DWORD)((*papts > *pvpts ? *papts : *pvpts) / 1000);
+        }
+        break;
+    case PARAM_RENDER_SPEED:
+        *(int*)param = render->nRenderSpeed;
+        break;
     }
 }
 

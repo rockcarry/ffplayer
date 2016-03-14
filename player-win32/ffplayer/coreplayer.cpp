@@ -33,7 +33,6 @@ typedef struct
 
     // render
     int              nRenderMode;
-    int              nRenderSpeed;
     void            *hCoreRender;
 
     // packet queue
@@ -434,7 +433,8 @@ void player_seek(void *hplayer, DWORD sec)
     pktqueue_reset(player->hPacketQueue);
 
     // reset render
-    render_reset(player->hCoreRender, sec);
+    render_reset   (player->hCoreRender);
+    render_setparam(player->hCoreRender, PARAM_RENDER_TIME, sec);
 
     // restart all thread and render
     player->nPlayerStatus &= ~(PAUSE_REQ | PAUSE_ACK);
@@ -456,8 +456,7 @@ void player_setparam(void *hplayer, DWORD id, DWORD param)
         player->nRenderMode = param;
         break;
     case PARAM_PLAY_SPEED:
-        player->nRenderSpeed= param;
-        render_speed(player->hCoreRender, player->nRenderSpeed);
+        render_setparam(player->hCoreRender, PARAM_RENDER_SPEED, param);
         break;
     }
 }
@@ -492,7 +491,7 @@ void player_getparam(void *hplayer, DWORD id, void *param)
         *(int*)param = player->nRenderMode;
         break;
     case PARAM_PLAY_SPEED:
-        *(int*)param = player->nRenderSpeed;
+        render_getparam(player->hCoreRender, PARAM_RENDER_SPEED, param);
         break;
     }
 }

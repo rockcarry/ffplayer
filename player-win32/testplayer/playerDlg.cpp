@@ -65,6 +65,7 @@ void CplayerDlg::PlayerOpenFile(void)
     if (g_hplayer)
     {
         m_bPlayPause = FALSE;
+//      player_setparam(g_hplayer, PARAM_PLAY_SPEED, 150);
         player_setrect(g_hplayer, 0, 0, m_rtClient.right, m_rtClient.bottom - 2);
         player_play(g_hplayer);
         SetTimer(TIMER_ID_PROGRESS, 500, NULL);
