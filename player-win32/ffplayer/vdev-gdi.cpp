@@ -115,6 +115,10 @@ void* vdev_gdi_create(void *surface, int bufnum, int w, int h, int frate)
     ctxt->ppts     = (int64_t*)malloc(bufnum * sizeof(int64_t));
     ctxt->hbitmaps = (HBITMAP*)malloc(bufnum * sizeof(HBITMAP));
     ctxt->pbmpbufs = (BYTE**  )malloc(bufnum * sizeof(BYTE*  ));
+
+    memset(ctxt->ppts    , 0, bufnum * sizeof(int64_t));
+    memset(ctxt->hbitmaps, 0, bufnum * sizeof(HBITMAP));
+
     ctxt->semr     = CreateSemaphore(NULL, 0     , bufnum, NULL);
     ctxt->semw     = CreateSemaphore(NULL, bufnum, bufnum, NULL);
 

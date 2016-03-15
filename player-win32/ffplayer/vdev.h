@@ -19,6 +19,17 @@ void  vdev_gdi_reset   (void *ctxt);
 void  vdev_gdi_getavpts(void *ctxt, int64_t **ppapts, int64_t **ppvpts);
 void  vdev_gdi_setfrate(void *ctxt, int frate);
 
+void* vdev_d3d_create  (void *surface, int bufnum, int w, int h, int frate);
+void  vdev_d3d_destroy (void *ctxt);
+void  vdev_d3d_request (void *ctxt, void **buf, int *stride);
+void  vdev_d3d_post    (void *ctxt, int64_t pts);
+void  vdev_d3d_setrect (void *ctxt, int x, int y, int w, int h);
+void  vdev_d3d_pause   (void *ctxt, BOOL pause);
+void  vdev_d3d_reset   (void *ctxt);
+void  vdev_d3d_getavpts(void *ctxt, int64_t **ppapts, int64_t **ppvpts);
+void  vdev_d3d_setfrate(void *ctxt, int frate);
+
+#if 0
 #define vdev_create     vdev_gdi_create
 #define vdev_destroy    vdev_gdi_destroy
 #define vdev_request    vdev_gdi_request
@@ -28,6 +39,17 @@ void  vdev_gdi_setfrate(void *ctxt, int frate);
 #define vdev_reset      vdev_gdi_reset
 #define vdev_getavpts   vdev_gdi_getavpts
 #define vdev_setfrate   vdev_gdi_setfrate
+#else
+#define vdev_create     vdev_d3d_create
+#define vdev_destroy    vdev_d3d_destroy
+#define vdev_request    vdev_d3d_request
+#define vdev_post       vdev_d3d_post
+#define vdev_setrect    vdev_d3d_setrect
+#define vdev_pause      vdev_d3d_pause
+#define vdev_reset      vdev_d3d_reset
+#define vdev_getavpts   vdev_d3d_getavpts
+#define vdev_setfrate   vdev_d3d_setfrate
+#endif
 
 #ifdef __cplusplus
 }
