@@ -65,10 +65,13 @@ void CplayerDlg::PlayerOpenFile(void)
     if (g_hplayer)
     {
         m_bPlayPause = FALSE;
-//      player_setparam(g_hplayer, PARAM_PLAY_SPEED, 150);
+        /*
+        int speed = 150;
+        player_setparam(g_hplayer, PARAM_PLAY_SPEED, &speed);
+        */
         player_setrect(g_hplayer, 0, 0, m_rtClient.right, m_rtClient.bottom - 2);
         player_play(g_hplayer);
-        SetTimer(TIMER_ID_PROGRESS, 500, NULL);
+        SetTimer(TIMER_ID_PROGRESS, 100, NULL);
     }
 }
 
@@ -131,7 +134,7 @@ void CplayerDlg::OnPaint()
     {
         CPaintDC dc(this);
 
-        int total = 1, pos = 0;
+        LONGLONG total = 1, pos = 0;
         player_getparam(g_hplayer, PARAM_VIDEO_DURATION, &total);
         player_getparam(g_hplayer, PARAM_VIDEO_POSITION, &pos  );
 
@@ -196,7 +199,7 @@ void CplayerDlg::OnLButtonDown(UINT nFlags, CPoint point)
 {
     if (point.y > m_rtClient.bottom - 8)
     {
-        int total = 1;
+        LONGLONG total = 1;
         player_getparam(g_hplayer, PARAM_VIDEO_DURATION, &total);
         player_seek(g_hplayer, total * point.x / m_rtClient.right);
         InvalidateRect(NULL, FALSE);

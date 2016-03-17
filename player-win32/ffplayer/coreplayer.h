@@ -34,9 +34,9 @@ void* player_open    (char *file, void *extra);
 void  player_close   (void *hplayer);
 void  player_play    (void *hplayer);
 void  player_pause   (void *hplayer);
-void  player_seek    (void *hplayer, DWORD sec);
+void  player_seek    (void *hplayer, LONGLONG ms);
 void  player_setrect (void *hplayer, int x, int y, int w, int h);
-void  player_setparam(void *hplayer, DWORD id, DWORD param);
+void  player_setparam(void *hplayer, DWORD id, void *param);
 void  player_getparam(void *hplayer, DWORD id, void *param);
 
 #ifdef __cplusplus

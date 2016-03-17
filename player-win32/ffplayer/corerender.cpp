@@ -236,17 +236,17 @@ void render_reset(void *hrender)
     vdev_reset(render->vdev);
 }
 
-void render_time(void *hrender, DWORD *time)
+void render_time(void *hrender, int64_t *time)
 {
     RENDER *render = (RENDER*)hrender;
     if (time) {
         int64_t *papts, *pvpts;
         vdev_getavpts(render->vdev, &papts, &pvpts);
-        *time = (DWORD)((*papts > *pvpts ? *papts : *pvpts) / 1000);
+        *time = *papts > *pvpts ? *papts : *pvpts;
     }
 }
 
-void render_setparam(void *hrender, DWORD id, DWORD param)
+void render_setparam(void *hrender, DWORD id, void *param)
 {
     RENDER *render = (RENDER*)hrender;
     switch (id)
@@ -256,11 +256,11 @@ void render_setparam(void *hrender, DWORD id, DWORD param)
             int64_t *papts = NULL;
             int64_t *pvpts = NULL;
             vdev_getavpts(render->vdev, &papts, &pvpts);
-            *papts = *pvpts = param * 1000;
+            *papts = *pvpts = *(int64_t*)param;
         }
         break;
     case PARAM_RENDER_SPEED:
-        render_setspeed(render, (int)param);
+        render_setspeed(render, *(int*)param);
         break;
     }
 }
@@ -274,7 +274,7 @@ void render_getparam(void *hrender, DWORD id, void *param)
         {
             int64_t *papts, *pvpts;
             vdev_getavpts(render->vdev, &papts, &pvpts);
-            *(DWORD*)param = (DWORD)((*papts > *pvpts ? *papts : *pvpts) / 1000);
+            *(int64_t*)param = *papts > *pvpts ? *papts : *pvpts;
         }
         break;
     case PARAM_RENDER_SPEED:

@@ -35,8 +35,8 @@ void render_setrect (void *hrender, int x, int y, int w, int h);
 void render_start   (void *hrender);
 void render_pause   (void *hrender);
 void render_reset   (void *hrender);
-void render_time    (void *hrender, DWORD *time);
-void render_setparam(void *hrender, DWORD id, DWORD param);
+void render_time    (void *hrender, int64_t *time);
+void render_setparam(void *hrender, DWORD id, void *param);
 void render_getparam(void *hrender, DWORD id, void *param);
 
 #ifdef __cplusplus
