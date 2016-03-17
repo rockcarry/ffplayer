@@ -43,8 +43,12 @@ typedef struct
     #define PS_A_PAUSE    (1 << 1)  // audio decoding pause
     #define PS_V_PAUSE    (1 << 2)  // video decoding pause
     #define PS_R_PAUSE    (1 << 3)  // rendering pause
-    #define PS_CLOSE      (1 << 4)  // close player
+    #define PS_A_SEEK     (1 << 4)  // seek audio
+    #define PS_V_SEEK     (1 << 5)  // seek video
+    #define PS_CLOSE      (1 << 6)  // close player
     int              nPlayerStatus;
+    int64_t          nSeekToNewPTS;
+
     pthread_t        hAVDemuxThread;
     pthread_t        hADecodeThread;
     pthread_t        hVDecodeThread;
@@ -120,6 +124,13 @@ static void* AudioDecodeThreadProc(void *param)
         }
         //-- when audio decode pause --//
 
+        //++ for seek operation
+        if (player->nPlayerStatus & (PS_A_SEEK << 16)) {
+            Sleep(20);
+            continue;
+        }
+        //++ for seek operation
+
         // read packet
         if (!pktqueue_read_request_a(player->hPacketQueue, &packet, 100)) continue;
 
@@ -137,7 +148,14 @@ static void* AudioDecodeThreadProc(void *param)
 
                 if (gotaudio) {
                     aframe->pts = (int64_t)(av_frame_get_best_effort_timestamp(aframe) * player->dAudioTimeBase);
-                    render_audio(player->hCoreRender, aframe);
+                    //++ for seek operation
+                    if ((player->nPlayerStatus & PS_A_SEEK)) {
+                        if (player->nSeekToNewPTS - aframe->pts < 50) {
+                            player->nPlayerStatus |= (PS_A_SEEK << 16);
+                        }
+                    }
+                    //-- for seek operation
+                    else render_audio(player->hCoreRender, aframe);
                 }
 
                 packet->data += consumed;
@@ -175,6 +193,13 @@ static void* VideoDecodeThreadProc(void *param)
         }
         //-- when video decode pause --//
 
+        //++ for seek operation
+        if (player->nPlayerStatus & (PS_V_SEEK << 16)) {
+            Sleep(20);
+            continue;
+        }
+        //++ for seek operation
+
         // read packet
         if (!pktqueue_read_request_v(player->hPacketQueue, &packet, 100)) continue;
 
@@ -192,7 +217,14 @@ static void* VideoDecodeThreadProc(void *param)
 
                 if (gotvideo) {
                     vframe->pts = (int64_t)(av_frame_get_best_effort_timestamp(vframe) * player->dVideoTimeBase);
-                    render_video(player->hCoreRender, vframe);
+                    //++ for seek operation
+                    if ((player->nPlayerStatus & PS_V_SEEK)) {
+                        if (player->nSeekToNewPTS - vframe->pts < 50) {
+                            player->nPlayerStatus |= (PS_V_SEEK << 16);
+                        }
+                    }
+                    //-- for seek operation
+                    else render_video(player->hCoreRender, vframe);
                 }
 
                 packet->data += consumed;
@@ -425,7 +457,7 @@ void player_seek(void *hplayer, DWORD sec)
     while ((player->nPlayerStatus & PAUSE_ACK) != PAUSE_ACK) Sleep(10);
 
     // seek frame
-    av_seek_frame(player->pAVFormatContext, -1, (int64_t)sec * AV_TIME_BASE, 0);
+    av_seek_frame(player->pAVFormatContext, -1, (int64_t)sec * AV_TIME_BASE, AVSEEK_FLAG_BACKWARD);
     if (player->iAudioStreamIndex != -1) avcodec_flush_buffers(player->pAudioCodecContext);
     if (player->iVideoStreamIndex != -1) avcodec_flush_buffers(player->pVideoCodecContext);
 
@@ -437,7 +469,14 @@ void player_seek(void *hplayer, DWORD sec)
     render_setparam(player->hCoreRender, PARAM_RENDER_TIME, sec);
 
     // restart all thread and render
+    #define SEEK_REQ ((PS_A_SEEK|PS_V_SEEK) << 0 )
+    #define SEEK_ACK ((PS_A_SEEK|PS_V_SEEK) << 16)
+    player->nSeekToNewPTS  = sec * 1000;
+    player->nPlayerStatus &= ~SEEK_ACK;
+    player->nPlayerStatus |=  SEEK_REQ;
     player->nPlayerStatus &= ~(PAUSE_REQ | PAUSE_ACK);
+    while ((player->nPlayerStatus & SEEK_ACK) != SEEK_ACK) Sleep(10);
+    player->nPlayerStatus &= ~(SEEK_REQ  | SEEK_ACK );
 
     // pause render if needed
     if (player->nPlayerStatus & PS_R_PAUSE) {
