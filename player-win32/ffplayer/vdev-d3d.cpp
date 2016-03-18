@@ -77,7 +77,7 @@ static DWORD WINAPI VideoRenderThreadProc(void *param)
             c->completed_vpts = c->vpts;
             c->completed_counter = 0;
         }
-        else if (++c->completed_counter == 10) {
+        else if (++c->completed_counter == 50) {
             PostMessage(c->hwnd, MSG_COREPLAYER, PLAY_COMPLETED, 0);
             log_printf(TEXT("play completed !\n"));
         }

@@ -5,7 +5,7 @@
 #include "log.h"
 
 // 内部常量定义
-#define DEF_PKT_QUEUE_SIZE 120
+#define DEF_PKT_QUEUE_SIZE 256
 
 // 内部类型定义
 typedef struct {
