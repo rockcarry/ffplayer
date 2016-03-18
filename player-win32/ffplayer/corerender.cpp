@@ -188,13 +188,13 @@ void render_video(void *hrender, AVFrame *video)
     }
 #endif
 
-    EnterCriticalSection(&render->cs2);
     vdev_request(render->vdev, (void**)&bmpbuf, &stride);
+    EnterCriticalSection(&render->cs2);
     picture.data[0]     = bmpbuf;
     picture.linesize[0] = stride;
     sws_scale(render->pSWSContext, video->data, video->linesize, 0, render->nVideoHeight, picture.data, picture.linesize);
-    vdev_post(render->vdev, video->pts);
     LeaveCriticalSection(&render->cs2);
+    vdev_post(render->vdev, video->pts);
 }
 
 void render_setrect(void *hrender, int x, int y, int w, int h)

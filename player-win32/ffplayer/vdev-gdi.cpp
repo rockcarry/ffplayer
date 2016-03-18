@@ -51,8 +51,10 @@ static DWORD WINAPI VideoRenderThreadProc(void *param)
     while (!(c->bStatus & DEVGDI_CLOSE))
     {
         if (c->bStatus & DEVGDI_PAUSE) {
-            Sleep(c->tickframe);
-            continue;
+            BITMAP bitmap; GetObject(c->hbitmaps[c->tail], sizeof(BITMAP), &bitmap);
+            SelectObject(c->hdcsrc, c->hbitmaps[c->head]);
+            StretchBlt(c->hdcdst, c->x, c->y, c->w, c->h, c->hdcsrc, 0, 0, bitmap.bmWidth, bitmap.bmHeight, SRCCOPY);
+            Sleep(c->tickframe); continue;
         }
 
         //++ play completed ++//

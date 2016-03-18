@@ -45,15 +45,30 @@ typedef struct
 } DEVD3DCTXT;
 
 // 内部函数实现
+static void d3d_draw_surf(LPDIRECT3DDEVICE9 d3ddev, RECT *rect, LPDIRECT3DSURFACE9 surf)
+{
+    IDirect3DSurface9 *pBackBuffer = NULL;
+    if (SUCCEEDED(d3ddev->GetBackBuffer(0, 0, D3DBACKBUFFER_TYPE_MONO, &pBackBuffer)))
+    {
+        if (SUCCEEDED(d3ddev->StretchRect(surf, NULL, pBackBuffer, NULL, D3DTEXF_LINEAR)))
+        {
+            d3ddev->Present(NULL, rect, NULL, NULL);
+        }
+        if (pBackBuffer) pBackBuffer->Release();
+    }
+}
+
 static DWORD WINAPI VideoRenderThreadProc(void *param)
 {
     DEVD3DCTXT *c = (DEVD3DCTXT*)param;
 
     while (!(c->bStatus & DEVD3D_CLOSE))
     {
+        RECT rect = { c->x, c->y, c->x + c->w, c->y + c->h };
+
         if (c->bStatus & DEVD3D_PAUSE) {
-            Sleep(c->tickframe);
-            continue;
+            d3d_draw_surf(c->pD3DDev, &rect, c->ppSurfs[c->head]);
+            Sleep(c->tickframe); continue;
         }
 
         //++ play completed ++//
@@ -73,19 +88,7 @@ static DWORD WINAPI VideoRenderThreadProc(void *param)
 
         int64_t apts = c->apts;
         int64_t vpts = c->vpts = c->ppts[c->head];
-
-        IDirect3DSurface9 *pBackBuffer = NULL;
-        if (SUCCEEDED(c->pD3DDev->GetBackBuffer(0, 0, D3DBACKBUFFER_TYPE_MONO, &pBackBuffer)))
-        {
-            c->pD3DDev->StretchRect(c->ppSurfs[c->head], NULL, pBackBuffer, NULL, D3DTEXF_LINEAR);
-            pBackBuffer->Release();
-
-            RECT rect = { c->x, c->y, c->x + c->w, c->y + c->h };
-            if (FAILED(c->pD3DDev->Present(NULL, &rect, NULL, NULL)))
-            {
-                log_printf(TEXT("D3D Present failed !\n"));
-            }
-        }
+        d3d_draw_surf(c->pD3DDev, &rect, c->ppSurfs[c->head]);
 
 //      log_printf(TEXT("vpts: %lld\n"), vpts);
         if (++c->head == c->bufnum) c->head = 0;
