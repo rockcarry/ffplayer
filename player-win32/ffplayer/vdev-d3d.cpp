@@ -99,8 +99,10 @@ static DWORD WINAPI VideoRenderThreadProc(void *param)
         c->ticklast = tickcur;
         if (tickdiff - c->tickframe >  1) c->ticksleep--;
         if (tickdiff - c->tickframe < -1) c->ticksleep++;
-        if (apts - vpts >  1) c->ticksleep-=2;
-        if (apts - vpts < -1) c->ticksleep+=2;
+        if (apts != -1) {
+            if (apts - vpts >  1) c->ticksleep-=2;
+            if (apts - vpts < -1) c->ticksleep+=2;
+        }
         if (c->ticksleep > 0) Sleep(c->ticksleep);
         log_printf(TEXT("diff: %5lld, sleep: %d\n"), apts-vpts, c->ticksleep);
     }

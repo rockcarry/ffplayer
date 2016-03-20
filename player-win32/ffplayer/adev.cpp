@@ -198,6 +198,9 @@ void adev_syncapts(void *ctxt, int64_t *apts)
 {
     ADEV_CONTEXT *c = (ADEV_CONTEXT*)ctxt;
     c->apts = apts;
+    if (c->apts) {
+        *c->apts = -1;
+    }
 }
 
 void adev_volume(void *ctxt, int vol)
