@@ -130,7 +130,9 @@ void adev_destroy(void *ctxt)
 
     // unprepare wave header & close waveout device
     for (i=0; i<c->bufnum; i++) {
-        waveOutUnprepareHeader(c->hWaveOut, &c->pWaveHdr[i], sizeof(WAVEHDR));
+        if (c->hWaveOut) {
+            waveOutUnprepareHeader(c->hWaveOut, &c->pWaveHdr[i], sizeof(WAVEHDR));
+        }
     }
     waveOutClose(c->hWaveOut);
 

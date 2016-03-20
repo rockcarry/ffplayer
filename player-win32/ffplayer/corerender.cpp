@@ -180,15 +180,6 @@ void render_video(void *hrender, AVFrame *video)
     BYTE    *bmpbuf  = NULL;
     int      stride  = 0;
 
-#if 0 // todo..
-    int64_t *papts = NULL;
-    int64_t *pvpts = NULL;
-    vdev_getavpts(render->vdev, &papts, &pvpts);
-    if (*papts - *pvpts > 200) {
-        log_printf(TEXT("drop video\n"));
-    }
-#endif
-
     vdev_request(render->vdev, (void**)&bmpbuf, &stride);
     EnterCriticalSection(&render->cs2);
     picture.data[0]     = bmpbuf;

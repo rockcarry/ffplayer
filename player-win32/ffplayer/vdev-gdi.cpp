@@ -151,7 +151,9 @@ void vdev_gdi_destroy(void *ctxt)
     DeleteDC (c->hdcsrc);
     ReleaseDC(c->hwnd, c->hdcdst);
     for (i=0; i<c->bufnum; i++) {
-        if (c->hbitmaps[i]) DeleteObject(c->hbitmaps[i]);
+        if (c->hbitmaps[i]) {
+            DeleteObject(c->hbitmaps[i]);
+        }
     }
 
     // close semaphore

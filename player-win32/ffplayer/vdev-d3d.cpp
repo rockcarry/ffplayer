@@ -182,7 +182,9 @@ void vdev_d3d_destroy(void *ctxt)
     CloseHandle(c->hThread);
 
     for (i=0; i<c->bufnum; i++) {
-        c->ppSurfs[i]->Release();
+        if (c->ppSurfs[i]) {
+            c->ppSurfs[i]->Release();
+        }
     }
 
     c->pD3DDev->Release();
