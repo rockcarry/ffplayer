@@ -65,10 +65,18 @@ void CplayerDlg::PlayerOpenFile(void)
     if (g_hplayer)
     {
         m_bPlayPause = FALSE;
+
         /*
         int speed = 150;
-        player_setparam(g_hplayer, PARAM_PLAY_SPEED, &speed);
+        player_setparam(g_hplayer, PARAM_PLAYER_SPEED, &speed);
         */
+
+        // software volume scale -30dB to 12dB
+        // range for volume is [-182, 73]
+        // -255 - mute, +255 - max volume, 0 - 0dB
+        int volume = -0;
+        player_setparam(g_hplayer, PARAM_AUDIO_VOLUME, &volume);
+
         player_setrect(g_hplayer, 0, 0, m_rtClient.right, m_rtClient.bottom - 2);
         player_play(g_hplayer);
         SetTimer(TIMER_ID_PROGRESS, 100, NULL);

@@ -24,6 +24,7 @@ void  adev_post    (void *ctxt, int64_t pts);
 void  adev_pause   (void *ctxt, BOOL pause);
 void  adev_reset   (void *ctxt);
 void  adev_syncapts(void *ctxt, int64_t *apts);
+void  adev_volume  (void *ctxt, int vol);
 
 #ifdef __cplusplus
 }

@@ -3,6 +3,7 @@
 
 // 包含头文件
 #include "stdefine.h"
+#include "coreplayer.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -17,12 +18,6 @@ typedef struct
     int16_t *data;
     int32_t  size;
 } AUDIOBUF;
-
-// param
-enum {
-    PARAM_RENDER_TIME ,
-    PARAM_RENDER_SPEED,
-};
 
 // 函数声明
 void* render_open(void *surface, AVRational frate, int pixfmt, int w, int h,

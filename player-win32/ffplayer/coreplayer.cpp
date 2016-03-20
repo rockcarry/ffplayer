@@ -425,12 +425,12 @@ void player_setrect(void *hplayer, int x, int y, int w, int h)
 
     switch (player->nRenderMode)
     {
-    case RENDER_LETTERBOX:
+    case VIDEO_MODE_LETTERBOX:
         if (w * vh < h * vw) { rw = w; rh = rw * vh / vw; }
         else                 { rh = h; rw = rh * vw / vh; }
         break;
 
-    case RENDER_STRETCHED:
+    case VIDEO_MODE_STRETCHED:
         rw = w;
         rh = h;
         break;
@@ -466,7 +466,7 @@ void player_seek(void *hplayer, LONGLONG ms)
 
     // reset render
     render_reset   (player->hCoreRender);
-    render_setparam(player->hCoreRender, PARAM_RENDER_TIME, &ms);
+    render_setparam(player->hCoreRender, PARAM_PLAYER_TIME, &ms);
 
     // restart all thread and render
     #define SEEK_REQ ((PS_A_SEEK|PS_V_SEEK) << 0 )
@@ -491,11 +491,14 @@ void player_setparam(void *hplayer, DWORD id, void *param)
 
     switch (id)
     {
-    case PARAM_RENDER_MODE:
+    case PARAM_VIDEO_MODE:
         player->nRenderMode = *(int*)param;
         break;
-    case PARAM_PLAY_SPEED:
-        render_setparam(player->hCoreRender, PARAM_RENDER_SPEED, param);
+    case PARAM_AUDIO_VOLUME:
+        render_setparam(player->hCoreRender, PARAM_AUDIO_VOLUME, param);
+        break;
+    case PARAM_PLAYER_SPEED:
+        render_setparam(player->hCoreRender, PARAM_PLAYER_SPEED, param);
         break;
     }
 }
@@ -526,12 +529,16 @@ void player_getparam(void *hplayer, DWORD id, void *param)
         render_time(player->hCoreRender, (int64_t*)param);
         break;
 
-    case PARAM_RENDER_MODE:
+    case PARAM_VIDEO_MODE:
         *(int*)param = player->nRenderMode;
         break;
 
-    case PARAM_PLAY_SPEED:
-        render_getparam(player->hCoreRender, PARAM_RENDER_SPEED, param);
+    case PARAM_AUDIO_VOLUME:
+        render_getparam(player->hCoreRender, PARAM_AUDIO_VOLUME, param);
+        break;
+
+    case PARAM_PLAYER_SPEED:
+        render_getparam(player->hCoreRender, PARAM_PLAYER_SPEED, param);
         break;
     }
 }

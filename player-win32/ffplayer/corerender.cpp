@@ -41,6 +41,7 @@ typedef struct
     int            nRenderWidth;
     int            nRenderHeight;
     int            nRenderSpeed;
+    int            nRenderVolume;
 
     CRITICAL_SECTION  cs1;
     CRITICAL_SECTION  cs2;
@@ -251,7 +252,11 @@ void render_setparam(void *hrender, DWORD id, void *param)
     RENDER *render = (RENDER*)hrender;
     switch (id)
     {
-    case PARAM_RENDER_TIME:
+    case PARAM_AUDIO_VOLUME:
+        render->nRenderVolume = *(int*)param;
+        adev_volume(render->adev, *(int*)param);
+        break;
+    case PARAM_PLAYER_TIME:
         {
             int64_t *papts = NULL;
             int64_t *pvpts = NULL;
@@ -259,7 +264,7 @@ void render_setparam(void *hrender, DWORD id, void *param)
             *papts = *pvpts = *(int64_t*)param;
         }
         break;
-    case PARAM_RENDER_SPEED:
+    case PARAM_PLAYER_SPEED:
         render_setspeed(render, *(int*)param);
         break;
     }
@@ -270,14 +275,17 @@ void render_getparam(void *hrender, DWORD id, void *param)
     RENDER *render = (RENDER*)hrender;
     switch (id)
     {
-    case PARAM_RENDER_TIME:
+    case PARAM_AUDIO_VOLUME:
+        *(int*)param = render->nRenderVolume;
+        break;
+    case PARAM_PLAYER_TIME:
         {
             int64_t *papts, *pvpts;
             vdev_getavpts(render->vdev, &papts, &pvpts);
             *(int64_t*)param = *papts > *pvpts ? *papts : *pvpts;
         }
         break;
-    case PARAM_RENDER_SPEED:
+    case PARAM_PLAYER_SPEED:
         *(int*)param = render->nRenderSpeed;
         break;
     }
