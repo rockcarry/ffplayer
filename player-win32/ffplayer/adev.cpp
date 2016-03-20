@@ -124,6 +124,10 @@ void adev_destroy(void *ctxt)
     ADEV_CONTEXT *c = (ADEV_CONTEXT*)ctxt;
     int i;
 
+    // before close wavout, we need reset it first,
+    // otherwise it will cause crash on vs2013
+    waveOutReset(c->hWaveOut);
+
     // unprepare wave header & close waveout device
     for (i=0; i<c->bufnum; i++) {
         waveOutUnprepareHeader(c->hWaveOut, &c->pWaveHdr[i], sizeof(WAVEHDR));
