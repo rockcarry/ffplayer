@@ -109,11 +109,10 @@ void pktqueue_reset(void *ctxt)
     }
 }
 
-BOOL pktqueue_write_request(void *ctxt, AVPacket **pppkt, int timeout)
+BOOL pktqueue_write_request(void *ctxt, AVPacket **pppkt)
 {
     PKTQUEUE *ppq = (PKTQUEUE*)ctxt;
-    struct timespec t = { 0, timeout * 1000 };
-    if (0 != sem_timedwait(&ppq->fsem, &t)) return FALSE;
+    if (0 != sem_trywait(&ppq->fsem)) return FALSE;
     if (pppkt) *pppkt = ppq->fpkts[ppq->fhead];
     return TRUE;
 }
@@ -146,11 +145,10 @@ void pktqueue_write_post_v(void *ctxt)
     sem_post(&ppq->vsem);
 }
 
-BOOL pktqueue_read_request_a(void *ctxt, AVPacket **pppkt, int timeout)
+BOOL pktqueue_read_request_a(void *ctxt, AVPacket **pppkt)
 {
     PKTQUEUE *ppq = (PKTQUEUE*)ctxt;
-    struct timespec t = { 0, timeout * 1000 };
-    if (0 != sem_timedwait(&ppq->asem, &t)) return FALSE;
+    if (0 != sem_trywait(&ppq->asem)) return FALSE;
     if (pppkt) *pppkt = ppq->apkts[ppq->ahead];
     return TRUE;
 }
@@ -166,11 +164,10 @@ void pktqueue_read_post_a(void *ctxt)
     sem_post(&ppq->fsem);
 }
 
-BOOL pktqueue_read_request_v(void *ctxt, AVPacket **pppkt, int timeout)
+BOOL pktqueue_read_request_v(void *ctxt, AVPacket **pppkt)
 {
     PKTQUEUE *ppq = (PKTQUEUE*)ctxt;
-    struct timespec t = { 0, timeout * 1000 };
-    if (0 != sem_timedwait(&ppq->vsem, &t)) return FALSE;
+    if (0 != sem_trywait(&ppq->vsem)) return FALSE;
     if (pppkt) *pppkt = ppq->vpkts[ppq->vhead];
     return TRUE;
 }

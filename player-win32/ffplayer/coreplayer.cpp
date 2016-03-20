@@ -71,7 +71,7 @@ static void* AVDemuxThreadProc(void *param)
         }
         //-- when demux pause --//
 
-        if (!pktqueue_write_request(player->hPacketQueue, &packet, 100)) continue;
+        if (!pktqueue_write_request(player->hPacketQueue, &packet)) { Sleep(20); continue; }
 
         retv = av_read_frame(player->pAVFormatContext, packet);
         //++ play completed ++//
@@ -132,7 +132,7 @@ static void* AudioDecodeThreadProc(void *param)
         //++ for seek operation
 
         // read packet
-        if (!pktqueue_read_request_a(player->hPacketQueue, &packet, 100)) continue;
+        if (!pktqueue_read_request_a(player->hPacketQueue, &packet)) { Sleep(20); continue; }
 
         //++ decode audio packet ++//
         if (player->iAudioStreamIndex != -1) {
@@ -201,7 +201,7 @@ static void* VideoDecodeThreadProc(void *param)
         //++ for seek operation
 
         // read packet
-        if (!pktqueue_read_request_v(player->hPacketQueue, &packet, 100)) continue;
+        if (!pktqueue_read_request_v(player->hPacketQueue, &packet)) { Sleep(20); continue; }
 
         //++ decode video packet ++//
         if (player->iVideoStreamIndex != -1) {
@@ -454,7 +454,7 @@ void player_seek(void *hplayer, LONGLONG ms)
 
     // wait for demuxing, audio decoding & video decoding threads paused
     render_start(player->hCoreRender);
-    while ((player->nPlayerStatus & PAUSE_ACK) != PAUSE_ACK) Sleep(10);
+    while ((player->nPlayerStatus & PAUSE_ACK) != PAUSE_ACK) Sleep(20);
 
     // seek frame
     av_seek_frame(player->pAVFormatContext, -1, ms / 1000 * AV_TIME_BASE, AVSEEK_FLAG_BACKWARD);
@@ -475,7 +475,7 @@ void player_seek(void *hplayer, LONGLONG ms)
     player->nPlayerStatus &= ~SEEK_ACK;
     player->nPlayerStatus |=  SEEK_REQ;
     player->nPlayerStatus &= ~(PAUSE_REQ | PAUSE_ACK);
-    while ((player->nPlayerStatus & SEEK_ACK) != SEEK_ACK) Sleep(10);
+    while ((player->nPlayerStatus & SEEK_ACK) != SEEK_ACK) Sleep(20);
     player->nPlayerStatus &= ~(SEEK_REQ  | SEEK_ACK );
 
     // pause render if needed
