@@ -88,7 +88,9 @@ static DWORD WINAPI VideoRenderThreadProc(void *param)
 
         int64_t apts = c->apts;
         int64_t vpts = c->vpts = c->ppts[c->head];
-        d3d_draw_surf(c->pD3DDev, &rect, c->ppSurfs[c->head]);
+        if (vpts != -1) {
+            d3d_draw_surf(c->pD3DDev, &rect, c->ppSurfs[c->head]);
+        }
 
 //      log_printf(TEXT("vpts: %lld\n"), vpts);
         if (++c->head == c->bufnum) c->head = 0;
@@ -99,7 +101,7 @@ static DWORD WINAPI VideoRenderThreadProc(void *param)
         c->ticklast = tickcur;
         if (tickdiff - c->tickframe >  1) c->ticksleep--;
         if (tickdiff - c->tickframe < -1) c->ticksleep++;
-        if (apts != -1) {
+        if (apts != -1 && vpts != -1) {
             if (apts - vpts >  1) c->ticksleep-=2;
             if (apts - vpts < -1) c->ticksleep+=2;
         }
@@ -296,4 +298,12 @@ void vdev_d3d_setfrate(void *ctxt, int frate)
 {
     DEVD3DCTXT *c = (DEVD3DCTXT*)ctxt;
     c->tickframe = 1000 / frate;
+}
+
+int vdev_d3d_dropflag(void *ctxt)
+{
+    DEVD3DCTXT *c = (DEVD3DCTXT*)ctxt;
+    if (c->ticksleep < 0               ) return  1;
+    if (c->ticksleep > c->tickframe - 1) return -1;
+    return 0;
 }

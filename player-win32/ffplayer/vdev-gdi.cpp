@@ -74,8 +74,11 @@ static DWORD WINAPI VideoRenderThreadProc(void *param)
 
         int64_t apts = c->apts;
         int64_t vpts = c->vpts = c->ppts[c->head];
-        SelectObject(c->hdcsrc, c->hbitmaps[c->head]);
-        BitBlt(c->hdcdst, c->x, c->y, c->w, c->h, c->hdcsrc, 0, 0, SRCCOPY);
+        if (vpts != -1) {
+            SelectObject(c->hdcsrc, c->hbitmaps[c->head]);
+            BitBlt(c->hdcdst, c->x, c->y, c->w, c->h, c->hdcsrc, 0, 0, SRCCOPY);
+        }
+
 //      log_printf(TEXT("vpts: %lld\n"), vpts);
         if (++c->head == c->bufnum) c->head = 0;
         ReleaseSemaphore(c->semw, 1, NULL);
@@ -85,7 +88,7 @@ static DWORD WINAPI VideoRenderThreadProc(void *param)
         c->ticklast = tickcur;
         if (tickdiff - c->tickframe >  1) c->ticksleep--;
         if (tickdiff - c->tickframe < -1) c->ticksleep++;
-        if (apts != -1) {
+        if (apts != -1 && vpts != -1) {
             if (apts - vpts >  1) c->ticksleep-=2;
             if (apts - vpts < -1) c->ticksleep+=2;
         }
@@ -261,3 +264,12 @@ void vdev_gdi_setfrate(void *ctxt, int frate)
     DEVGDICTXT *c = (DEVGDICTXT*)ctxt;
     c->tickframe = 1000 / frate;
 }
+
+int vdev_gdi_dropflag(void *ctxt)
+{
+    DEVGDICTXT *c = (DEVGDICTXT*)ctxt;
+    if (c->ticksleep < 0               ) return  1;
+    if (c->ticksleep > c->tickframe - 1) return -1;
+    return 0;
+}
+

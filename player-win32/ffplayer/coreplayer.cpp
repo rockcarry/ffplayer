@@ -10,6 +10,64 @@ extern "C" {
 #include "libavcodec/avcodec.h"
 }
 
+//++ for frame dropper ++//
+typedef struct {
+    int framerate;
+    int divider;
+    int counter;
+    int flag;
+} FRAMEDROPPER;
+
+static void framedropper_reset(FRAMEDROPPER *pfd)
+{
+    pfd->divider = 0;
+    pfd->counter = 1;
+    pfd->flag    = 0;
+}
+
+static int framedropper_clocked(FRAMEDROPPER *pfd)
+{
+    int out = 0;
+
+    // divider == 0 means no drop
+    if (pfd->divider == 0) return 0;
+
+    if (--pfd->counter == 0) {
+        pfd->counter = pfd->divider;
+        out = 1;
+    }
+
+    return pfd->flag ? !out : out;
+}
+
+static void framedropper_update_dropflag(FRAMEDROPPER *pfd, int flag)
+{
+    if (flag > 0) {
+        if (pfd->flag) {
+            pfd->divider++;
+        }
+        else {
+            switch (--pfd->divider) {
+            case -1: pfd->divider = pfd->framerate; break;
+            case  2: pfd->flag = 1;                 break;
+            }
+        }
+    }
+    if (flag < 0) {
+        if (pfd->flag) {
+            if (--pfd->divider == 2) pfd->flag = 0;
+        }
+        else {
+            if (pfd->divider != 0) {
+                if (pfd->divider++ == pfd->framerate) {
+                    pfd->divider = 0;
+                }
+            }
+        }
+    }
+}
+//-- for frame dropper --//
+
 // 内部常量定义
 #define avcodec_decode_video avcodec_decode_video2
 #define avcodec_decode_audio avcodec_decode_audio4
@@ -37,6 +95,9 @@ typedef struct
 
     // packet queue
     void            *hPacketQueue;
+
+    // frame dropper
+    FRAMEDROPPER     FrameDropper;
 
     // thread
     #define PS_D_PAUSE    (1 << 0)  // demux pause
@@ -205,6 +266,16 @@ static void* VideoDecodeThreadProc(void *param)
 
         //++ decode video packet ++//
         if (player->iVideoStreamIndex != -1) {
+            framedropper_update_dropflag(&player->FrameDropper, render_dropflag(player->hCoreRender));
+            if (!(packet->flags & AV_PKT_FLAG_KEY)) {
+                if (framedropper_clocked(&player->FrameDropper)) {
+                    log_printf(TEXT("drop a frame !\n"));
+                    vframe->pts = -1; // -1 means drop frame
+                    render_video(player->hCoreRender, vframe);
+                    goto next;
+                }
+            }
+
             while (packet->size > 0) {
                 int consumed = 0;
                 int gotvideo = 0;
@@ -233,6 +304,7 @@ static void* VideoDecodeThreadProc(void *param)
         }
         //-- decode video packet --//
 
+next:
         // free packet
         av_packet_unref(packet);
 
@@ -302,6 +374,10 @@ void* player_open(char *file, void *extra)
                 vrate.num = 30;
                 vrate.den = 1;
             }
+            //++ init frame dropper
+            player->FrameDropper.framerate = vrate.num / vrate.den;
+            framedropper_reset(&player->FrameDropper);
+            //-- init frame dropper
             break;
         }
     }

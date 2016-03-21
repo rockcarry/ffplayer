@@ -20,9 +20,8 @@ typedef struct
 } AUDIOBUF;
 
 // 函数声明
-void* render_open(void *surface, AVRational frate, int pixfmt, int w, int h,
+void*render_open(void *surface, AVRational frate, int pixfmt, int w, int h,
                  int srate, AVSampleFormat sndfmt, int64_t ch_layout);
-
 void render_close   (void *hrender);
 void render_audio   (void *hrender, AVFrame *audio);
 void render_video   (void *hrender, AVFrame *video);
@@ -33,6 +32,7 @@ void render_reset   (void *hrender);
 void render_time    (void *hrender, int64_t *time);
 void render_setparam(void *hrender, DWORD id, void *param);
 void render_getparam(void *hrender, DWORD id, void *param);
+int  render_dropflag(void *hrender);
 
 #ifdef __cplusplus
 }

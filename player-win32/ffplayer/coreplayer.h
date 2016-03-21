@@ -29,6 +29,7 @@ enum {
     PARAM_AUDIO_VOLUME,
     PARAM_PLAYER_TIME,
     PARAM_PLAYER_SPEED,
+    PARAM_AUTO_DROP_FRAME,
 };
 
 // 函数声明

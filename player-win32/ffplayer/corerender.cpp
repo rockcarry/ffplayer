@@ -42,6 +42,7 @@ typedef struct
     int            nRenderHeight;
     int            nRenderSpeed;
     int            nRenderVolume;
+    int            nRenderAutoDrop;
 
     CRITICAL_SECTION  cs1;
     CRITICAL_SECTION  cs2;
@@ -51,7 +52,7 @@ typedef struct
 static void render_setspeed(RENDER *render, int speed)
 {
     EnterCriticalSection(&render->cs1);
-    if (render->nRenderSpeed != speed) {
+    if (speed && render->nRenderSpeed != speed) {
         int samprate  = 44100 * 100 / speed;
         int framerate = (render->FrameRate.num * speed) / (render->FrameRate.den * 100);
 
@@ -96,6 +97,11 @@ void* render_open(void *surface, AVRational frate, int pixfmt, int w, int h,
     render->nSampleRate  = srate;
     render->SampleFormat = sndfmt;
     render->nChanLayout  = ch_layout;
+
+    // init for render
+    render->nRenderSpeed    = 100;
+    render->nRenderVolume   = 0;
+    render->nRenderAutoDrop = 1;
 
     // create adev & vdev
     render->adev = adev_create(0, (int)(44100.0 * frate.den / frate.num + 0.5) * 4);
@@ -151,7 +157,7 @@ void render_audio(void *hrender, AVFrame *audio)
     do {
         if (render->nAdevBufAvail == 0) {
             adev_request(render->adev, &render->pAdevHdrCur);
-            apts += render->nFramePeriod;
+            apts += render->nFramePeriod * 100 / render->nRenderSpeed;
             render->nAdevBufAvail = (int  )render->pAdevHdrCur->size;
             render->pAdevBufCur   = (BYTE*)render->pAdevHdrCur->data;
         }
@@ -181,11 +187,13 @@ void render_video(void *hrender, AVFrame *video)
     int      stride  = 0;
 
     vdev_request(render->vdev, (void**)&bmpbuf, &stride);
-    EnterCriticalSection(&render->cs2);
-    picture.data[0]     = bmpbuf;
-    picture.linesize[0] = stride;
-    sws_scale(render->pSWSContext, video->data, video->linesize, 0, render->nVideoHeight, picture.data, picture.linesize);
-    LeaveCriticalSection(&render->cs2);
+    if (video->pts != -1) {
+        EnterCriticalSection(&render->cs2);
+        picture.data[0]     = bmpbuf;
+        picture.linesize[0] = stride;
+        sws_scale(render->pSWSContext, video->data, video->linesize, 0, render->nVideoHeight, picture.data, picture.linesize);
+        LeaveCriticalSection(&render->cs2);
+    }
     vdev_post(render->vdev, video->pts);
 }
 
@@ -258,6 +266,9 @@ void render_setparam(void *hrender, DWORD id, void *param)
     case PARAM_PLAYER_SPEED:
         render_setspeed(render, *(int*)param);
         break;
+    case PARAM_AUTO_DROP_FRAME:
+        render->nRenderAutoDrop = *(int*)param;
+        break;
     }
 }
 
@@ -279,7 +290,20 @@ void render_getparam(void *hrender, DWORD id, void *param)
     case PARAM_PLAYER_SPEED:
         *(int*)param = render->nRenderSpeed;
         break;
+    case PARAM_AUTO_DROP_FRAME:
+        *(int*)param = render->nRenderAutoDrop;
+        break;
     }
 }
 
+int render_dropflag(void *hrender)
+{
+    RENDER *render = (RENDER*)hrender;
+    if (!render->nRenderAutoDrop) return 0;
+    int aflag = adev_dropflag(render->adev);
+    int vflag = vdev_dropflag(render->vdev);
+    if (aflag > 0 || vflag > 0) return  1;
+    if (aflag < 0 && vflag < 0) return -1;
+    return 0;
+}
 

@@ -218,3 +218,14 @@ void adev_volume(void *ctxt, int vol)
     c->vol_curvol = vol;
 }
 
+int adev_dropflag(void *ctxt)
+{
+    ADEV_CONTEXT *c = (ADEV_CONTEXT*)ctxt;
+    LONG      count = 0;
+    ReleaseSemaphore(c->bufsem, 0, &count);
+//  log_printf(TEXT("adev count = %ld\n"), count);
+    if (count >= DEF_ADEV_BUF_NUM - 2) return  1;
+    if (count <= 1                   ) return -1;
+    return 0;
+}
+
