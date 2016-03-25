@@ -294,6 +294,9 @@ static void* VideoDecodeThreadProc(void *param)
             //+ smooth policy
             switch (player->nSmoothPolicy)
             {
+            case SMOOTH_POLICY_NONE:
+                need_drop = need_slow = 0;
+                break;
             case SMOOTH_POLICY_DROP_FRAME_ONLY:
                 need_slow = 0;
                 if (frame_rate <= player->nMinFrameRate) need_drop = 0;
@@ -491,7 +494,7 @@ void* player_open(char *file, void *extra)
     pthread_create(&player->hVDecodeThread, NULL, VideoDecodeThreadProc, player);
 
     // smooth play params
-    player->nSmoothPolicy = SMOOTH_POLICY_DROP_SLOW;
+    player->nSmoothPolicy = SMOOTH_POLICY_NONE; // SMOOTH_POLICY_DROP_SLOW;
     player->nMinFrameRate = 15;
     player->nMinPlaySpeed = 90;
     return player;
