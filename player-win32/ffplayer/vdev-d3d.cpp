@@ -304,6 +304,6 @@ int vdev_d3d_dropflag(void *ctxt)
 {
     DEVD3DCTXT *c = (DEVD3DCTXT*)ctxt;
     if (c->ticksleep < 0               ) return  1;
-    if (c->ticksleep > c->tickframe - 1) return -1;
+    if (c->ticksleep > c->tickframe / 2) return -1;
     return 0;
 }

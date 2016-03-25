@@ -99,7 +99,6 @@ void* render_open(void *surface, AVRational frate, int pixfmt, int w, int h,
     render->nChanLayout  = ch_layout;
 
     // init for render
-    render->nRenderSpeed    = 100;
     render->nRenderVolume   = 0;
     render->nRenderAutoDrop = 1;
 

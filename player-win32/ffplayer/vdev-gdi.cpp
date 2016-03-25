@@ -269,7 +269,7 @@ int vdev_gdi_dropflag(void *ctxt)
 {
     DEVGDICTXT *c = (DEVGDICTXT*)ctxt;
     if (c->ticksleep < 0               ) return  1;
-    if (c->ticksleep > c->tickframe - 1) return -1;
+    if (c->ticksleep > c->tickframe / 2) return -1;
     return 0;
 }
 

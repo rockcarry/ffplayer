@@ -224,7 +224,7 @@ int adev_dropflag(void *ctxt)
     LONG      count = 0;
     ReleaseSemaphore(c->bufsem, 0, &count);
 //  log_printf(TEXT("adev count = %ld\n"), count);
-    if (count >= DEF_ADEV_BUF_NUM - 2) return  1;
+    if (count >= DEF_ADEV_BUF_NUM - 1) return  1;
     if (count <= 1                   ) return -1;
     return 0;
 }
