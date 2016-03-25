@@ -27,6 +27,7 @@ typedef struct
     int      vol_scaler[256];
     int      vol_zerodb;
     int      vol_curvol;
+    int      wait_time;
 } ADEV_CONTEXT;
 
 // 内部函数实现
@@ -148,7 +149,8 @@ void adev_destroy(void *ctxt)
 void adev_request(void *ctxt, AUDIOBUF **ppab)
 {
     ADEV_CONTEXT *c = (ADEV_CONTEXT*)ctxt;
-    WaitForSingleObject(c->bufsem, -1);
+    c->wait_time = WaitForSingleObject(c->bufsem, c->wait_time) == WAIT_TIMEOUT ? 0 : 500;
+    if (c->wait_time == 0) *c->apts = -1;
     *ppab = (AUDIOBUF*)&c->pWaveHdr[c->tail];
 }
 
