@@ -42,7 +42,6 @@ typedef struct
     int            nRenderHeight;
     int            nRenderSpeed;
     int            nRenderVolume;
-    int            nRenderAutoDrop;
 
     CRITICAL_SECTION  cs1;
     CRITICAL_SECTION  cs2;
@@ -66,7 +65,7 @@ static void render_setspeed(RENDER *render, int speed)
         swr_init(render->pSWRContext);
 
         // set vdev frame rate
-        vdev_setfrate(render->vdev, framerate);
+        vdev_setfrate(render->vdev, framerate > 1 ? framerate : 1);
 
         render->nRenderSpeed = speed;
     }
@@ -97,10 +96,6 @@ void* render_open(void *surface, AVRational frate, int pixfmt, int w, int h,
     render->nSampleRate  = srate;
     render->SampleFormat = sndfmt;
     render->nChanLayout  = ch_layout;
-
-    // init for render
-    render->nRenderVolume   = 0;
-    render->nRenderAutoDrop = 1;
 
     // create adev & vdev
     render->adev = adev_create(0, (int)(44100.0 * frate.den / frate.num + 0.5) * 4);
@@ -265,9 +260,6 @@ void render_setparam(void *hrender, DWORD id, void *param)
     case PARAM_PLAYER_SPEED:
         render_setspeed(render, *(int*)param);
         break;
-    case PARAM_AUTO_DROP_FRAME:
-        render->nRenderAutoDrop = *(int*)param;
-        break;
     }
 }
 
@@ -289,16 +281,12 @@ void render_getparam(void *hrender, DWORD id, void *param)
     case PARAM_PLAYER_SPEED:
         *(int*)param = render->nRenderSpeed;
         break;
-    case PARAM_AUTO_DROP_FRAME:
-        *(int*)param = render->nRenderAutoDrop;
-        break;
     }
 }
 
 int render_dropflag(void *hrender)
 {
     RENDER *render = (RENDER*)hrender;
-    if (!render->nRenderAutoDrop) return 0;
     int aflag = adev_dropflag(render->adev);
     int vflag = vdev_dropflag(render->vdev);
     if (aflag > 0 || vflag > 0) return  1;

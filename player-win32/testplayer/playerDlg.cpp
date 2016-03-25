@@ -145,14 +145,15 @@ void CplayerDlg::OnPaint()
         LONGLONG total = 1, pos = 0;
         player_getparam(g_hplayer, PARAM_VIDEO_DURATION, &total);
         player_getparam(g_hplayer, PARAM_VIDEO_POSITION, &pos  );
-
-        RECT fill  = m_rtClient;
-        fill.right = (LONG)(fill.right * pos / total);
-        fill.top   = fill.bottom - 2;
-        dc.FillSolidRect(&fill, RGB(250, 150, 0));
-        fill.left  = fill.right;
-        fill.right = m_rtClient.right;
-        dc.FillSolidRect(&fill, RGB(0, 0, 0));
+        if (pos > 0) {
+            RECT fill  = m_rtClient;
+            fill.right = (LONG)(fill.right * pos / total);
+            fill.top   = fill.bottom - 2;
+            dc.FillSolidRect(&fill, RGB(250, 150, 0));
+            fill.left  = fill.right;
+            fill.right = m_rtClient.right;
+            dc.FillSolidRect(&fill, RGB(0, 0, 0));
+        }
 
         CDialog::OnPaint();
     }
