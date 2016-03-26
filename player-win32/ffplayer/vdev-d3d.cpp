@@ -64,13 +64,6 @@ static DWORD WINAPI VideoRenderThreadProc(void *param)
 
     while (!(c->bStatus & DEVD3D_CLOSE))
     {
-        RECT rect = { c->x, c->y, c->x + c->w, c->y + c->h };
-
-        if (c->bStatus & DEVD3D_PAUSE) {
-            d3d_draw_surf(c->pD3DDev, &rect, c->ppSurfs[c->head]);
-            Sleep(c->tickframe); continue;
-        }
-
         //++ play completed ++//
         if (c->completed_apts != c->apts || c->completed_vpts != c->vpts) {
             c->completed_apts = c->apts;
@@ -89,7 +82,11 @@ static DWORD WINAPI VideoRenderThreadProc(void *param)
         int64_t apts = c->apts;
         int64_t vpts = c->vpts = c->ppts[c->head];
         if (vpts != -1) {
-            d3d_draw_surf(c->pD3DDev, &rect, c->ppSurfs[c->head]);
+            do {
+                RECT rect = { c->x, c->y, c->x + c->w, c->y + c->h };
+                d3d_draw_surf(c->pD3DDev, &rect, c->ppSurfs[c->head]);
+                if (c->bStatus & DEVD3D_PAUSE) Sleep(c->tickframe);
+            } while (c->bStatus & DEVD3D_PAUSE);
         }
 
 //      log_printf(TEXT("vpts: %lld\n"), vpts);

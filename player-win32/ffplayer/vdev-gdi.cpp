@@ -50,13 +50,6 @@ static DWORD WINAPI VideoRenderThreadProc(void *param)
 
     while (!(c->bStatus & DEVGDI_CLOSE))
     {
-        if (c->bStatus & DEVGDI_PAUSE) {
-            BITMAP bitmap; GetObject(c->hbitmaps[c->tail], sizeof(BITMAP), &bitmap);
-            SelectObject(c->hdcsrc, c->hbitmaps[c->head]);
-            StretchBlt(c->hdcdst, c->x, c->y, c->w, c->h, c->hdcsrc, 0, 0, bitmap.bmWidth, bitmap.bmHeight, SRCCOPY);
-            Sleep(c->tickframe); continue;
-        }
-
         //++ play completed ++//
         if (c->completed_apts != c->apts || c->completed_vpts != c->vpts) {
             c->completed_apts = c->apts;
@@ -76,7 +69,10 @@ static DWORD WINAPI VideoRenderThreadProc(void *param)
         int64_t vpts = c->vpts = c->ppts[c->head];
         if (vpts != -1) {
             SelectObject(c->hdcsrc, c->hbitmaps[c->head]);
-            BitBlt(c->hdcdst, c->x, c->y, c->w, c->h, c->hdcsrc, 0, 0, SRCCOPY);
+            do {
+                BitBlt(c->hdcdst, c->x, c->y, c->w, c->h, c->hdcsrc, 0, 0, SRCCOPY);
+                if (c->bStatus & DEVGDI_PAUSE) Sleep(c->tickframe);
+            } while (c->bStatus & DEVGDI_PAUSE);
         }
 
 //      log_printf(TEXT("vpts: %lld\n"), vpts);
