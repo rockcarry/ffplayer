@@ -177,17 +177,17 @@ void render_video(void *hrender, AVFrame *video)
 {
     RENDER  *render  = (RENDER*)hrender;
     AVFrame  picture = {0};
-    BYTE    *bmpbuf  = NULL;
-    int      stride  = 0;
+    BYTE    *bmpbuf;
+    int      stride;
 
-    EnterCriticalSection(&render->cs2);
     vdev_request(render->vdev, (void**)&bmpbuf, &stride);
     if (video->pts != -1) {
         picture.data[0]     = bmpbuf;
         picture.linesize[0] = stride;
+        EnterCriticalSection(&render->cs2);
         sws_scale(render->pSWSContext, video->data, video->linesize, 0, render->nVideoHeight, picture.data, picture.linesize);
+        LeaveCriticalSection(&render->cs2);
     }
-    LeaveCriticalSection(&render->cs2);
     vdev_post(render->vdev, video->pts);
 }
 
@@ -195,19 +195,18 @@ void render_setrect(void *hrender, int x, int y, int w, int h)
 {
     RENDER *render = (RENDER*)hrender;
     if (w == 0 || h == 0) return;
-    EnterCriticalSection(&render->cs2);
+    vdev_setrect(render->vdev, x, y, w, h);
     if (render->nRenderWidth != w || render->nRenderHeight != h)
     {
-        if (render->pSWSContext) {
-            sws_freeContext(render->pSWSContext);
-        }
-        render->pSWSContext = sws_getContext(render->nVideoWidth, render->nVideoHeight, render->PixelFormat,
-                                             w, h, AV_PIX_FMT_RGB32, SWS_BILINEAR, 0, 0, 0);
         render->nRenderWidth  = w;
         render->nRenderHeight = h;
+
+        EnterCriticalSection(&render->cs2);
+        if (render->pSWSContext) sws_freeContext(render->pSWSContext);
+        render->pSWSContext = sws_getContext(render->nVideoWidth, render->nVideoHeight,
+            render->PixelFormat, w, h, AV_PIX_FMT_RGB32, SWS_BILINEAR, 0, 0, 0);
+        LeaveCriticalSection(&render->cs2);
     }
-    vdev_setrect(render->vdev, x, y, w, h);
-    LeaveCriticalSection(&render->cs2);
 }
 
 void render_start(void *hrender)
