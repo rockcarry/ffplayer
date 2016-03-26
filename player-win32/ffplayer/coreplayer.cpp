@@ -511,7 +511,7 @@ void player_close(void *hplayer)
 
     player->nPlayerStatus = PS_CLOSE;
     if (player->hCoreRender) {
-        render_start(player->hCoreRender);
+        render_reset(player->hCoreRender);
     }
 
     // wait audio/video demuxing thread exit

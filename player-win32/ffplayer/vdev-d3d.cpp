@@ -176,7 +176,7 @@ void vdev_d3d_destroy(void *ctxt)
     int i;
     DEVD3DCTXT *c = (DEVD3DCTXT*)ctxt;
     // make rendering thread safely exit
-    c->bStatus |= DEVD3D_CLOSE;
+    c->bStatus = DEVD3D_CLOSE;
     WaitForSingleObject(c->hThread, -1);
     CloseHandle(c->hThread);
 

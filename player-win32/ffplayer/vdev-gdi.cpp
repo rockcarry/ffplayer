@@ -143,7 +143,7 @@ void vdev_gdi_destroy(void *ctxt)
     DEVGDICTXT *c = (DEVGDICTXT*)ctxt;
 
     // make rendering thread safely exit
-    c->bStatus |= DEVGDI_CLOSE;
+    c->bStatus = DEVGDI_CLOSE;
     WaitForSingleObject(c->hThread, -1);
     CloseHandle(c->hThread);
 
