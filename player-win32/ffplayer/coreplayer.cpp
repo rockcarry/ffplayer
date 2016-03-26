@@ -494,7 +494,7 @@ void* player_open(char *file, void *extra)
     pthread_create(&player->hVDecodeThread, NULL, VideoDecodeThreadProc, player);
 
     // smooth play params
-    player->nSmoothPolicy = SMOOTH_POLICY_NONE; // SMOOTH_POLICY_DROP_SLOW;
+    player->nSmoothPolicy = SMOOTH_POLICY_DROP_SLOW; // SMOOTH_POLICY_NONE;
     player->nMinFrameRate = 15;
     player->nMinPlaySpeed = 90;
     return player;

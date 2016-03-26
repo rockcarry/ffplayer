@@ -50,26 +50,26 @@ typedef struct
 // 内部函数实现
 static void render_setspeed(RENDER *render, int speed)
 {
-    EnterCriticalSection(&render->cs1);
     if (speed && render->nRenderSpeed != speed) {
         int samprate  = 44100 * 100 / speed;
         int framerate = (render->FrameRate.num * speed) / (render->FrameRate.den * 100);
 
+        EnterCriticalSection(&render->cs1);
+        //++ allocate & init swr context
         if (render->pSWRContext) {
             swr_free(&render->pSWRContext);
         }
-
-        /* allocate & init swr context */
         render->pSWRContext = swr_alloc_set_opts(NULL, AV_CH_LAYOUT_STEREO, AV_SAMPLE_FMT_S16, samprate,
             render->nChanLayout, render->SampleFormat, render->nSampleRate, 0, NULL);
         swr_init(render->pSWRContext);
+        //-- allocate & init swr context
+        LeaveCriticalSection(&render->cs1);
 
         // set vdev frame rate
         vdev_setfrate(render->vdev, framerate > 1 ? framerate : 1);
 
         render->nRenderSpeed = speed;
     }
-    LeaveCriticalSection(&render->cs1);
 }
 
 // 函数实现
@@ -147,7 +147,6 @@ void render_audio(void *hrender, AVFrame *audio)
     int     sampnum = 0;
     DWORD   apts    = (DWORD)audio->pts;
 
-    EnterCriticalSection(&render->cs1);
     do {
         if (render->nAdevBufAvail == 0) {
             adev_request(render->adev, &render->pAdevHdrCur);
@@ -156,6 +155,7 @@ void render_audio(void *hrender, AVFrame *audio)
             render->pAdevBufCur   = (BYTE*)render->pAdevHdrCur->data;
         }
 
+        EnterCriticalSection(&render->cs1);
         //++ do resample audio data ++//
         sampnum = swr_convert(render->pSWRContext, (uint8_t**)&render->pAdevBufCur,
             render->nAdevBufAvail / 4, (const uint8_t**)audio->extended_data,
@@ -165,12 +165,12 @@ void render_audio(void *hrender, AVFrame *audio)
         render->nAdevBufAvail -= sampnum * 4;
         render->pAdevBufCur   += sampnum * 4;
         //-- do resample audio data --//
+        LeaveCriticalSection(&render->cs1);
 
         if (render->nAdevBufAvail == 0) {
             adev_post(render->adev, apts);
         }
     } while (sampnum > 0);
-    LeaveCriticalSection(&render->cs1);
 }
 
 void render_video(void *hrender, AVFrame *video)
