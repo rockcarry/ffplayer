@@ -610,13 +610,18 @@ void player_seek(void *hplayer, LONGLONG ms)
     render_setparam(player->hCoreRender, PARAM_PLAYER_TIME, &ms);
 
     // restart all thread and render
-    #define SEEK_REQ ((PS_A_SEEK|PS_V_SEEK) << 0 )
-    #define SEEK_ACK ((PS_A_SEEK|PS_V_SEEK) << 16)
+    int SEEK_REQ = 0;
+    int SEEK_ACK = 0;
+    if (player->iAudioStreamIndex != -1) { SEEK_REQ |= PS_A_SEEK; SEEK_ACK |= PS_A_SEEK << 16; }
+    if (player->iVideoStreamIndex != -1) { SEEK_REQ |= PS_V_SEEK; SEEK_ACK |= PS_V_SEEK << 16; }
     player->nSeekToNewPTS  = ms;
     player->nPlayerStatus &= ~SEEK_ACK;
     player->nPlayerStatus |=  SEEK_REQ;
     player->nPlayerStatus &= ~(PAUSE_REQ | PAUSE_ACK);
-    while ((player->nPlayerStatus & SEEK_ACK) != SEEK_ACK) Sleep(20);
+    while ( !(player->nPlayerStatus & (PS_D_PAUSE << 16))
+          && (player->nPlayerStatus & SEEK_ACK) != SEEK_ACK ) {
+        Sleep(20);
+    }
     player->nPlayerStatus &= ~(SEEK_REQ  | SEEK_ACK );
 
     // pause render if needed
