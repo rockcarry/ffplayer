@@ -202,8 +202,9 @@ void vdev_d3d_destroy(void *ctxt)
         }
     }
 
-    c->pD3DDev->Release();
-    c->pD3D9  ->Release();
+    c->pSwapChain->Release();
+    c->pD3DDev   ->Release();
+    c->pD3D9     ->Release();
 
     // close semaphore
     CloseHandle(c->semr);
