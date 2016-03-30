@@ -39,22 +39,24 @@ typedef struct
     int64_t  completed_apts;
     int64_t  completed_vpts;
 
-    LPDIRECT3D9            pD3D;
-    LPDIRECT3DDEVICE9   pD3DDev;
-    LPDIRECT3DSURFACE9 *ppSurfs;
+    LPDIRECT3D9           pD3D9;
+    LPDIRECT3DDEVICE9     pD3DDev;
+    LPDIRECT3DSURFACE9   *pSurfs;
+    IDirect3DSwapChain9  *pSwapChain;
     D3DPRESENT_PARAMETERS d3dpp;
+    int                   need_reset;
 } DEVD3DCTXT;
 
 // 内部函数实现
-static void d3d_draw_surf(LPDIRECT3DDEVICE9 d3ddev, RECT *rect, LPDIRECT3DSURFACE9 surf)
+static void d3d_draw_surf(LPDIRECT3DDEVICE9 d3ddev, IDirect3DSwapChain9 *swapchain, RECT *rect, LPDIRECT3DSURFACE9 surf)
 {
     IDirect3DSurface9 *pBackBuffer = NULL;
-    if (SUCCEEDED(d3ddev->GetBackBuffer(0, 0, D3DBACKBUFFER_TYPE_MONO, &pBackBuffer)))
+    if (SUCCEEDED(swapchain->GetBackBuffer(0, D3DBACKBUFFER_TYPE_MONO, &pBackBuffer)))
     {
         if (pBackBuffer) {
-            if (SUCCEEDED(d3ddev->StretchRect(surf, NULL, pBackBuffer, NULL, D3DTEXF_LINEAR)))
+            if (SUCCEEDED(d3ddev->StretchRect(surf, NULL, pBackBuffer, rect, D3DTEXF_LINEAR)))
             {
-                d3ddev->Present(NULL, rect, NULL, NULL);
+                swapchain->Present(rect, rect, NULL, NULL, NULL);
             }
             pBackBuffer->Release();
         }
@@ -67,6 +69,18 @@ static DWORD WINAPI VideoRenderThreadProc(void *param)
 
     while (!(c->bStatus & DEVD3D_CLOSE))
     {
+        if (c->need_reset) {
+            c->need_reset = 0;
+            RECT rect; GetClientRect(c->hwnd, &rect);
+            c->d3dpp.BackBufferWidth  = rect.right;
+            c->d3dpp.BackBufferHeight = rect.bottom;
+            if (c->pSwapChain) c->pSwapChain->Release();
+            if (FAILED(c->pD3DDev->CreateAdditionalSwapChain(&c->d3dpp, &c->pSwapChain))) {
+                log_printf(TEXT("failed to create swap chain !\n"));
+                exit(0);
+            }
+        }
+
         //++ play completed ++//
         if (c->completed_apts != c->apts || c->completed_vpts != c->vpts) {
             c->completed_apts = c->apts;
@@ -87,7 +101,7 @@ static DWORD WINAPI VideoRenderThreadProc(void *param)
         if (vpts != -1) {
             do {
                 RECT rect = { c->x, c->y, c->x + c->w, c->y + c->h };
-                d3d_draw_surf(c->pD3DDev, &rect, c->ppSurfs[c->head]);
+                d3d_draw_surf(c->pD3DDev, c->pSwapChain, &rect, c->pSurfs[c->head]);
                 if (c->bStatus & DEVD3D_PAUSE) Sleep(c->tickframe);
             } while (c->bStatus & DEVD3D_PAUSE);
         }
@@ -130,27 +144,28 @@ void* vdev_d3d_create(void *surface, int bufnum, int w, int h, int frate)
     ctxt->h         = h;
     ctxt->tickframe = 1000 / frate;
     ctxt->ticksleep = ctxt->tickframe;
+    ctxt->need_reset= 1;
 
     // alloc buffer & semaphore
-    ctxt->ppts     = (int64_t*)malloc(bufnum * sizeof(int64_t));
-    ctxt->ppSurfs  = (LPDIRECT3DSURFACE9*)malloc(bufnum * sizeof(LPDIRECT3DSURFACE9));
+    ctxt->ppts   = (int64_t*)malloc(bufnum * sizeof(int64_t));
+    ctxt->pSurfs = (LPDIRECT3DSURFACE9*)malloc(bufnum * sizeof(LPDIRECT3DSURFACE9));
 
-    memset(ctxt->ppts   , 0, bufnum * sizeof(int64_t));
-    memset(ctxt->ppSurfs, 0, bufnum * sizeof(LPDIRECT3DSURFACE9));
+    memset(ctxt->ppts  , 0, bufnum * sizeof(int64_t));
+    memset(ctxt->pSurfs, 0, bufnum * sizeof(LPDIRECT3DSURFACE9));
 
-    ctxt->semr     = CreateSemaphore(NULL, 0     , bufnum, NULL);
-    ctxt->semw     = CreateSemaphore(NULL, bufnum, bufnum, NULL);
+    ctxt->semr = CreateSemaphore(NULL, 0     , bufnum, NULL);
+    ctxt->semw = CreateSemaphore(NULL, bufnum, bufnum, NULL);
 
     // create d3d
-    ctxt->pD3D = Direct3DCreate9(D3D_SDK_VERSION);
-    if (!ctxt->ppts || !ctxt->ppSurfs || !ctxt->semr || !ctxt->semw || !ctxt->pD3D) {
+    ctxt->pD3D9 = Direct3DCreate9(D3D_SDK_VERSION);
+    if (!ctxt->ppts || !ctxt->pSurfs || !ctxt->semr || !ctxt->semw || !ctxt->pD3D9) {
         log_printf(TEXT("failed to allocate resources for vdev-d3d !\n"));
         exit(0);
     }
 
     // fill d3dpp struct
     D3DDISPLAYMODE d3dmode = {0};
-    ctxt->pD3D->GetAdapterDisplayMode(D3DADAPTER_DEFAULT, &d3dmode);
+    ctxt->pD3D9->GetAdapterDisplayMode(D3DADAPTER_DEFAULT, &d3dmode);
     ctxt->d3dpp.BackBufferFormat      = D3DFMT_UNKNOWN;
     ctxt->d3dpp.BackBufferCount       = 1;
     ctxt->d3dpp.MultiSampleType       = D3DMULTISAMPLE_NONE;
@@ -160,7 +175,7 @@ void* vdev_d3d_create(void *surface, int bufnum, int w, int h, int frate)
     ctxt->d3dpp.EnableAutoDepthStencil= FALSE;
     ctxt->d3dpp.PresentationInterval  = d3dmode.RefreshRate < 60 ? D3DPRESENT_INTERVAL_IMMEDIATE : D3DPRESENT_INTERVAL_ONE;
 
-    if (FAILED(ctxt->pD3D->CreateDevice(D3DADAPTER_DEFAULT, D3DDEVTYPE_HAL, ctxt->hwnd,
+    if (FAILED(ctxt->pD3D9->CreateDevice(D3DADAPTER_DEFAULT, D3DDEVTYPE_HAL, ctxt->hwnd,
                 D3DCREATE_SOFTWARE_VERTEXPROCESSING, &ctxt->d3dpp, &ctxt->pD3DDev)) )
     {
         log_printf(TEXT("failed to create d3d device !\n"));
@@ -182,21 +197,21 @@ void vdev_d3d_destroy(void *ctxt)
     CloseHandle(c->hThread);
 
     for (i=0; i<c->bufnum; i++) {
-        if (c->ppSurfs[i]) {
-            c->ppSurfs[i]->Release();
+        if (c->pSurfs[i]) {
+            c->pSurfs[i]->Release();
         }
     }
 
     c->pD3DDev->Release();
-    c->pD3D->Release();
+    c->pD3D9  ->Release();
 
     // close semaphore
     CloseHandle(c->semr);
     CloseHandle(c->semw);
 
     // free memory
-    free(c->ppts   );
-    free(c->ppSurfs);
+    free(c->ppts  );
+    free(c->pSurfs);
     free(c);
 }
 
@@ -209,20 +224,20 @@ void vdev_d3d_request(void *ctxt, void **buf, int *stride)
     D3DSURFACE_DESC desc;
     int sufw = 0;
     int sufh = 0;
-    if (c->ppSurfs[c->tail]) {
-        c->ppSurfs[c->tail]->GetDesc(&desc);
+    if (c->pSurfs[c->tail]) {
+        c->pSurfs[c->tail]->GetDesc(&desc);
         sufw = desc.Width ;
         sufh = desc.Height;
     }
 
     if (sufw != c->w || sufh != c->h) {
-        if (c->ppSurfs[c->tail]) {
-            c->ppSurfs[c->tail]->Release();
+        if (c->pSurfs[c->tail]) {
+            c->pSurfs[c->tail]->Release();
         }
 
         // create surface
         if (FAILED(c->pD3DDev->CreateOffscreenPlainSurface(c->w, c->h, D3DFMT_X8R8G8B8,
-                    D3DPOOL_DEFAULT, &c->ppSurfs[c->tail], NULL)))
+                    D3DPOOL_DEFAULT, &c->pSurfs[c->tail], NULL)))
         {
             log_printf(TEXT("failed to create d3d off screen plain surface !\n"));
             exit(0);
@@ -231,7 +246,7 @@ void vdev_d3d_request(void *ctxt, void **buf, int *stride)
 
     // lock texture rect
     D3DLOCKED_RECT d3d_rect;
-    c->ppSurfs[c->tail]->LockRect(&d3d_rect, NULL, D3DLOCK_DISCARD);
+    c->pSurfs[c->tail]->LockRect(&d3d_rect, NULL, D3DLOCK_DISCARD);
 
     if (buf   ) *buf    = d3d_rect.pBits;
     if (stride) *stride = d3d_rect.Pitch;
@@ -241,7 +256,7 @@ void vdev_d3d_request(void *ctxt, void **buf, int *stride)
 void vdev_d3d_post(void *ctxt, int64_t pts)
 {
     DEVD3DCTXT *c = (DEVD3DCTXT*)ctxt;
-    c->ppSurfs[c->tail]->UnlockRect();
+    c->pSurfs[c->tail]->UnlockRect();
     c->ppts[c->tail] = pts;
     if (++c->tail == c->bufnum) c->tail = 0;
     ReleaseSemaphore(c->semr, 1, NULL);
@@ -252,6 +267,7 @@ void vdev_d3d_setrect(void *ctxt, int x, int y, int w, int h)
     DEVD3DCTXT *c = (DEVD3DCTXT*)ctxt;
     c->x = x; c->y = y;
     c->w = w; c->h = h;
+    c->need_reset = 1;
 
     RECT rtwin, rect1, rect2, rect3, rect4;
     GetClientRect(c->hwnd, &rtwin);
