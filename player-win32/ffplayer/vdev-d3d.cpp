@@ -42,6 +42,7 @@ typedef struct
     LPDIRECT3D9            pD3D;
     LPDIRECT3DDEVICE9   pD3DDev;
     LPDIRECT3DSURFACE9 *ppSurfs;
+    D3DPRESENT_PARAMETERS d3dpp;
 } DEVD3DCTXT;
 
 // 内部函数实现
@@ -50,11 +51,13 @@ static void d3d_draw_surf(LPDIRECT3DDEVICE9 d3ddev, RECT *rect, LPDIRECT3DSURFAC
     IDirect3DSurface9 *pBackBuffer = NULL;
     if (SUCCEEDED(d3ddev->GetBackBuffer(0, 0, D3DBACKBUFFER_TYPE_MONO, &pBackBuffer)))
     {
-        if (SUCCEEDED(d3ddev->StretchRect(surf, NULL, pBackBuffer, NULL, D3DTEXF_LINEAR)))
-        {
-            d3ddev->Present(NULL, rect, NULL, NULL);
+        if (pBackBuffer) {
+            if (SUCCEEDED(d3ddev->StretchRect(surf, NULL, pBackBuffer, NULL, D3DTEXF_LINEAR)))
+            {
+                d3ddev->Present(NULL, rect, NULL, NULL);
+            }
+            pBackBuffer->Release();
         }
-        if (pBackBuffer) pBackBuffer->Release();
     }
 }
 
@@ -146,21 +149,19 @@ void* vdev_d3d_create(void *surface, int bufnum, int w, int h, int frate)
     }
 
     // fill d3dpp struct
-    D3DDISPLAYMODE      d3dmode = {0};
-    D3DPRESENT_PARAMETERS d3dpp = {0};
+    D3DDISPLAYMODE d3dmode = {0};
     ctxt->pD3D->GetAdapterDisplayMode(D3DADAPTER_DEFAULT, &d3dmode);
-    d3dpp.BackBufferFormat      = D3DFMT_X8R8G8B8;
-    d3dpp.BackBufferCount       = 1;
-    d3dpp.MultiSampleType       = D3DMULTISAMPLE_NONE;
-    d3dpp.MultiSampleQuality    = 0;
-    d3dpp.SwapEffect            = D3DSWAPEFFECT_COPY;
-    d3dpp.hDeviceWindow         = ctxt->hwnd;
-    d3dpp.Windowed              = TRUE;
-    d3dpp.EnableAutoDepthStencil= FALSE;
-    d3dpp.PresentationInterval  = d3dmode.RefreshRate < 60 ? D3DPRESENT_INTERVAL_IMMEDIATE : D3DPRESENT_INTERVAL_ONE;
+    ctxt->d3dpp.BackBufferFormat      = D3DFMT_UNKNOWN;
+    ctxt->d3dpp.BackBufferCount       = 1;
+    ctxt->d3dpp.MultiSampleType       = D3DMULTISAMPLE_NONE;
+    ctxt->d3dpp.SwapEffect            = D3DSWAPEFFECT_DISCARD;
+    ctxt->d3dpp.hDeviceWindow         = ctxt->hwnd;
+    ctxt->d3dpp.Windowed              = TRUE;
+    ctxt->d3dpp.EnableAutoDepthStencil= FALSE;
+    ctxt->d3dpp.PresentationInterval  = d3dmode.RefreshRate < 60 ? D3DPRESENT_INTERVAL_IMMEDIATE : D3DPRESENT_INTERVAL_ONE;
 
     if (FAILED(ctxt->pD3D->CreateDevice(D3DADAPTER_DEFAULT, D3DDEVTYPE_HAL, ctxt->hwnd,
-                D3DCREATE_SOFTWARE_VERTEXPROCESSING, &d3dpp, &ctxt->pD3DDev)) )
+                D3DCREATE_SOFTWARE_VERTEXPROCESSING, &ctxt->d3dpp, &ctxt->pD3DDev)) )
     {
         log_printf(TEXT("failed to create d3d device !\n"));
         exit(0);
