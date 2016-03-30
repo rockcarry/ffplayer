@@ -48,15 +48,33 @@ typedef struct
 } DEVD3DCTXT;
 
 // 内部函数实现
-static void d3d_draw_surf(LPDIRECT3DDEVICE9 d3ddev, IDirect3DSwapChain9 *swapchain, RECT *rect, LPDIRECT3DSURFACE9 surf)
+static void d3d_draw_surf(DEVD3DCTXT *c, LPDIRECT3DSURFACE9 surf)
 {
+    RECT rect;
+
+    if (c->need_reset) {
+        c->need_reset = 0;
+        GetClientRect(c->hwnd, &rect);
+        c->d3dpp.BackBufferWidth  = rect.right;
+        c->d3dpp.BackBufferHeight = rect.bottom;
+        if (c->pSwapChain) c->pSwapChain->Release();
+        if (FAILED(c->pD3DDev->CreateAdditionalSwapChain(&c->d3dpp, &c->pSwapChain))) {
+            log_printf(TEXT("failed to create swap chain !\n"));
+            exit(0);
+        }
+    }
+
     IDirect3DSurface9 *pBackBuffer = NULL;
-    if (SUCCEEDED(swapchain->GetBackBuffer(0, D3DBACKBUFFER_TYPE_MONO, &pBackBuffer)))
+    if (SUCCEEDED(c->pSwapChain->GetBackBuffer(0, D3DBACKBUFFER_TYPE_MONO, &pBackBuffer)))
     {
         if (pBackBuffer) {
-            if (SUCCEEDED(d3ddev->StretchRect(surf, NULL, pBackBuffer, rect, D3DTEXF_LINEAR)))
+            rect.left   = c->x;
+            rect.top    = c->y;
+            rect.right  = c->x + c->w;
+            rect.bottom = c->y + c->h;
+            if (SUCCEEDED(c->pD3DDev->StretchRect(surf, NULL, pBackBuffer, &rect, D3DTEXF_LINEAR)))
             {
-                swapchain->Present(rect, rect, NULL, NULL, NULL);
+                c->pSwapChain->Present(&rect, &rect, NULL, NULL, NULL);
             }
             pBackBuffer->Release();
         }
@@ -69,18 +87,6 @@ static DWORD WINAPI VideoRenderThreadProc(void *param)
 
     while (!(c->bStatus & DEVD3D_CLOSE))
     {
-        if (c->need_reset) {
-            c->need_reset = 0;
-            RECT rect; GetClientRect(c->hwnd, &rect);
-            c->d3dpp.BackBufferWidth  = rect.right;
-            c->d3dpp.BackBufferHeight = rect.bottom;
-            if (c->pSwapChain) c->pSwapChain->Release();
-            if (FAILED(c->pD3DDev->CreateAdditionalSwapChain(&c->d3dpp, &c->pSwapChain))) {
-                log_printf(TEXT("failed to create swap chain !\n"));
-                exit(0);
-            }
-        }
-
         //++ play completed ++//
         if (c->completed_apts != c->apts || c->completed_vpts != c->vpts) {
             c->completed_apts = c->apts;
@@ -100,8 +106,7 @@ static DWORD WINAPI VideoRenderThreadProc(void *param)
         int64_t vpts = c->vpts = c->ppts[c->head];
         if (vpts != -1) {
             do {
-                RECT rect = { c->x, c->y, c->x + c->w, c->y + c->h };
-                d3d_draw_surf(c->pD3DDev, c->pSwapChain, &rect, c->pSurfs[c->head]);
+                d3d_draw_surf(c, c->pSurfs[c->head]);
                 if (c->bStatus & DEVD3D_PAUSE) Sleep(c->tickframe);
             } while (c->bStatus & DEVD3D_PAUSE);
         }
