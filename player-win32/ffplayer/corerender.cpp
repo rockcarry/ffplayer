@@ -147,6 +147,7 @@ void render_audio(void *hrender, AVFrame *audio)
     int     sampnum = 0;
     DWORD   apts    = (DWORD)audio->pts;
 
+    if (!render->adev) return;
     do {
         if (render->nAdevBufAvail == 0) {
             adev_request(render->adev, &render->pAdevHdrCur);
@@ -230,16 +231,6 @@ void render_reset(void *hrender)
     vdev_reset(render->vdev);
 }
 
-void render_time(void *hrender, int64_t *time)
-{
-    RENDER *render = (RENDER*)hrender;
-    if (time) {
-        int64_t *papts, *pvpts;
-        vdev_getavpts(render->vdev, &papts, &pvpts);
-        *time = *papts > *pvpts ? *papts : *pvpts;
-    }
-}
-
 void render_setparam(void *hrender, DWORD id, void *param)
 {
     RENDER *render = (RENDER*)hrender;
@@ -249,12 +240,14 @@ void render_setparam(void *hrender, DWORD id, void *param)
         render->nRenderVolume = *(int*)param;
         adev_volume(render->adev, *(int*)param);
         break;
-    case PARAM_PLAYER_TIME:
+    case PARAM_VIDEO_POSITION:
+        if (*(int64_t*)param)
         {
             int64_t *papts = NULL;
             int64_t *pvpts = NULL;
             vdev_getavpts(render->vdev, &papts, &pvpts);
-            *papts = *pvpts = *(int64_t*)param;
+            if (render->adev) *papts = *(int64_t*)param;
+            if (render->vdev) *pvpts = *(int64_t*)param;
         }
         break;
     case PARAM_PLAYER_SPEED:
@@ -271,7 +264,7 @@ void render_getparam(void *hrender, DWORD id, void *param)
     case PARAM_AUDIO_VOLUME:
         *(int*)param = render->nRenderVolume;
         break;
-    case PARAM_PLAYER_TIME:
+    case PARAM_VIDEO_POSITION:
         {
             int64_t *papts, *pvpts;
             vdev_getavpts(render->vdev, &papts, &pvpts);

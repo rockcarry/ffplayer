@@ -607,7 +607,7 @@ void player_seek(void *hplayer, LONGLONG ms)
 
     // reset render
     render_reset   (player->hCoreRender);
-    render_setparam(player->hCoreRender, PARAM_PLAYER_TIME, &ms);
+    render_setparam(player->hCoreRender, PARAM_VIDEO_POSITION, &ms);
 
     // restart all thread and render
     int SEEK_REQ = 0;
@@ -678,7 +678,7 @@ void player_getparam(void *hplayer, DWORD id, void *param)
         else *(int64_t*)param = (player->pAVFormatContext->duration * 1000 / AV_TIME_BASE);
         break;
     case PARAM_VIDEO_POSITION:
-        render_time(player->hCoreRender, (int64_t*)param);
+        render_getparam(player->hCoreRender, PARAM_VIDEO_POSITION, param);
         break;
     case PARAM_VIDEO_MODE:
         *(int*)param = player->nRenderMode;

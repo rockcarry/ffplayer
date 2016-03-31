@@ -70,6 +70,7 @@ void* adev_create(int bufnum, int buflen)
     ADEV_CONTEXT *ctxt = NULL;
     WAVEFORMATEX  wfx  = {0};
     BYTE         *pwavbuf;
+    MMRESULT      result;
     int           i;
 
     // allocate adev context
@@ -101,7 +102,14 @@ void* adev_create(int bufnum, int buflen)
     wfx.nChannels       = 2;     // stereo
     wfx.nBlockAlign     = wfx.nChannels * wfx.wBitsPerSample / 8;
     wfx.nAvgBytesPerSec = wfx.nBlockAlign * wfx.nSamplesPerSec;
-    waveOutOpen(&ctxt->hWaveOut, WAVE_MAPPER, &wfx, (DWORD_PTR)waveOutProc, (DWORD_PTR)ctxt, CALLBACK_FUNCTION);
+    result = waveOutOpen(&ctxt->hWaveOut, WAVE_MAPPER, &wfx, (DWORD_PTR)waveOutProc, (DWORD_PTR)ctxt, CALLBACK_FUNCTION);
+    if (result != MMSYSERR_NOERROR) {
+        CloseHandle(ctxt->bufsem);
+        free(ctxt->ppts    );
+        free(ctxt->pWaveHdr);
+        free(ctxt);
+        return NULL;
+    }
 
     // init wavebuf
     memset(ctxt->ppts    , 0, bufnum * sizeof(int64_t));
@@ -121,6 +129,7 @@ void* adev_create(int bufnum, int buflen)
 
 void adev_destroy(void *ctxt)
 {
+    if (!ctxt) return;
     ADEV_CONTEXT *c = (ADEV_CONTEXT*)ctxt;
     int i;
 
@@ -147,6 +156,7 @@ void adev_destroy(void *ctxt)
 
 void adev_request(void *ctxt, AUDIOBUF **ppab)
 {
+    if (!ctxt) return;
     ADEV_CONTEXT *c = (ADEV_CONTEXT*)ctxt;
     WaitForSingleObject(c->bufsem, -1);
     *ppab = (AUDIOBUF*)&c->pWaveHdr[c->tail];
@@ -154,6 +164,7 @@ void adev_request(void *ctxt, AUDIOBUF **ppab)
 
 void adev_post(void *ctxt, int64_t pts)
 {
+    if (!ctxt) return;
     ADEV_CONTEXT *c = (ADEV_CONTEXT*)ctxt;
     c->ppts[c->tail] = pts;
 
@@ -183,6 +194,7 @@ void adev_post(void *ctxt, int64_t pts)
 
 void adev_pause(void *ctxt, BOOL pause)
 {
+    if (!ctxt) return;
     ADEV_CONTEXT *c = (ADEV_CONTEXT*)ctxt;
     if (pause) {
         waveOutPause(c->hWaveOut);
@@ -194,6 +206,7 @@ void adev_pause(void *ctxt, BOOL pause)
 
 void adev_reset(void *ctxt)
 {
+    if (!ctxt) return;
     ADEV_CONTEXT *c = (ADEV_CONTEXT*)ctxt;
     waveOutReset(c->hWaveOut);
     c->head = c->tail = 0;
@@ -202,6 +215,7 @@ void adev_reset(void *ctxt)
 
 void adev_syncapts(void *ctxt, int64_t *apts)
 {
+    if (!ctxt) return;
     ADEV_CONTEXT *c = (ADEV_CONTEXT*)ctxt;
     c->apts = apts;
     if (c->apts) {
@@ -211,6 +225,7 @@ void adev_syncapts(void *ctxt, int64_t *apts)
 
 void adev_volume(void *ctxt, int vol)
 {
+    if (!ctxt) return;
     ADEV_CONTEXT *c = (ADEV_CONTEXT*)ctxt;
     vol += c->vol_zerodb;
     vol  = vol > 0   ? vol : 0  ;
@@ -220,6 +235,7 @@ void adev_volume(void *ctxt, int vol)
 
 int adev_dropflag(void *ctxt)
 {
+    if (!ctxt) return 0;
     ADEV_CONTEXT *c = (ADEV_CONTEXT*)ctxt;
     LONG      count = 0;
     ReleaseSemaphore(c->bufsem, 0, &count);

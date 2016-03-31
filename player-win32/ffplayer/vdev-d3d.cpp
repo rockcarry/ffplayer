@@ -150,6 +150,8 @@ void* vdev_d3d_create(void *surface, int bufnum, int w, int h, int frate)
     ctxt->tickframe = 1000 / frate;
     ctxt->ticksleep = ctxt->tickframe;
     ctxt->need_reset= 1;
+    ctxt->apts      =-1;
+    ctxt->vpts      =-1;
 
     // alloc buffer & semaphore
     ctxt->ppts   = (int64_t*)malloc(bufnum * sizeof(int64_t));
@@ -303,8 +305,8 @@ void vdev_d3d_reset(void *ctxt)
     DEVD3DCTXT *c = (DEVD3DCTXT*)ctxt;
     while (WAIT_OBJECT_0 == WaitForSingleObject(c->semr, 0));
     ReleaseSemaphore(c->semw, c->bufnum, NULL);
-    c->head = c->tail = 0;
-    c->apts = c->vpts = 0;
+    c->head = c->tail =  0;
+    c->apts = c->vpts = -1;
 }
 
 void vdev_d3d_getavpts(void *ctxt, int64_t **ppapts, int64_t **ppvpts)
