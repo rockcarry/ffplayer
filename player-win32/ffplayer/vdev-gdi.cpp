@@ -222,10 +222,10 @@ void vdev_gdi_setrect(void *ctxt, int x, int y, int w, int h)
     rect2.left = 0;   rect2.top = y;   rect2.right = x;           rect2.bottom = y+h;
     rect3.left = x+w; rect3.top = y;   rect3.right = rtwin.right; rect3.bottom = y+h;
     rect4.left = 0;   rect4.top = y+h; rect4.right = rtwin.right; rect4.bottom = rtwin.bottom;
-    InvalidateRect(c->hwnd, &rect1, FALSE);
-    InvalidateRect(c->hwnd, &rect2, FALSE);
-    InvalidateRect(c->hwnd, &rect3, FALSE);
-    InvalidateRect(c->hwnd, &rect4, FALSE);
+    InvalidateRect(c->hwnd, &rect1, TRUE);
+    InvalidateRect(c->hwnd, &rect2, TRUE);
+    InvalidateRect(c->hwnd, &rect3, TRUE);
+    InvalidateRect(c->hwnd, &rect4, TRUE);
 }
 
 void vdev_gdi_pause(void *ctxt, BOOL pause)

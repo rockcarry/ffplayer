@@ -101,8 +101,9 @@ typedef struct
     double           dVideoTimeBase;
 
     // render
-    int              nRenderMode;
     void            *hCoreRender;
+    RECT             rtVideoRect;
+    int              nVideoMode;
 
     // packet queue
     void            *hPacketQueue;
@@ -564,7 +565,12 @@ void player_setrect(void *hplayer, int x, int y, int w, int h)
     player_getparam(hplayer, PARAM_VIDEO_HEIGHT, &vh);
     if (!vw || !vh) return;
 
-    switch (player->nRenderMode)
+    player->rtVideoRect.left   = x;
+    player->rtVideoRect.top    = y;
+    player->rtVideoRect.right  = x + w;
+    player->rtVideoRect.bottom = y + h;
+
+    switch (player->nVideoMode)
     {
     case VIDEO_MODE_LETTERBOX:
         if (w * vh < h * vw) { rw = w; rh = rw * vh / vw; }
@@ -622,7 +628,7 @@ void player_seek(void *hplayer, LONGLONG ms)
           && (player->nPlayerStatus & SEEK_ACK) != SEEK_ACK ) {
         Sleep(20);
     }
-    player->nPlayerStatus &= ~(SEEK_REQ  | SEEK_ACK );
+    player->nPlayerStatus &= ~(SEEK_REQ | SEEK_ACK);
 
     // pause render if needed
     if (player->nPlayerStatus & PS_R_PAUSE) {
@@ -638,7 +644,10 @@ void player_setparam(void *hplayer, DWORD id, void *param)
     switch (id)
     {
     case PARAM_VIDEO_MODE:
-        player->nRenderMode = *(int*)param;
+        player->nVideoMode = *(int*)param;
+        player_setrect(hplayer, player->rtVideoRect.left, player->rtVideoRect.top,
+            player->rtVideoRect.right - player->rtVideoRect.left,
+            player->rtVideoRect.bottom - player->rtVideoRect.top);
         break;
     case PARAM_AUDIO_VOLUME:
         render_setparam(player->hCoreRender, PARAM_AUDIO_VOLUME, param);
@@ -681,7 +690,7 @@ void player_getparam(void *hplayer, DWORD id, void *param)
         render_getparam(player->hCoreRender, PARAM_VIDEO_POSITION, param);
         break;
     case PARAM_VIDEO_MODE:
-        *(int*)param = player->nRenderMode;
+        *(int*)param = player->nVideoMode;
         break;
     case PARAM_AUDIO_VOLUME:
         render_getparam(player->hCoreRender, PARAM_AUDIO_VOLUME, param);
