@@ -21,6 +21,7 @@ protected:
 // Implementation
 protected:
     HICON m_hIcon;
+    HACCEL m_hAcc;
 
     // Generated message map functions
     virtual BOOL OnInitDialog();
@@ -42,4 +43,5 @@ public:
     afx_msg void OnLButtonDown(UINT nFlags, CPoint point);
     afx_msg HBRUSH OnCtlColor(CDC* pDC, CWnd* pWnd, UINT nCtlColor);
     afx_msg void OnSize(UINT nType, int cx, int cy);
+    afx_msg void OnVideoMode();
 };

@@ -24,8 +24,8 @@ public:
 	virtual BOOL InitInstance();
 
 // Implementation
-
-	DECLARE_MESSAGE_MAP()
+    DECLARE_MESSAGE_MAP()
+    afx_msg void OnVideoMode();
 };
 
 extern CplayerApp theApp;

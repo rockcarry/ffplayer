@@ -86,12 +86,12 @@ void CplayerDlg::PlayerOpenFile(void)
 BEGIN_MESSAGE_MAP(CplayerDlg, CDialog)
     ON_WM_PAINT()
     ON_WM_QUERYDRAGICON()
-    //}}AFX_MSG_MAP
     ON_WM_DESTROY()
     ON_WM_TIMER()
     ON_WM_LBUTTONDOWN()
     ON_WM_CTLCOLOR()
     ON_WM_SIZE()
+    ON_COMMAND(ID_VIDEO_MODE, &CplayerDlg::OnVideoMode)
 END_MESSAGE_MAP()
 
 
@@ -105,6 +105,9 @@ BOOL CplayerDlg::OnInitDialog()
     //  when the application's main window is not a dialog
     SetIcon(m_hIcon, TRUE);         // Set big icon
     SetIcon(m_hIcon, FALSE);        // Set small icon
+
+    // load accelerators
+    m_hAcc = LoadAccelerators(AfxGetInstanceHandle(), MAKEINTRESOURCE(IDR_ACCELERATOR1)); 
 
     // TODO: Add extra initialization here
     MoveWindow(0, 0, 800, 480);
@@ -211,7 +214,6 @@ void CplayerDlg::OnLButtonDown(UINT nFlags, CPoint point)
         LONGLONG total = 1;
         player_getparam(g_hplayer, PARAM_VIDEO_DURATION, &total);
         player_seek(g_hplayer, total * point.x / m_rtClient.right);
-        InvalidateRect(NULL, FALSE);
     }
     else {
         if (!m_bPlayPause) player_pause(g_hplayer);
@@ -244,6 +246,8 @@ void CplayerDlg::OnSize(UINT nType, int cx, int cy)
 
 BOOL CplayerDlg::PreTranslateMessage(MSG *pMsg) 
 {
+    if (TranslateAccelerator(GetSafeHwnd(), m_hAcc, pMsg)) return TRUE;
+
     if (pMsg->message == MSG_COREPLAYER)
     {
         switch (pMsg->wParam)
@@ -257,3 +261,10 @@ BOOL CplayerDlg::PreTranslateMessage(MSG *pMsg)
     else return CDialog::PreTranslateMessage(pMsg);
 }
 
+void CplayerDlg::OnVideoMode()
+{
+    int mode = 0;
+    player_getparam(g_hplayer, PARAM_VIDEO_MODE, &mode);
+    mode = (mode == VIDEO_MODE_LETTERBOX) ? VIDEO_MODE_STRETCHED : VIDEO_MODE_LETTERBOX;
+    player_setparam(g_hplayer, PARAM_VIDEO_MODE, &mode);
+}
