@@ -538,6 +538,7 @@ void player_setparam(void *hplayer, DWORD id, void *param)
         render_setparam(player->hCoreRender, PARAM_AUDIO_VOLUME, param);
         break;
     case PARAM_PLAYER_SPEED:
+        player->nMaxPlaySpeed = *(int*)param;
         render_setparam(player->hCoreRender, PARAM_PLAYER_SPEED, param);
         break;
     case PARAM_AUTO_SLOW_DOWN:
