@@ -277,11 +277,11 @@ void render_getparam(void *hrender, DWORD id, void *param)
     }
 }
 
-int render_dropflag(void *hrender)
+int render_slowflag(void *hrender)
 {
     RENDER *render = (RENDER*)hrender;
-    int aflag = adev_dropflag(render->adev);
-    int vflag = vdev_dropflag(render->vdev);
+    int aflag = adev_slowflag(render->adev);
+    int vflag = vdev_slowflag(render->vdev);
     if (aflag > 0 || vflag > 0) return  1;
     if (aflag < 0 && vflag < 0) return -1;
     return 0;

@@ -233,7 +233,7 @@ void adev_volume(void *ctxt, int vol)
     c->vol_curvol = vol;
 }
 
-int adev_dropflag(void *ctxt)
+int adev_slowflag(void *ctxt)
 {
     if (!ctxt) return 0;
     ADEV_CONTEXT *c = (ADEV_CONTEXT*)ctxt;

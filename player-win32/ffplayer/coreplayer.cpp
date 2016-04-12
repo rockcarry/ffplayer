@@ -10,75 +10,6 @@ extern "C" {
 #include "libavcodec/avcodec.h"
 }
 
-//++ for frame dropper ++//
-typedef struct {
-    int framerate;
-    int divider;
-    int counter;
-    int flag;
-} FRAMEDROPPER;
-
-static void framedropper_reset(FRAMEDROPPER *pfd)
-{
-    pfd->divider = 0;
-    pfd->counter = 1;
-    pfd->flag    = 0;
-}
-
-static int framedropper_clocked(FRAMEDROPPER *pfd)
-{
-    int out = 0;
-
-    // divider == 0 means no drop
-    if (pfd->divider == 0) return 0;
-
-    if (--pfd->counter == 0) {
-        pfd->counter = pfd->divider;
-        out = 1;
-    }
-
-    return pfd->flag ? !out : out;
-}
-
-static int framedropper_actual_frame_rate(FRAMEDROPPER *pfd)
-{
-    if (pfd->divider == 0) return pfd->framerate;
-    if (pfd->flag) {
-        return pfd->framerate / pfd->divider;
-    }
-    else {
-        return pfd->framerate * (pfd->divider - 1) / pfd->divider;
-    }
-}
-
-static void framedropper_update_dropflag(FRAMEDROPPER *pfd, int flag)
-{
-    if (flag > 0) {
-        if (pfd->flag) {
-            pfd->divider++;
-        }
-        else {
-            switch (--pfd->divider) {
-            case -1: pfd->divider = pfd->framerate; break;
-            case  2: pfd->flag = 1;                 break;
-            }
-        }
-    }
-    if (flag < 0) {
-        if (pfd->flag) {
-            if (--pfd->divider == 2) pfd->flag = 0;
-        }
-        else {
-            if (pfd->divider != 0) {
-                if (pfd->divider++ == pfd->framerate) {
-                    pfd->divider = 0;
-                }
-            }
-        }
-    }
-}
-//-- for frame dropper --//
-
 // 内部常量定义
 #define avcodec_decode_video avcodec_decode_video2
 #define avcodec_decode_audio avcodec_decode_audio4
@@ -108,11 +39,10 @@ typedef struct
     // packet queue
     void            *hPacketQueue;
 
-    // frame dropper
-    FRAMEDROPPER     FrameDropper;
-    int              nSmoothPolicy;
-    int              nMinFrameRate;
+    // auto slow down
+    int              nAutoSlowDown;
     int              nMinPlaySpeed;
+    int              nMaxPlaySpeed;
 
     // thread
     #define PS_D_PAUSE    (1 << 0)  // demux pause
@@ -281,59 +211,17 @@ static void* VideoDecodeThreadProc(void *param)
 
         //++ decode video packet ++//
         if (player->iVideoStreamIndex != -1) {
-            //+++++ for smooth play +++++//
-            int need_drop;
-            int need_slow;
-            int frame_rate;
-            int play_speed;
-
-            need_drop  = render_dropflag(player->hCoreRender);
-            need_slow  = need_drop;
-            frame_rate = framedropper_actual_frame_rate(&player->FrameDropper);
+            //+ for auto slow down
+            int play_speed = 100;
+            int slow_flag  = 0;
             render_getparam(player->hCoreRender, PARAM_PLAYER_SPEED, &play_speed);
-
-            //+ smooth policy
-            switch (player->nSmoothPolicy)
-            {
-            case SMOOTH_POLICY_NONE:
-                need_drop = need_slow = 0;
-                break;
-            case SMOOTH_POLICY_DROP_FRAME_ONLY:
-                need_slow = 0;
-                if (frame_rate <= player->nMinFrameRate) need_drop = 0;
-                break;
-            case SMOOTH_POLICY_SLOW_SPEED_ONLY:
-                need_drop = 0;
-                if (play_speed <= player->nMinPlaySpeed) need_slow = 0;
-                break;
-            case SMOOTH_POLICY_SLOW_DROP:
-                if (play_speed > player->nMinPlaySpeed) need_drop = 0;
-                else need_slow = 0;
-                break;
-            case SMOOTH_POLICY_DROP_SLOW:
-                if (frame_rate > player->nMinFrameRate) need_slow = 0;
-                else need_drop = 0;
-                break;
-            }
-            //- smooth policy
-
-            //+ slow down if needed
-            play_speed -= need_slow;
+            slow_flag = render_slowflag(player->hCoreRender);
+            if (slow_flag > 0 && play_speed <= player->nMinPlaySpeed) slow_flag = 0;
+            if (slow_flag < 0 && play_speed >= player->nMaxPlaySpeed) slow_flag = 0;
+            play_speed -= slow_flag;
             render_setparam(player->hCoreRender, PARAM_PLAYER_SPEED, &play_speed);
-            //- slow down if needed
-
-            //+ drop frame if needed
-            framedropper_update_dropflag(&player->FrameDropper, need_drop);
-            if (!(packet->flags & AV_PKT_FLAG_KEY)) {
-                if (framedropper_clocked(&player->FrameDropper)) {
-                    log_printf(TEXT("drop a frame !\n"));
-                    vframe->pts = -1; // -1 means drop frame
-                    render_video(player->hCoreRender, vframe);
-                    goto next;
-                }
-            }
-            //- drop frame if needed
-            //----- for smooth play -----//
+//          log_printf(TEXT("play speed: %d\n"), play_speed);
+            //- for auto slow down
 
             while (packet->size > 0) {
                 int consumed = 0;
@@ -363,7 +251,6 @@ static void* VideoDecodeThreadProc(void *param)
         }
         //-- decode video packet --//
 
-next:
         // free packet
         av_packet_unref(packet);
 
@@ -433,10 +320,6 @@ void* player_open(char *file, void *extra)
                 vrate.num = 30;
                 vrate.den = 1;
             }
-            //++ init frame dropper
-            player->FrameDropper.framerate = vrate.num / vrate.den;
-            framedropper_reset(&player->FrameDropper);
-            //-- init frame dropper
             break;
         }
     }
@@ -494,10 +377,10 @@ void* player_open(char *file, void *extra)
     pthread_create(&player->hADecodeThread, NULL, AudioDecodeThreadProc, player);
     pthread_create(&player->hVDecodeThread, NULL, VideoDecodeThreadProc, player);
 
-    // smooth play params
-    player->nSmoothPolicy = SMOOTH_POLICY_NONE; // SMOOTH_POLICY_SLOW_SPEED_ONLY;
-    player->nMinFrameRate = 15;
-    player->nMinPlaySpeed = 80;
+    // for auto slow down
+    player->nAutoSlowDown = 1;
+    player->nMinPlaySpeed = 50;
+    player->nMaxPlaySpeed = 100;
     return player;
 
 error_handler:
@@ -655,14 +538,14 @@ void player_setparam(void *hplayer, DWORD id, void *param)
     case PARAM_PLAYER_SPEED:
         render_setparam(player->hCoreRender, PARAM_PLAYER_SPEED, param);
         break;
-    case PARAM_SMOOTH_POLICY:
-        player->nSmoothPolicy = *(int*)param;
+    case PARAM_AUTO_SLOW_DOWN:
+        player->nAutoSlowDown = *(int*)param;
         break;
     case PARAM_MIN_PLAY_SPEED:
         player->nMinPlaySpeed = *(int*)param;
         break;
-    case PARAM_MIN_FRAME_RATE:
-        player->nMinFrameRate = *(int*)param;
+    case PARAM_MAX_PLAY_SPEED:
+        player->nMaxPlaySpeed = *(int*)param;
         break;
     }
 }
@@ -698,14 +581,14 @@ void player_getparam(void *hplayer, DWORD id, void *param)
     case PARAM_PLAYER_SPEED:
         render_getparam(player->hCoreRender, PARAM_PLAYER_SPEED, param);
         break;
-    case PARAM_SMOOTH_POLICY:
-        *(int*)param = player->nSmoothPolicy;
+    case PARAM_AUTO_SLOW_DOWN:
+        *(int*)param = player->nAutoSlowDown;
         break;
     case PARAM_MIN_PLAY_SPEED:
         *(int*)param = player->nMinPlaySpeed;
         break;
-    case PARAM_MIN_FRAME_RATE:
-        *(int*)param = player->nMinFrameRate;
+    case PARAM_MAX_PLAY_SPEED:
+        *(int*)param = player->nMaxPlaySpeed;
         break;
     }
 }

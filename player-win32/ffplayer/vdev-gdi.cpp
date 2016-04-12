@@ -89,7 +89,7 @@ static DWORD WINAPI VideoRenderThreadProc(void *param)
             if (apts - vpts < -5) c->ticksleep+=2;
         }
         if (c->ticksleep > 0) Sleep(c->ticksleep);
-        log_printf(TEXT("diff: %5lld, sleep: %d\n"), apts-vpts, c->ticksleep);
+        log_printf(TEXT("d: %3lld, s: %d\n"), apts-vpts, c->ticksleep);
     }
 
     return NULL;
@@ -261,11 +261,11 @@ void vdev_gdi_setfrate(void *ctxt, int frate)
     c->tickframe = 1000 / frate;
 }
 
-int vdev_gdi_dropflag(void *ctxt)
+int vdev_gdi_slowflag(void *ctxt)
 {
     DEVGDICTXT *c = (DEVGDICTXT*)ctxt;
-    if (c->ticksleep < 0               ) return  1;
-    if (c->ticksleep > c->tickframe / 2) return -1;
+    if (c->ticksleep < -100) return  1;
+    if (c->ticksleep >  50 ) return -1;
     return 0;
 }
 

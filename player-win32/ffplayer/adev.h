@@ -25,7 +25,7 @@ void  adev_pause   (void *ctxt, BOOL pause);
 void  adev_reset   (void *ctxt);
 void  adev_syncapts(void *ctxt, int64_t *apts);
 void  adev_volume  (void *ctxt, int vol);
-int   adev_dropflag(void *ctxt);
+int   adev_slowflag(void *ctxt);
 
 #ifdef __cplusplus
 }
