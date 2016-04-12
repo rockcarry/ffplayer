@@ -212,15 +212,17 @@ static void* VideoDecodeThreadProc(void *param)
         //++ decode video packet ++//
         if (player->iVideoStreamIndex != -1) {
             //+ for auto slow down
-            int play_speed = 100;
-            int slow_flag  = 0;
-            render_getparam(player->hCoreRender, PARAM_PLAYER_SPEED, &play_speed);
-            slow_flag = render_slowflag(player->hCoreRender);
-            if (slow_flag > 0 && play_speed <= player->nMinPlaySpeed) slow_flag = 0;
-            if (slow_flag < 0 && play_speed >= player->nMaxPlaySpeed) slow_flag = 0;
-            play_speed -= slow_flag;
-            render_setparam(player->hCoreRender, PARAM_PLAYER_SPEED, &play_speed);
-//          log_printf(TEXT("play speed: %d\n"), play_speed);
+            if (player->nAutoSlowDown) {
+                int play_speed = 100;
+                int slow_flag  = 0;
+                render_getparam(player->hCoreRender, PARAM_PLAYER_SPEED, &play_speed);
+                slow_flag = render_slowflag(player->hCoreRender);
+                if (slow_flag > 0 && play_speed <= player->nMinPlaySpeed) slow_flag = 0;
+                if (slow_flag < 0 && play_speed >= player->nMaxPlaySpeed) slow_flag = 0;
+                play_speed -= slow_flag;
+                render_setparam(player->hCoreRender, PARAM_PLAYER_SPEED, &play_speed);
+//              log_printf(TEXT("play speed: %d\n"), play_speed);
+            }
             //- for auto slow down
 
             while (packet->size > 0) {

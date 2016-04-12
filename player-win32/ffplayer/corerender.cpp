@@ -151,7 +151,7 @@ void render_audio(void *hrender, AVFrame *audio)
     do {
         if (render->nAdevBufAvail == 0) {
             adev_request(render->adev, &render->pAdevHdrCur);
-            apts += render->nFramePeriod * 100 / render->nRenderSpeed;
+            apts += render->nFramePeriod * render->nRenderSpeed / 100;
             render->nAdevBufAvail = (int  )render->pAdevHdrCur->size;
             render->pAdevBufCur   = (BYTE*)render->pAdevHdrCur->data;
         }
