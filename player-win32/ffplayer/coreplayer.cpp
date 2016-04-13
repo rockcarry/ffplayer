@@ -72,8 +72,7 @@ static void* AVDemuxThreadProc(void *param)
         //++ when demux pause ++//
         if (player->nPlayerStatus & PS_D_PAUSE) {
             player->nPlayerStatus |= (PS_D_PAUSE << 16);
-            Sleep(20);
-            continue;
+            Sleep(20); continue;
         }
         //-- when demux pause --//
 
@@ -81,10 +80,8 @@ static void* AVDemuxThreadProc(void *param)
 
         retv = av_read_frame(player->pAVFormatContext, packet);
         //++ play completed ++//
-        if (retv < 0)
-        {
-            player->nPlayerStatus |= PS_D_PAUSE;
-            continue;
+        if (retv < 0) {
+            player->nPlayerStatus |= PS_D_PAUSE; continue;
         }
         //-- play completed --//
 
@@ -125,15 +122,13 @@ static void* AudioDecodeThreadProc(void *param)
         //++ when audio decode pause ++//
         if (player->nPlayerStatus & PS_A_PAUSE) {
             player->nPlayerStatus |= (PS_A_PAUSE << 16);
-            Sleep(20);
-            continue;
+            Sleep(20); continue;
         }
         //-- when audio decode pause --//
 
         //++ for seek operation
         if (player->nPlayerStatus & (PS_A_SEEK << 16)) {
-            Sleep(20);
-            continue;
+            Sleep(20); continue;
         }
         //++ for seek operation
 
@@ -188,26 +183,28 @@ static void* VideoDecodeThreadProc(void *param)
 
     vframe = av_frame_alloc();
     if (!vframe) return NULL;
+    else vframe->pts = -1;
 
     while (!(player->nPlayerStatus & PS_CLOSE))
     {
         //++ when video decode pause ++//
         if (player->nPlayerStatus & PS_V_PAUSE) {
             player->nPlayerStatus |= (PS_V_PAUSE << 16);
-            Sleep(20);
-            continue;
+            Sleep(20); continue;
         }
         //-- when video decode pause --//
 
         //++ for seek operation
         if (player->nPlayerStatus & (PS_V_SEEK << 16)) {
-            Sleep(20);
-            continue;
+            Sleep(20); continue;
         }
         //++ for seek operation
 
         // read packet
-        if (!pktqueue_read_request_v(player->hPacketQueue, &packet)) { Sleep(20); continue; }
+        if (!pktqueue_read_request_v(player->hPacketQueue, &packet)) {
+            render_video(player->hCoreRender, vframe);
+            Sleep(20); continue;
+        }
 
         //++ decode video packet ++//
         if (player->iVideoStreamIndex != -1) {

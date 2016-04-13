@@ -32,7 +32,7 @@ typedef struct
 
     #define DEVD3D_CLOSE  (1 << 0)
     #define DEVD3D_PAUSE  (1 << 1)
-    BOOL     bStatus;
+    int      nStatus;
     HANDLE   hThread;
 
     int      completed_counter;
@@ -85,7 +85,7 @@ static DWORD WINAPI VideoRenderThreadProc(void *param)
 {
     DEVD3DCTXT *c = (DEVD3DCTXT*)param;
 
-    while (!(c->bStatus & DEVD3D_CLOSE))
+    while (!(c->nStatus & DEVD3D_CLOSE))
     {
         //++ play completed ++//
         if (c->completed_apts != c->apts || c->completed_vpts != c->vpts) {
@@ -93,7 +93,7 @@ static DWORD WINAPI VideoRenderThreadProc(void *param)
             c->completed_vpts = c->vpts;
             c->completed_counter = 0;
         }
-        else if (!(c->bStatus & DEVD3D_PAUSE) && ++c->completed_counter == 50) {
+        else if (!(c->nStatus & DEVD3D_PAUSE) && ++c->completed_counter == 50) {
             PostMessage(c->hwnd, MSG_COREPLAYER, PLAY_COMPLETED, 0);
             log_printf(TEXT("play completed !\n"));
         }
@@ -107,8 +107,8 @@ static DWORD WINAPI VideoRenderThreadProc(void *param)
         if (vpts != -1) {
             do {
                 d3d_draw_surf(c, c->pSurfs[c->head]);
-                if (c->bStatus & DEVD3D_PAUSE) Sleep(c->tickframe);
-            } while (c->bStatus & DEVD3D_PAUSE);
+                if (c->nStatus & DEVD3D_PAUSE) Sleep(c->tickframe);
+            } while (c->nStatus & DEVD3D_PAUSE);
         }
 
 //      log_printf(TEXT("vpts: %lld\n"), vpts);
@@ -199,7 +199,7 @@ void vdev_d3d_destroy(void *ctxt)
     int i;
     DEVD3DCTXT *c = (DEVD3DCTXT*)ctxt;
     // make rendering thread safely exit
-    c->bStatus = DEVD3D_CLOSE;
+    c->nStatus = DEVD3D_CLOSE;
     WaitForSingleObject(c->hThread, -1);
     CloseHandle(c->hThread);
 
@@ -293,10 +293,10 @@ void vdev_d3d_pause(void *ctxt, BOOL pause)
 {
     DEVD3DCTXT *c = (DEVD3DCTXT*)ctxt;
     if (pause) {
-        c->bStatus |=  DEVD3D_PAUSE;
+        c->nStatus |=  DEVD3D_PAUSE;
     }
     else {
-        c->bStatus &= ~DEVD3D_PAUSE;
+        c->nStatus &= ~DEVD3D_PAUSE;
     }
 }
 

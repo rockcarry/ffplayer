@@ -35,7 +35,7 @@ typedef struct
 
     #define DEVGDI_CLOSE  (1 << 0)
     #define DEVGDI_PAUSE  (1 << 1)
-    BOOL     bStatus;
+    int      nStatus;
     HANDLE   hThread;
 
     int      completed_counter;
@@ -48,7 +48,7 @@ static DWORD WINAPI VideoRenderThreadProc(void *param)
 {
     DEVGDICTXT *c = (DEVGDICTXT*)param;
 
-    while (!(c->bStatus & DEVGDI_CLOSE))
+    while (!(c->nStatus & DEVGDI_CLOSE))
     {
         //++ play completed ++//
         if (c->completed_apts != c->apts || c->completed_vpts != c->vpts) {
@@ -56,7 +56,7 @@ static DWORD WINAPI VideoRenderThreadProc(void *param)
             c->completed_vpts = c->vpts;
             c->completed_counter = 0;
         }
-        else if (++c->completed_counter == 50) {
+        else if (!(c->nStatus & DEVGDI_PAUSE) && ++c->completed_counter == 50) {
             PostMessage(c->hwnd, MSG_COREPLAYER, PLAY_COMPLETED, 0);
             log_printf(TEXT("play completed !\n"));
         }
@@ -71,8 +71,8 @@ static DWORD WINAPI VideoRenderThreadProc(void *param)
             SelectObject(c->hdcsrc, c->hbitmaps[c->head]);
             do {
                 BitBlt(c->hdcdst, c->x, c->y, c->w, c->h, c->hdcsrc, 0, 0, SRCCOPY);
-                if (c->bStatus & DEVGDI_PAUSE) Sleep(c->tickframe);
-            } while (c->bStatus & DEVGDI_PAUSE);
+                if (c->nStatus & DEVGDI_PAUSE) Sleep(c->tickframe);
+            } while (c->nStatus & DEVGDI_PAUSE);
         }
 
 //      log_printf(TEXT("vpts: %lld\n"), vpts);
@@ -143,7 +143,7 @@ void vdev_gdi_destroy(void *ctxt)
     DEVGDICTXT *c = (DEVGDICTXT*)ctxt;
 
     // make rendering thread safely exit
-    c->bStatus = DEVGDI_CLOSE;
+    c->nStatus = DEVGDI_CLOSE;
     WaitForSingleObject(c->hThread, -1);
     CloseHandle(c->hThread);
 
@@ -232,10 +232,10 @@ void vdev_gdi_pause(void *ctxt, BOOL pause)
 {
     DEVGDICTXT *c = (DEVGDICTXT*)ctxt;
     if (pause) {
-        c->bStatus |=  DEVGDI_PAUSE;
+        c->nStatus |=  DEVGDI_PAUSE;
     }
     else {
-        c->bStatus &= ~DEVGDI_PAUSE;
+        c->nStatus &= ~DEVGDI_PAUSE;
     }
 }
 
