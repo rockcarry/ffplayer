@@ -38,38 +38,23 @@ typedef struct
     BYTE          *pAdevBufCur;
     AUDIOBUF      *pAdevHdrCur;
 
-    int            nRenderWidth;
-    int            nRenderHeight;
-    int            nRenderSpeed;
+    int            nRenderXPosCur;
+    int            nRenderYPosCur;
+    int            nRenderXPosNew;
+    int            nRenderYPosNew;
+    int            nRenderWidthCur;
+    int            nRenderHeightCur;
+    int            nRenderWidthNew;
+    int            nRenderHeightNew;
+    int            nRenderSpeedCur;
+    int            nRenderSpeedNew;
     int            nRenderVolume;
-
-    CRITICAL_SECTION  cs1;
-    CRITICAL_SECTION  cs2;
 } RENDER;
 
 // 内部函数实现
 static void render_setspeed(RENDER *render, int speed)
 {
-    if (speed && render->nRenderSpeed != speed) {
-        int samprate  = 44100 * 100 / speed;
-        int framerate = (render->FrameRate.num * speed) / (render->FrameRate.den * 100);
-
-        EnterCriticalSection(&render->cs1);
-        //++ allocate & init swr context
-        if (render->pSWRContext) {
-            swr_free(&render->pSWRContext);
-        }
-        render->pSWRContext = swr_alloc_set_opts(NULL, AV_CH_LAYOUT_STEREO, AV_SAMPLE_FMT_S16, samprate,
-            render->nChanLayout, render->SampleFormat, render->nSampleRate, 0, NULL);
-        swr_init(render->pSWRContext);
-        //-- allocate & init swr context
-        LeaveCriticalSection(&render->cs1);
-
-        // set vdev frame rate
-        vdev_setfrate(render->vdev, framerate > 1 ? framerate : 1);
-
-        render->nRenderSpeed = speed;
-    }
+    render->nRenderSpeedNew = speed;
 }
 
 // 函数实现
@@ -99,15 +84,13 @@ void* render_open(void *surface, AVRational frate, int pixfmt, int w, int h,
 
     // create adev & vdev
     render->adev = adev_create(0, (int)(44100.0 * frate.den / frate.num + 0.5) * 4);
-    render->vdev = vdev_create(surface, 0, render->nRenderWidth, render->nRenderHeight, frate.num / frate.den);
+    render->vdev = vdev_create(surface, 0, 0, 0, frate.num / frate.den);
 
     // make adev & vdev sync together
     int64_t *papts = NULL;
     vdev_getavpts(render->vdev, &papts, NULL);
     adev_syncapts(render->adev,  papts);
 
-    InitializeCriticalSection(&render->cs1);
-    InitializeCriticalSection(&render->cs2);
     RECT rect; GetClientRect((HWND)surface, &rect);
     render_setrect (render, rect.left, rect.top, rect.right, rect.bottom);
     render_setspeed(render, 100);
@@ -151,12 +134,29 @@ void render_audio(void *hrender, AVFrame *audio)
     do {
         if (render->nAdevBufAvail == 0) {
             adev_request(render->adev, &render->pAdevHdrCur);
-            apts += render->nFramePeriod * render->nRenderSpeed / 100;
+            apts += render->nFramePeriod * render->nRenderSpeedCur / 100;
             render->nAdevBufAvail = (int  )render->pAdevHdrCur->size;
             render->pAdevBufCur   = (BYTE*)render->pAdevHdrCur->data;
         }
 
-        EnterCriticalSection(&render->cs1);
+        if (render->nRenderSpeedCur != render->nRenderSpeedNew) {
+            render->nRenderSpeedCur = render->nRenderSpeedNew;
+
+            // set vdev frame rate
+            int framerate = (render->FrameRate.num * render->nRenderSpeedCur) / (render->FrameRate.den * 100);
+            vdev_setfrate(render->vdev, framerate > 1 ? framerate : 1);
+
+            //++ allocate & init swr context
+            if (render->pSWRContext) {
+                swr_free(&render->pSWRContext);
+            }
+            int samprate = 44100 * 100 / render->nRenderSpeedCur;
+            render->pSWRContext = swr_alloc_set_opts(NULL, AV_CH_LAYOUT_STEREO, AV_SAMPLE_FMT_S16, samprate,
+                render->nChanLayout, render->SampleFormat, render->nSampleRate, 0, NULL);
+            swr_init(render->pSWRContext);
+            //-- allocate & init swr context
+        }
+
         //++ do resample audio data ++//
         sampnum = swr_convert(render->pSWRContext, (uint8_t**)&render->pAdevBufCur,
             render->nAdevBufAvail / 4, (const uint8_t**)audio->extended_data,
@@ -166,7 +166,6 @@ void render_audio(void *hrender, AVFrame *audio)
         render->nAdevBufAvail -= sampnum * 4;
         render->pAdevBufCur   += sampnum * 4;
         //-- do resample audio data --//
-        LeaveCriticalSection(&render->cs1);
 
         if (render->nAdevBufAvail == 0) {
             adev_post(render->adev, apts);
@@ -181,13 +180,30 @@ void render_video(void *hrender, AVFrame *video)
     BYTE    *bmpbuf;
     int      stride;
 
+    if (  render->nRenderXPosCur  != render->nRenderXPosNew
+       || render->nRenderYPosCur  != render->nRenderYPosNew
+       || render->nRenderWidthCur != render->nRenderWidthNew
+       || render->nRenderHeightCur!= render->nRenderHeightNew ) {
+        render->nRenderXPosCur   = render->nRenderXPosNew;
+        render->nRenderYPosCur   = render->nRenderYPosNew;
+        render->nRenderWidthCur  = render->nRenderWidthNew;
+        render->nRenderHeightCur = render->nRenderHeightNew;
+
+        vdev_setrect(render->vdev, render->nRenderXPosCur, render->nRenderYPosCur,
+            render->nRenderWidthCur, render->nRenderHeightCur);
+
+        if (render->pSWSContext) sws_freeContext(render->pSWSContext);
+        render->pSWSContext = sws_getContext(
+            render->nVideoWidth, render->nVideoHeight, render->PixelFormat,
+            render->nRenderWidthCur, render->nRenderHeightCur, AV_PIX_FMT_RGB32,
+            SWS_BILINEAR, 0, 0, 0);
+    }
+
     vdev_request(render->vdev, (void**)&bmpbuf, &stride);
     if (video->pts != -1) {
         picture.data[0]     = bmpbuf;
         picture.linesize[0] = stride;
-        EnterCriticalSection(&render->cs2);
         sws_scale(render->pSWSContext, video->data, video->linesize, 0, render->nVideoHeight, picture.data, picture.linesize);
-        LeaveCriticalSection(&render->cs2);
     }
     vdev_post(render->vdev, video->pts);
 }
@@ -195,19 +211,10 @@ void render_video(void *hrender, AVFrame *video)
 void render_setrect(void *hrender, int x, int y, int w, int h)
 {
     RENDER *render = (RENDER*)hrender;
-    if (w == 0 || h == 0) return;
-    vdev_setrect(render->vdev, x, y, w, h);
-    if (render->nRenderWidth != w || render->nRenderHeight != h)
-    {
-        render->nRenderWidth  = w;
-        render->nRenderHeight = h;
-
-        EnterCriticalSection(&render->cs2);
-        if (render->pSWSContext) sws_freeContext(render->pSWSContext);
-        render->pSWSContext = sws_getContext(render->nVideoWidth, render->nVideoHeight,
-            render->PixelFormat, w, h, AV_PIX_FMT_RGB32, SWS_BILINEAR, 0, 0, 0);
-        LeaveCriticalSection(&render->cs2);
-    }
+    render->nRenderXPosNew   = x;
+    render->nRenderYPosNew   = y;
+    render->nRenderWidthNew  = w > 1 ? w : 1;;
+    render->nRenderHeightNew = h > 1 ? h : 1;;
 }
 
 void render_start(void *hrender)
@@ -272,7 +279,7 @@ void render_getparam(void *hrender, DWORD id, void *param)
         }
         break;
     case PARAM_PLAYER_SPEED:
-        *(int*)param = render->nRenderSpeed;
+        *(int*)param = render->nRenderSpeedCur;
         break;
     }
 }
