@@ -19,6 +19,7 @@ void  vdev_gdi_reset   (void *ctxt);
 void  vdev_gdi_getavpts(void *ctxt, int64_t **ppapts, int64_t **ppvpts);
 void  vdev_gdi_setfrate(void *ctxt, int frate);
 int   vdev_gdi_slowflag(void *ctxt);
+int   vdev_gdi_pixfmt  (void *ctxt);
 
 void* vdev_d3d_create  (void *surface, int bufnum, int w, int h, int frate);
 void  vdev_d3d_destroy (void *ctxt);
@@ -30,8 +31,9 @@ void  vdev_d3d_reset   (void *ctxt);
 void  vdev_d3d_getavpts(void *ctxt, int64_t **ppapts, int64_t **ppvpts);
 void  vdev_d3d_setfrate(void *ctxt, int frate);
 int   vdev_d3d_slowflag(void *ctxt);
+int   vdev_d3d_pixfmt  (void *ctxt);
 
-#if 1
+#if 0
 #define vdev_create     vdev_gdi_create
 #define vdev_destroy    vdev_gdi_destroy
 #define vdev_request    vdev_gdi_request
@@ -42,6 +44,7 @@ int   vdev_d3d_slowflag(void *ctxt);
 #define vdev_getavpts   vdev_gdi_getavpts
 #define vdev_setfrate   vdev_gdi_setfrate
 #define vdev_slowflag   vdev_gdi_slowflag
+#define vdev_pixfmt     vdev_gdi_pixfmt
 #else
 #define vdev_create     vdev_d3d_create
 #define vdev_destroy    vdev_d3d_destroy
@@ -53,6 +56,7 @@ int   vdev_d3d_slowflag(void *ctxt);
 #define vdev_getavpts   vdev_d3d_getavpts
 #define vdev_setfrate   vdev_d3d_setfrate
 #define vdev_slowflag   vdev_d3d_slowflag
+#define vdev_pixfmt     vdev_d3d_pixfmt
 #endif
 
 #ifdef __cplusplus

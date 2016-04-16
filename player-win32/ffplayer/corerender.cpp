@@ -195,7 +195,7 @@ void render_video(void *hrender, AVFrame *video)
         if (render->pSWSContext) sws_freeContext(render->pSWSContext);
         render->pSWSContext = sws_getContext(
             render->nVideoWidth, render->nVideoHeight, render->PixelFormat,
-            render->nRenderWidthCur, render->nRenderHeightCur, AV_PIX_FMT_RGB32,
+            render->nRenderWidthCur, render->nRenderHeightCur, (AVPixelFormat)vdev_pixfmt(render->vdev),
             SWS_BILINEAR, 0, 0, 0);
     }
 

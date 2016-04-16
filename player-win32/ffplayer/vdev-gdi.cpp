@@ -269,3 +269,8 @@ int vdev_gdi_slowflag(void *ctxt)
     return 0;
 }
 
+int vdev_gdi_pixfmt(void *ctxt)
+{
+    return AV_PIX_FMT_RGB32;
+}
+

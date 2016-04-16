@@ -45,6 +45,7 @@ typedef struct
     IDirect3DSwapChain9  *pSwapChain;
     D3DPRESENT_PARAMETERS d3dpp;
     int                   need_reset;
+    int                   pixfmt;
 } DEVD3DCTXT;
 
 // 内部函数实现
@@ -189,6 +190,20 @@ void* vdev_d3d_create(void *surface, int bufnum, int w, int h, int frate)
         exit(0);
     }
 
+    //++ try pixel format
+    if (SUCCEEDED(ctxt->pD3DDev->CreateOffscreenPlainSurface(100, 100, D3DFMT_YUY2,
+            D3DPOOL_DEFAULT, &ctxt->pSurfs[0], NULL))) {
+        ctxt->pixfmt = D3DFMT_YUY2;
+    }
+    else if (SUCCEEDED(ctxt->pD3DDev->CreateOffscreenPlainSurface(100, 100, D3DFMT_UYVY,
+            D3DPOOL_DEFAULT, &ctxt->pSurfs[0], NULL))) {
+        ctxt->pixfmt = D3DFMT_UYVY;
+    }
+    else {
+        ctxt->pixfmt = D3DFMT_X8R8G8B8;
+    }
+    //-- try pixel format
+
     // create video rendering thread
     ctxt->hThread = CreateThread(NULL, 0, VideoRenderThreadProc, ctxt, 0, NULL);
     return ctxt;
@@ -244,7 +259,7 @@ void vdev_d3d_request(void *ctxt, void **buf, int *stride)
         }
 
         // create surface
-        if (FAILED(c->pD3DDev->CreateOffscreenPlainSurface(c->w, c->h, D3DFMT_X8R8G8B8,
+        if (FAILED(c->pD3DDev->CreateOffscreenPlainSurface(c->w, c->h, (D3DFORMAT)c->pixfmt,
                     D3DPOOL_DEFAULT, &c->pSurfs[c->tail], NULL)))
         {
             log_printf(TEXT("failed to create d3d off screen plain surface !\n"));
@@ -329,3 +344,10 @@ int vdev_d3d_slowflag(void *ctxt)
     if (c->ticksleep >  50 ) return -1;
     return 0;
 }
+
+int vdev_d3d_pixfmt(void *ctxt)
+{
+    DEVD3DCTXT *c = (DEVD3DCTXT*)ctxt;
+    return c->pixfmt == D3DFMT_YUY2 ? AV_PIX_FMT_YUYV422 : c->pixfmt == D3DFMT_UYVY ? AV_PIX_FMT_UYVY422 : AV_PIX_FMT_RGB32;
+}
+
