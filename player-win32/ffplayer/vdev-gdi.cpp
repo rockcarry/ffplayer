@@ -4,7 +4,7 @@
 #include "log.h"
 
 // 内部常量定义
-#define DEF_VDEV_BUF_NUM  5
+#define DEF_VDEV_BUF_NUM  3
 
 // 内部类型定义
 typedef struct
