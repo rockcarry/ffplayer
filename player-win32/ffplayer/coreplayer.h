@@ -17,6 +17,8 @@ extern "C" {
 enum {
     VIDEO_MODE_LETTERBOX,
     VIDEO_MODE_STRETCHED,
+    VIDEO_MODE_WAVEFORM,
+    VIDEO_MODE_SPECTRUM,
 };
 
 // param

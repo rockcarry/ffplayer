@@ -28,6 +28,7 @@ typedef struct
     AVSampleFormat SampleFormat;
     int64_t        nChanLayout;
 
+    int            nVideoMode;
     int            nVideoWidth;
     int            nVideoHeight;
     int            nFramePeriod;
@@ -50,6 +51,7 @@ typedef struct
     int            nRenderSpeedNew;
     int            nRenderVolume;
 
+    #define RENDER_CLOSE (1 << 0)
     #define RENDER_PAUSE (1 << 1)
     int            nRenderStatus;
 } RENDER;
@@ -250,6 +252,9 @@ void render_setparam(void *hrender, DWORD id, void *param)
     RENDER *render = (RENDER*)hrender;
     switch (id)
     {
+    case PARAM_VIDEO_MODE:
+        render->nVideoMode = *(int*)param;
+        break;
     case PARAM_AUDIO_VOLUME:
         render->nRenderVolume = *(int*)param;
         adev_volume(render->adev, *(int*)param);
@@ -275,6 +280,9 @@ void render_getparam(void *hrender, DWORD id, void *param)
     RENDER *render = (RENDER*)hrender;
     switch (id)
     {
+    case PARAM_VIDEO_MODE:
+        *(int*)param = render->nVideoMode;
+        break;
     case PARAM_AUDIO_VOLUME:
         *(int*)param = render->nRenderVolume;
         break;

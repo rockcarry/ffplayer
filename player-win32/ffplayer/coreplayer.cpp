@@ -34,7 +34,6 @@ typedef struct
     // render
     void            *hCoreRender;
     RECT             rtVideoRect;
-    int              nVideoMode;
 
     // packet queue
     void            *hPacketQueue;
@@ -443,8 +442,10 @@ void player_setrect(void *hplayer, int x, int y, int w, int h)
 
     int vw, vh;
     int rw, rh;
-    player_getparam(hplayer, PARAM_VIDEO_WIDTH , &vw);
-    player_getparam(hplayer, PARAM_VIDEO_HEIGHT, &vh);
+    int mode;
+    player_getparam(hplayer, PARAM_VIDEO_WIDTH , &vw  );
+    player_getparam(hplayer, PARAM_VIDEO_HEIGHT, &vh  );
+    player_getparam(hplayer, PARAM_VIDEO_MODE  , &mode);
     if (!vw || !vh) return;
 
     player->rtVideoRect.left   = x;
@@ -452,14 +453,14 @@ void player_setrect(void *hplayer, int x, int y, int w, int h)
     player->rtVideoRect.right  = x + w;
     player->rtVideoRect.bottom = y + h;
 
-    switch (player->nVideoMode)
+    switch (mode)
     {
     case VIDEO_MODE_LETTERBOX:
         if (w * vh < h * vw) { rw = w; rh = rw * vh / vw; }
         else                 { rh = h; rw = rh * vw / vh; }
         break;
 
-    case VIDEO_MODE_STRETCHED:
+    default:
         rw = w;
         rh = h;
         break;
@@ -526,7 +527,7 @@ void player_setparam(void *hplayer, DWORD id, void *param)
     switch (id)
     {
     case PARAM_VIDEO_MODE:
-        player->nVideoMode = *(int*)param;
+        render_setparam(player->hCoreRender, PARAM_VIDEO_MODE, param);
         player_setrect(hplayer, player->rtVideoRect.left, player->rtVideoRect.top,
             player->rtVideoRect.right - player->rtVideoRect.left,
             player->rtVideoRect.bottom - player->rtVideoRect.top);
@@ -535,8 +536,8 @@ void player_setparam(void *hplayer, DWORD id, void *param)
         render_setparam(player->hCoreRender, PARAM_AUDIO_VOLUME, param);
         break;
     case PARAM_PLAYER_SPEED:
-        player->nMaxPlaySpeed = *(int*)param;
         render_setparam(player->hCoreRender, PARAM_PLAYER_SPEED, param);
+        player->nMaxPlaySpeed = *(int*)param;
         break;
     case PARAM_AUTO_SLOW_DOWN:
         player->nAutoSlowDown = *(int*)param;
@@ -573,7 +574,7 @@ void player_getparam(void *hplayer, DWORD id, void *param)
         render_getparam(player->hCoreRender, PARAM_VIDEO_POSITION, param);
         break;
     case PARAM_VIDEO_MODE:
-        *(int*)param = player->nVideoMode;
+        render_getparam(player->hCoreRender, PARAM_VIDEO_MODE, param);
         break;
     case PARAM_AUDIO_VOLUME:
         render_getparam(player->hCoreRender, PARAM_AUDIO_VOLUME, param);
