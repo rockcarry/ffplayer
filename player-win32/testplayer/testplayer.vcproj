@@ -28,9 +28,9 @@
 			/>
 			<Tool
 				Name="VCCustomBuildTool"
-				Description="copy ffmpeg and pthreads dlls"
-				CommandLine="copy &quot;$(SolutionDir)\..\ffmpeg-win32\bin\*.dll&quot; &quot;$(TargetDir)&quot; /y&#x0D;&#x0A;copy &quot;$(SolutionDir)\..\pthreads-win32\dll\pthreadVC2.dll&quot; &quot;$(TargetDir)&quot; /y"
-				Outputs="avcodec-56.dll"
+				Description=""
+				CommandLine=""
+				Outputs=""
 			/>
 			<Tool
 				Name="VCXMLDataGeneratorTool"
@@ -100,6 +100,8 @@
 			/>
 			<Tool
 				Name="VCPostBuildEventTool"
+				Description="copy ffmpeg and pthreads dlls"
+				CommandLine="copy &quot;$(SolutionDir)\..\ffmpeg-win32\bin\*.dll&quot; &quot;$(TargetDir)&quot; /y&#x0D;&#x0A;copy &quot;$(SolutionDir)\..\pthreads-win32\dll\*.dll&quot; &quot;$(TargetDir)&quot; /y"
 			/>
 		</Configuration>
 		<Configuration
@@ -116,9 +118,9 @@
 			/>
 			<Tool
 				Name="VCCustomBuildTool"
-				Description="copy ffmpeg and pthreads dlls"
-				CommandLine="copy &quot;$(SolutionDir)\..\ffmpeg-win32\bin\*.dll&quot; &quot;$(TargetDir)&quot; /y&#x0D;&#x0A;copy &quot;$(SolutionDir)\..\pthreads-win32\dll\pthreadVC2.dll&quot; &quot;$(TargetDir)&quot; /y"
-				Outputs="avcodec-56.dll"
+				Description=""
+				CommandLine=""
+				Outputs=""
 			/>
 			<Tool
 				Name="VCXMLDataGeneratorTool"
@@ -189,6 +191,8 @@
 			/>
 			<Tool
 				Name="VCPostBuildEventTool"
+				Description="copy ffmpeg and pthreads dlls"
+				CommandLine="copy &quot;$(SolutionDir)\..\ffmpeg-win32\bin\*.dll&quot; &quot;$(TargetDir)&quot; /y&#x0D;&#x0A;copy &quot;$(SolutionDir)\..\pthreads-win32\dll\*.dll&quot; &quot;$(TargetDir)&quot; /y"
 			/>
 		</Configuration>
 	</Configurations>
