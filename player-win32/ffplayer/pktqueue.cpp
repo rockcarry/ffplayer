@@ -96,9 +96,7 @@ void pktqueue_reset(void *ctxt)
     while (0 == sem_trywait(&ppq->fsem));
     while (0 == sem_trywait(&ppq->asem));
     while (0 == sem_trywait(&ppq->vsem));
-    for (i=0; i<ppq->fsize; i++) {
-        sem_post(&ppq->fsem);
-    }
+    sem_post_multiple(&ppq->fsem, ppq->fsize);
 
     ppq->fhead = ppq->ftail = 0;
     ppq->ahead = ppq->atail = 0;

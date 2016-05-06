@@ -1,4 +1,5 @@
 // 包含头文件
+#include <semaphore.h>
 #include "adev.h"
 #include "log.h"
 
@@ -22,7 +23,7 @@ typedef struct
     int      buflen;
     int      head;
     int      tail;
-    HANDLE   bufsem;
+    sem_t    bufsem;
     int64_t *apts;
     int      vol_scaler[256];
     int      vol_zerodb;
@@ -39,7 +40,7 @@ static void CALLBACK waveOutProc(HWAVEOUT hwo, UINT uMsg, DWORD dwInstance, DWOR
         if (c->apts) *c->apts = c->ppts[c->head];
 //      log_printf(TEXT("apts = %lld\n"), *c->apts);
         if (++c->head == c->bufnum) c->head = 0;
-        ReleaseSemaphore(c->bufsem, 1, NULL);
+        sem_post(&c->bufsem);
         break;
     }
 }
@@ -88,7 +89,7 @@ void* adev_create(int bufnum, int buflen)
     ctxt->tail     = 0;
     ctxt->ppts     = (int64_t*)malloc(bufnum * sizeof(int64_t));
     ctxt->pWaveHdr = (WAVEHDR*)malloc(bufnum * (sizeof(WAVEHDR) + buflen));
-    ctxt->bufsem   = CreateSemaphore(NULL, bufnum, bufnum, NULL);
+    sem_init(&ctxt->bufsem, 0, ctxt->bufnum);
     if (!ctxt->ppts || !ctxt->pWaveHdr || !ctxt->bufsem) {
         log_printf(TEXT("failed to allocate waveout buffer and waveout semaphore !\n"));
         exit(0);
@@ -104,7 +105,7 @@ void* adev_create(int bufnum, int buflen)
     wfx.nAvgBytesPerSec = wfx.nBlockAlign * wfx.nSamplesPerSec;
     result = waveOutOpen(&ctxt->hWaveOut, WAVE_MAPPER, &wfx, (DWORD_PTR)waveOutProc, (DWORD_PTR)ctxt, CALLBACK_FUNCTION);
     if (result != MMSYSERR_NOERROR) {
-        CloseHandle(ctxt->bufsem);
+        sem_destroy(&ctxt->bufsem);
         free(ctxt->ppts    );
         free(ctxt->pWaveHdr);
         free(ctxt);
@@ -146,7 +147,7 @@ void adev_destroy(void *ctxt)
     waveOutClose(c->hWaveOut);
 
     // close semaphore
-    CloseHandle(c->bufsem);
+    sem_destroy(&c->bufsem);
 
     // free memory
     free(c->ppts    );
@@ -158,7 +159,7 @@ void adev_request(void *ctxt, AUDIOBUF **ppab)
 {
     if (!ctxt) return;
     ADEV_CONTEXT *c = (ADEV_CONTEXT*)ctxt;
-    WaitForSingleObject(c->bufsem, -1);
+    sem_wait(&c->bufsem);
     *ppab = (AUDIOBUF*)&c->pWaveHdr[c->tail];
 }
 
@@ -210,7 +211,8 @@ void adev_reset(void *ctxt)
     ADEV_CONTEXT *c = (ADEV_CONTEXT*)ctxt;
     waveOutReset(c->hWaveOut);
     c->head = c->tail = 0;
-    ReleaseSemaphore(c->bufsem, c->bufnum, NULL);
+    while (0 == sem_trywait(&c->bufsem));
+    sem_post_multiple(&c->bufsem, c->bufnum);
 }
 
 void adev_syncapts(void *ctxt, int64_t *apts)
@@ -237,8 +239,8 @@ int adev_slowflag(void *ctxt)
 {
     if (!ctxt) return 0;
     ADEV_CONTEXT *c = (ADEV_CONTEXT*)ctxt;
-    LONG      count = 0;
-    ReleaseSemaphore(c->bufsem, 0, &count);
+    int       count = 0;
+    sem_getvalue(&c->bufsem, &count);
 //  log_printf(TEXT("adev count = %ld\n"), count);
     if (count >= DEF_ADEV_BUF_NUM - 1) return  1;
     if (count <= 1                   ) return -1;
