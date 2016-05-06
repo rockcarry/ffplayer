@@ -68,8 +68,8 @@ static DWORD WINAPI VideoRenderThreadProc(void *param)
         int64_t apts = c->apts;
         int64_t vpts = c->vpts = c->ppts[c->head];
         if (vpts != -1) {
-            SelectObject(c->hdcsrc, c->hbitmaps[c->head]);
             do {
+                SelectObject(c->hdcsrc, c->hbitmaps[c->head]);
                 BitBlt(c->hdcdst, c->x, c->y, c->w, c->h, c->hdcsrc, 0, 0, SRCCOPY);
                 if (c->nStatus & DEVGDI_PAUSE) Sleep(c->tickframe);
             } while (c->nStatus & DEVGDI_PAUSE);
