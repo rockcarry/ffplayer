@@ -49,6 +49,9 @@ typedef struct
     int            nRenderSpeedCur;
     int            nRenderSpeedNew;
     int            nRenderVolume;
+
+    #define RENDER_PAUSE (1 << 1)
+    int            nRenderStatus;
 } RENDER;
 
 // 内部函数实现
@@ -180,32 +183,34 @@ void render_video(void *hrender, AVFrame *video)
     BYTE    *bmpbuf;
     int      stride;
 
-    if (  render->nRenderXPosCur  != render->nRenderXPosNew
-       || render->nRenderYPosCur  != render->nRenderYPosNew
-       || render->nRenderWidthCur != render->nRenderWidthNew
-       || render->nRenderHeightCur!= render->nRenderHeightNew ) {
-        render->nRenderXPosCur   = render->nRenderXPosNew;
-        render->nRenderYPosCur   = render->nRenderYPosNew;
-        render->nRenderWidthCur  = render->nRenderWidthNew;
-        render->nRenderHeightCur = render->nRenderHeightNew;
+    do {
+        if (  render->nRenderXPosCur  != render->nRenderXPosNew
+           || render->nRenderYPosCur  != render->nRenderYPosNew
+           || render->nRenderWidthCur != render->nRenderWidthNew
+           || render->nRenderHeightCur!= render->nRenderHeightNew ) {
+            render->nRenderXPosCur   = render->nRenderXPosNew;
+            render->nRenderYPosCur   = render->nRenderYPosNew;
+            render->nRenderWidthCur  = render->nRenderWidthNew;
+            render->nRenderHeightCur = render->nRenderHeightNew;
 
-        vdev_setrect(render->vdev, render->nRenderXPosCur, render->nRenderYPosCur,
-            render->nRenderWidthCur, render->nRenderHeightCur);
+            vdev_setrect(render->vdev, render->nRenderXPosCur, render->nRenderYPosCur,
+                render->nRenderWidthCur, render->nRenderHeightCur);
 
-        if (render->pSWSContext) sws_freeContext(render->pSWSContext);
-        render->pSWSContext = sws_getContext(
-            render->nVideoWidth, render->nVideoHeight, render->PixelFormat,
-            render->nRenderWidthCur, render->nRenderHeightCur, (AVPixelFormat)vdev_pixfmt(render->vdev),
-            SWS_BILINEAR, 0, 0, 0);
-    }
+            if (render->pSWSContext) sws_freeContext(render->pSWSContext);
+            render->pSWSContext = sws_getContext(
+                render->nVideoWidth, render->nVideoHeight, render->PixelFormat,
+                render->nRenderWidthCur, render->nRenderHeightCur, (AVPixelFormat)vdev_pixfmt(render->vdev),
+                SWS_BILINEAR, 0, 0, 0);
+        }
 
-    vdev_request(render->vdev, (void**)&bmpbuf, &stride);
-    if (video->pts != -1) {
-        picture.data[0]     = bmpbuf;
-        picture.linesize[0] = stride;
-        sws_scale(render->pSWSContext, video->data, video->linesize, 0, render->nVideoHeight, picture.data, picture.linesize);
-    }
-    vdev_post(render->vdev, video->pts);
+        vdev_request(render->vdev, (void**)&bmpbuf, &stride);
+        if (video->pts != -1) {
+            picture.data[0]     = bmpbuf;
+            picture.linesize[0] = stride;
+            sws_scale(render->pSWSContext, video->data, video->linesize, 0, render->nVideoHeight, picture.data, picture.linesize);
+        }
+        vdev_post(render->vdev, video->pts);
+    } while (render->nRenderStatus & RENDER_PAUSE);
 }
 
 void render_setrect(void *hrender, int x, int y, int w, int h)
@@ -220,6 +225,7 @@ void render_setrect(void *hrender, int x, int y, int w, int h)
 void render_start(void *hrender)
 {
     RENDER *render = (RENDER*)hrender;
+    render->nRenderStatus &=~RENDER_PAUSE;
     adev_pause(render->adev, FALSE);
     vdev_pause(render->vdev, FALSE);
 }
@@ -227,6 +233,7 @@ void render_start(void *hrender)
 void render_pause(void *hrender)
 {
     RENDER *render = (RENDER*)hrender;
+    render->nRenderStatus |= RENDER_PAUSE;
     adev_pause(render->adev, TRUE);
     vdev_pause(render->vdev, TRUE);
 }

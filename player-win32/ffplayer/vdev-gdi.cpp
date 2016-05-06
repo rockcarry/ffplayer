@@ -41,55 +41,77 @@ typedef struct
     int      completed_counter;
     int64_t  completed_apts;
     int64_t  completed_vpts;
+    int      refresh_flag;
 } DEVGDICTXT;
 
 // 内部函数实现
+static void RefreshWindowBackground(HWND hwnd, int x, int y, int w, int h)
+{
+    RECT rtwin, rect1, rect2, rect3, rect4;
+    GetClientRect(hwnd, &rtwin);
+    rect1.left = 0;   rect1.top = 0;   rect1.right = rtwin.right; rect1.bottom = y;
+    rect2.left = 0;   rect2.top = y;   rect2.right = x;           rect2.bottom = y+h;
+    rect3.left = x+w; rect3.top = y;   rect3.right = rtwin.right; rect3.bottom = y+h;
+    rect4.left = 0;   rect4.top = y+h; rect4.right = rtwin.right; rect4.bottom = rtwin.bottom;
+    InvalidateRect(hwnd, &rect1, TRUE);
+    InvalidateRect(hwnd, &rect2, TRUE);
+    InvalidateRect(hwnd, &rect3, TRUE);
+    InvalidateRect(hwnd, &rect4, TRUE);
+}
+
 static DWORD WINAPI VideoRenderThreadProc(void *param)
 {
     DEVGDICTXT *c = (DEVGDICTXT*)param;
 
     while (!(c->nStatus & DEVGDI_CLOSE))
     {
-        //++ play completed ++//
-        if (c->completed_apts != c->apts || c->completed_vpts != c->vpts) {
-            c->completed_apts = c->apts;
-            c->completed_vpts = c->vpts;
-            c->completed_counter = 0;
-        }
-        else if (!(c->nStatus & DEVGDI_PAUSE) && ++c->completed_counter == 50) {
-            PostMessage(c->hwnd, MSG_COREPLAYER, PLAY_COMPLETED, 0);
-            log_printf(TEXT("play completed !\n"));
-        }
-        //-- play completed --//
-
         int ret = WaitForSingleObject(c->semr, c->tickframe);
         if (ret != WAIT_OBJECT_0) continue;
+
+        if (c->refresh_flag) {
+            c->refresh_flag = 0;
+            RefreshWindowBackground(c->hwnd, c->x, c->y, c->w, c->h);
+        }
 
         int64_t apts = c->apts;
         int64_t vpts = c->vpts = c->ppts[c->head];
         if (vpts != -1) {
-            do {
-                SelectObject(c->hdcsrc, c->hbitmaps[c->head]);
-                BitBlt(c->hdcdst, c->x, c->y, c->w, c->h, c->hdcsrc, 0, 0, SRCCOPY);
-                if (c->nStatus & DEVGDI_PAUSE) Sleep(c->tickframe);
-            } while (c->nStatus & DEVGDI_PAUSE);
+            SelectObject(c->hdcsrc, c->hbitmaps[c->head]);
+            BitBlt(c->hdcdst, c->x, c->y, c->w, c->h, c->hdcsrc, 0, 0, SRCCOPY);
         }
 
 //      log_printf(TEXT("vpts: %lld\n"), vpts);
         if (++c->head == c->bufnum) c->head = 0;
         ReleaseSemaphore(c->semw, 1, NULL);
 
-        DWORD tickcur  = GetTickCount();
-        int   tickdiff = tickcur - c->ticklast;
-        c->ticklast = tickcur;
-        if (tickdiff - c->tickframe >  2) c->ticksleep--;
-        if (tickdiff - c->tickframe < -2) c->ticksleep++;
-        if (apts != -1 && vpts != -1) {
-            if (apts - vpts >  5) c->ticksleep-=2;
-            if (apts - vpts < -5) c->ticksleep+=2;
+        if (!(c->nStatus & DEVGDI_PAUSE)) {
+            //++ play completed ++//
+            if (c->completed_apts != c->apts || c->completed_vpts != c->vpts) {
+                c->completed_apts = c->apts;
+                c->completed_vpts = c->vpts;
+                c->completed_counter = 0;
+            }
+            else if (++c->completed_counter == 50) {
+                PostMessage(c->hwnd, MSG_COREPLAYER, PLAY_COMPLETED, 0);
+                log_printf(TEXT("play completed !\n"));
+            }
+            //-- play completed --//
+
+            //++ frame rate & av sync control ++//
+            DWORD tickcur  = GetTickCount();
+            int   tickdiff = tickcur - c->ticklast;
+            c->ticklast = tickcur;
+            if (tickdiff - c->tickframe >  2) c->ticksleep--;
+            if (tickdiff - c->tickframe < -2) c->ticksleep++;
+            if (apts != -1 && vpts != -1) {
+                if (apts - vpts >  5) c->ticksleep-=2;
+                if (apts - vpts < -5) c->ticksleep+=2;
+            }
+            if (c->ticksleep > 0) Sleep(c->ticksleep);
+            log_printf(TEXT("d: %3lld, s: %d\n"), apts-vpts, c->ticksleep);
+            //-- frame rate & av sync control --//
         }
-        if (c->ticksleep > 0) Sleep(c->ticksleep);
-        log_printf(TEXT("d: %3lld, s: %d\n"), apts-vpts, c->ticksleep);
+        else Sleep(c->tickframe);
     }
 
     return NULL;
@@ -215,17 +237,7 @@ void vdev_gdi_setrect(void *ctxt, int x, int y, int w, int h)
     DEVGDICTXT *c = (DEVGDICTXT*)ctxt;
     c->x = x; c->y = y;
     c->w = w; c->h = h;
-
-    RECT rtwin, rect1, rect2, rect3, rect4;
-    GetClientRect(c->hwnd, &rtwin);
-    rect1.left = 0;   rect1.top = 0;   rect1.right = rtwin.right; rect1.bottom = y;
-    rect2.left = 0;   rect2.top = y;   rect2.right = x;           rect2.bottom = y+h;
-    rect3.left = x+w; rect3.top = y;   rect3.right = rtwin.right; rect3.bottom = y+h;
-    rect4.left = 0;   rect4.top = y+h; rect4.right = rtwin.right; rect4.bottom = rtwin.bottom;
-    InvalidateRect(c->hwnd, &rect1, TRUE);
-    InvalidateRect(c->hwnd, &rect2, TRUE);
-    InvalidateRect(c->hwnd, &rect3, TRUE);
-    InvalidateRect(c->hwnd, &rect4, TRUE);
+    c->refresh_flag= 1;
 }
 
 void vdev_gdi_pause(void *ctxt, BOOL pause)
