@@ -59,7 +59,10 @@ typedef struct
 // 内部函数实现
 static void render_setspeed(RENDER *render, int speed)
 {
-    render->nRenderSpeedNew = speed;
+    if (speed > 0)
+    {
+        render->nRenderSpeedNew = speed;
+    }
 }
 
 // 函数实现

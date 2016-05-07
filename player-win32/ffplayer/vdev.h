@@ -33,7 +33,7 @@ void  vdev_d3d_setfrate(void *ctxt, int frate);
 int   vdev_d3d_slowflag(void *ctxt);
 int   vdev_d3d_pixfmt  (void *ctxt);
 
-#if 0
+#if 1
 #define vdev_create     vdev_gdi_create
 #define vdev_destroy    vdev_gdi_destroy
 #define vdev_request    vdev_gdi_request
