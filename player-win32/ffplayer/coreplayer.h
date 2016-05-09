@@ -17,23 +17,29 @@ extern "C" {
 enum {
     VIDEO_MODE_LETTERBOX,
     VIDEO_MODE_STRETCHED,
-    VIDEO_MODE_WAVEFORM,
-    VIDEO_MODE_SPECTRUM,
+};
+
+enum {
+    VISUAL_EFFECT_DISABLE ,
+    VISUAL_EFFECT_WAVEFORM,
+    VISUAL_EFFECT_SPECTRUM,
+    VISUAL_EFFECT_FORCE_DISPLAY = (1 << 31),
 };
 
 // param
 enum {
     //++ public
-    PARAM_VIDEO_WIDTH = 0x1000,
+    PARAM_MEDIA_DURATION = 0x1000,
+    PARAM_MEDIA_POSITION,
+    PARAM_VIDEO_WIDTH,
     PARAM_VIDEO_HEIGHT,
-    PARAM_VIDEO_DURATION,
-    PARAM_VIDEO_POSITION,
     PARAM_VIDEO_MODE,
     PARAM_AUDIO_VOLUME,
-    PARAM_PLAYER_SPEED,
+    PARAM_PLAY_SPEED,
     PARAM_AUTO_SLOW_DOWN,
     PARAM_MIN_PLAY_SPEED,
     PARAM_MAX_PLAY_SPEED,
+    PARAM_VISUAL_EFFECT,
     //-- public
 
     //++ for vdev
@@ -53,7 +59,7 @@ void  player_close   (void *hplayer);
 void  player_play    (void *hplayer);
 void  player_pause   (void *hplayer);
 void  player_seek    (void *hplayer, LONGLONG ms);
-void  player_setrect (void *hplayer, int x, int y, int w, int h);
+void  player_setrect (void *hplayer, int type, int x, int y, int w, int h); // type: 0 - video rect, 1 - visual effect rect
 void  player_setparam(void *hplayer, DWORD id, void *param);
 void  player_getparam(void *hplayer, DWORD id, void *param);
 

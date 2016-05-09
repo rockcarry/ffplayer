@@ -343,6 +343,25 @@ void vdev_d3d_getavpts(void *ctxt, int64_t **ppapts, int64_t **ppvpts)
     if (ppvpts) *ppvpts = &c->vpts;
 }
 
+void vdev_d3d_veffect(void *ctxt, void *buf, int len, int type, int x, int y, int w, int h)
+{
+    DEVD3DCTXT *c = (DEVD3DCTXT*)ctxt;
+    if (!c || c->vpts != -1 && !(type & VISUAL_EFFECT_FORCE_DISPLAY)) return;
+
+    switch (type) {
+    case VISUAL_EFFECT_WAVEFORM:
+        {
+            // todo...
+        }
+        break;
+    case VISUAL_EFFECT_SPECTRUM:
+        {
+            // todo...
+        }
+        break;
+    }
+}
+
 void vdev_d3d_setparam(void *ctxt, DWORD id, void *param)
 {
     if (!ctxt || !param) return;

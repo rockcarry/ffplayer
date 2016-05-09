@@ -223,6 +223,14 @@ void adev_syncapts(void *ctxt, int64_t *apts)
     }
 }
 
+void adev_curdata(void *ctxt, void **buf, int *len)
+{
+    if (!ctxt) return;
+    ADEV_CONTEXT *c = (ADEV_CONTEXT*)ctxt;
+    if (buf) *buf = c->pWaveHdr[c->head].lpData;
+    if (len) *len = c->pWaveHdr[c->head].dwBufferLength;
+}
+
 void adev_setparam(void *ctxt, DWORD id, void *param)
 {
     if (!ctxt || !param) return;

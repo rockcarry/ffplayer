@@ -211,12 +211,12 @@ static void* VideoDecodeThreadProc(void *param)
             if (player->nAutoSlowDown) {
                 int play_speed = 100;
                 int slow_flag  = 0;
-                render_getparam(player->hCoreRender, PARAM_PLAYER_SPEED, &play_speed);
+                render_getparam(player->hCoreRender, PARAM_PLAY_SPEED, &play_speed);
                 slow_flag = render_slowflag(player->hCoreRender);
                 if (slow_flag > 0 && play_speed <= player->nMinPlaySpeed) slow_flag = 0;
                 if (slow_flag < 0 && play_speed >= player->nMaxPlaySpeed) slow_flag = 0;
                 play_speed -= slow_flag;
-                render_setparam(player->hCoreRender, PARAM_PLAYER_SPEED, &play_speed);
+                render_setparam(player->hCoreRender, PARAM_PLAY_SPEED, &play_speed);
 //              log_printf(TEXT("play speed: %d\n"), play_speed);
             }
             //- for auto slow down
@@ -435,10 +435,17 @@ void player_pause(void *hplayer)
     render_pause(player->hCoreRender);
 }
 
-void player_setrect(void *hplayer, int x, int y, int w, int h)
+void player_setrect(void *hplayer, int type, int x, int y, int w, int h)
 {
     if (!hplayer) return;
     PLAYER *player = (PLAYER*)hplayer;
+
+    //++ if set visual effect rect
+    if (type == 1) {
+        render_setrect(player->hCoreRender, type, x, y, w, h);
+        return;
+    }
+    //-- if set visual effect rect
 
     int vw, vh;
     int rw, rh;
@@ -460,15 +467,12 @@ void player_setrect(void *hplayer, int x, int y, int w, int h)
         else                 { rh = h; rw = rh * vw / vh; }
         break;
 
-    default:
-        rw = w;
-        rh = h;
-        break;
+    case VIDEO_MODE_STRETCHED: rw = w; rh = h; break;
     }
 
     if (rw <= 0) rw = 1;
     if (rh <= 0) rh = 1;
-    render_setrect(player->hCoreRender, x + (w - rw) / 2, y + (h - rh) / 2, rw, rh);
+    render_setrect(player->hCoreRender, type, x + (w - rw) / 2, y + (h - rh) / 2, rw, rh);
 }
 
 void player_seek(void *hplayer, LONGLONG ms)
@@ -496,7 +500,7 @@ void player_seek(void *hplayer, LONGLONG ms)
 
     // reset render
     render_reset   (player->hCoreRender);
-    render_setparam(player->hCoreRender, PARAM_VIDEO_POSITION, &ms);
+    render_setparam(player->hCoreRender, PARAM_MEDIA_POSITION, &ms);
 
     // restart all thread and render
     int SEEK_REQ = 0;
@@ -528,15 +532,16 @@ void player_setparam(void *hplayer, DWORD id, void *param)
     {
     case PARAM_VIDEO_MODE:
         render_setparam(player->hCoreRender, PARAM_VIDEO_MODE, param);
-        player_setrect(hplayer, player->rtVideoRect.left, player->rtVideoRect.top,
+        player_setrect(hplayer, 0,
+            player->rtVideoRect.left, player->rtVideoRect.top,
             player->rtVideoRect.right - player->rtVideoRect.left,
             player->rtVideoRect.bottom - player->rtVideoRect.top);
         break;
     case PARAM_AUDIO_VOLUME:
         render_setparam(player->hCoreRender, PARAM_AUDIO_VOLUME, param);
         break;
-    case PARAM_PLAYER_SPEED:
-        render_setparam(player->hCoreRender, PARAM_PLAYER_SPEED, param);
+    case PARAM_PLAY_SPEED:
+        render_setparam(player->hCoreRender, PARAM_PLAY_SPEED, param);
         player->nMaxPlaySpeed = *(int*)param;
         break;
     case PARAM_AUTO_SLOW_DOWN:
@@ -548,6 +553,9 @@ void player_setparam(void *hplayer, DWORD id, void *param)
     case PARAM_MAX_PLAY_SPEED:
         player->nMaxPlaySpeed = *(int*)param;
         break;
+    case PARAM_VISUAL_EFFECT:
+        render_setparam(player->hCoreRender, PARAM_VISUAL_EFFECT, param);
+        break;
     }
 }
 
@@ -558,6 +566,16 @@ void player_getparam(void *hplayer, DWORD id, void *param)
 
     switch (id)
     {
+    case PARAM_MEDIA_DURATION:
+        if (!player->pAVFormatContext) *(int64_t*)param = 0;
+        else *(int64_t*)param = (player->pAVFormatContext->duration * 1000 / AV_TIME_BASE);
+        break;
+    case PARAM_MEDIA_POSITION:
+        render_getparam(player->hCoreRender, PARAM_MEDIA_POSITION, param);
+        break;
+    case PARAM_VIDEO_MODE:
+        render_getparam(player->hCoreRender, PARAM_VIDEO_MODE, param);
+        break;
     case PARAM_VIDEO_WIDTH:
         if (!player->pVideoCodecContext) *(int*)param = 0;
         else *(int*)param = player->pVideoCodecContext->width;
@@ -566,21 +584,11 @@ void player_getparam(void *hplayer, DWORD id, void *param)
         if (!player->pVideoCodecContext) *(int*)param = 0;
         else *(int*)param = player->pVideoCodecContext->height;
         break;
-    case PARAM_VIDEO_DURATION:
-        if (!player->pAVFormatContext) *(int64_t*)param = 0;
-        else *(int64_t*)param = (player->pAVFormatContext->duration * 1000 / AV_TIME_BASE);
-        break;
-    case PARAM_VIDEO_POSITION:
-        render_getparam(player->hCoreRender, PARAM_VIDEO_POSITION, param);
-        break;
-    case PARAM_VIDEO_MODE:
-        render_getparam(player->hCoreRender, PARAM_VIDEO_MODE, param);
-        break;
     case PARAM_AUDIO_VOLUME:
         render_getparam(player->hCoreRender, PARAM_AUDIO_VOLUME, param);
         break;
-    case PARAM_PLAYER_SPEED:
-        render_getparam(player->hCoreRender, PARAM_PLAYER_SPEED, param);
+    case PARAM_PLAY_SPEED:
+        render_getparam(player->hCoreRender, PARAM_PLAY_SPEED, param);
         break;
     case PARAM_AUTO_SLOW_DOWN:
         *(int*)param = player->nAutoSlowDown;
@@ -590,6 +598,9 @@ void player_getparam(void *hplayer, DWORD id, void *param)
         break;
     case PARAM_MAX_PLAY_SPEED:
         *(int*)param = player->nMaxPlaySpeed;
+        break;
+    case PARAM_VISUAL_EFFECT:
+        render_getparam(player->hCoreRender, PARAM_VISUAL_EFFECT, param);
         break;
     }
 }

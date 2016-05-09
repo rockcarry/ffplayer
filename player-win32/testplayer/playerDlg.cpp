@@ -77,7 +77,8 @@ void CplayerDlg::PlayerOpenFile(void)
         int volume = -0;
         player_setparam(g_hplayer, PARAM_AUDIO_VOLUME, &volume);
 
-        player_setrect(g_hplayer, 0, 0, m_rtClient.right, m_rtClient.bottom - 2);
+        player_setrect(g_hplayer, 0, 0, 0, m_rtClient.right, m_rtClient.bottom - 2);
+        player_setrect(g_hplayer, 1, 0, 0, m_rtClient.right, m_rtClient.bottom - 2);
         player_play(g_hplayer);
         SetTimer(TIMER_ID_PROGRESS, 100, NULL);
     }
@@ -146,8 +147,8 @@ void CplayerDlg::OnPaint()
         CPaintDC dc(this);
 
         LONGLONG total = 1, pos = 0;
-        player_getparam(g_hplayer, PARAM_VIDEO_DURATION, &total);
-        player_getparam(g_hplayer, PARAM_VIDEO_POSITION, &pos  );
+        player_getparam(g_hplayer, PARAM_MEDIA_DURATION, &total);
+        player_getparam(g_hplayer, PARAM_MEDIA_POSITION, &pos  );
         if (pos > 0) {
             RECT fill  = m_rtClient;
             fill.right = (LONG)(fill.right * pos / total);
@@ -212,7 +213,7 @@ void CplayerDlg::OnLButtonDown(UINT nFlags, CPoint point)
     if (point.y > m_rtClient.bottom - 8)
     {
         LONGLONG total = 1;
-        player_getparam(g_hplayer, PARAM_VIDEO_DURATION, &total);
+        player_getparam(g_hplayer, PARAM_MEDIA_DURATION, &total);
         player_seek(g_hplayer, total * point.x / m_rtClient.right);
     }
     else {
@@ -240,7 +241,8 @@ void CplayerDlg::OnSize(UINT nType, int cx, int cy)
 
     if (nType != SIZE_MINIMIZED) {
         GetClientRect(&m_rtClient);
-        player_setrect(g_hplayer, 0, 0, cx, cy - 2);
+        player_setrect(g_hplayer, 0, 0, 0, cx, cy - 2);
+        player_setrect(g_hplayer, 1, 0, 0, cx, cy - 2);
     }
 }
 

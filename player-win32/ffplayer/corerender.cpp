@@ -50,6 +50,13 @@ typedef struct
     int            nRenderSpeedCur;
     int            nRenderSpeedNew;
 
+    int            nVEffectType;
+    int            nVEffectXPos;
+    int            nVEffectYPos;
+    int            nVEffectWidth;
+    int            nVEffectHeight;
+    pthread_t      hVEffectThread;
+
     #define RENDER_CLOSE (1 << 0)
     #define RENDER_PAUSE (1 << 1)
     int            nRenderStatus;
@@ -62,6 +69,21 @@ static void render_setspeed(RENDER *render, int speed)
     {
         render->nRenderSpeedNew = speed;
     }
+}
+
+static void* render_veffect_thread(void *param)
+{
+    RENDER *render = (RENDER*)param;
+    while (!(render->nRenderStatus & RENDER_CLOSE)) {
+        void *buf = NULL;
+        int   len = 0;
+        adev_curdata(render->adev, &buf, &len);
+        vdev_veffect(render->vdev,  buf,  len, render->nVEffectType,
+            render->nVEffectXPos , render->nVEffectYPos,
+            render->nVEffectWidth, render->nVEffectHeight );
+        usleep(50*1000);
+    }
+    return NULL;
 }
 
 // º¯ÊýÊµÏÖ
@@ -89,6 +111,10 @@ void* render_open(void *surface, AVRational frate, int pixfmt, int w, int h,
     render->SampleFormat = sndfmt;
     render->nChanLayout  = ch_layout;
 
+    // init for visual effect
+    render->nVEffectType = VISUAL_EFFECT_WAVEFORM;
+    pthread_create(&render->hVEffectThread, NULL, render_veffect_thread, render);
+
     // create adev & vdev
     render->adev = adev_create(0, (int)(44100.0 * frate.den / frate.num + 0.5) * 4);
     render->vdev = vdev_create(surface, 0, 0, 0, frate.num / frate.den);
@@ -99,7 +125,8 @@ void* render_open(void *surface, AVRational frate, int pixfmt, int w, int h,
     adev_syncapts(render->adev,  papts);
 
     RECT rect; GetClientRect((HWND)surface, &rect);
-    render_setrect (render, rect.left, rect.top, rect.right, rect.bottom);
+    render_setrect (render, 0, rect.left, rect.top, rect.right, rect.bottom);
+    render_setrect (render, 1, rect.left, rect.top, rect.right, rect.bottom);
     render_setspeed(render, 100);
 
     return render;
@@ -108,6 +135,10 @@ void* render_open(void *surface, AVRational frate, int pixfmt, int w, int h,
 void render_close(void *hrender)
 {
     RENDER *render = (RENDER*)hrender;
+
+    // wait visual effect thread exit
+    render->nRenderStatus = RENDER_CLOSE;
+    pthread_join(render->hVEffectThread, NULL);
 
     //++ audio ++//
     // destroy adev
@@ -219,13 +250,23 @@ void render_video(void *hrender, AVFrame *video)
     } while (render->nRenderStatus & RENDER_PAUSE);
 }
 
-void render_setrect(void *hrender, int x, int y, int w, int h)
+void render_setrect(void *hrender, int type, int x, int y, int w, int h)
 {
     RENDER *render = (RENDER*)hrender;
-    render->nRenderXPosNew   = x;
-    render->nRenderYPosNew   = y;
-    render->nRenderWidthNew  = w > 1 ? w : 1;;
-    render->nRenderHeightNew = h > 1 ? h : 1;;
+    switch (type) {
+    case 0:
+        render->nRenderXPosNew   = x;
+        render->nRenderYPosNew   = y;
+        render->nRenderWidthNew  = w > 1 ? w : 1;
+        render->nRenderHeightNew = h > 1 ? h : 1;
+        break;
+    case 1:
+        render->nVEffectXPos     = x;
+        render->nVEffectYPos     = y;
+        render->nVEffectWidth    = w > 1 ? w : 1;
+        render->nVEffectHeight   = h > 1 ? h : 1;
+        break;
+    }
 }
 
 void render_start(void *hrender)
@@ -251,57 +292,6 @@ void render_reset(void *hrender)
     vdev_reset(render->vdev);
 }
 
-void render_setparam(void *hrender, DWORD id, void *param)
-{
-    RENDER *render = (RENDER*)hrender;
-    switch (id)
-    {
-    case PARAM_VIDEO_MODE:
-        render->nVideoMode = *(int*)param;
-        break;
-    case PARAM_AUDIO_VOLUME:
-        adev_setparam(render->adev, PARAM_AUDIO_VOLUME, param);
-        break;
-    case PARAM_VIDEO_POSITION:
-        if (*(int64_t*)param)
-        {
-            int64_t *papts = NULL;
-            int64_t *pvpts = NULL;
-            vdev_getavpts(render->vdev, &papts, &pvpts);
-            if (render->adev) *papts = *(int64_t*)param;
-            if (render->vdev) *pvpts = *(int64_t*)param;
-        }
-        break;
-    case PARAM_PLAYER_SPEED:
-        render_setspeed(render, *(int*)param);
-        break;
-    }
-}
-
-void render_getparam(void *hrender, DWORD id, void *param)
-{
-    RENDER *render = (RENDER*)hrender;
-    switch (id)
-    {
-    case PARAM_VIDEO_MODE:
-        *(int*)param = render->nVideoMode;
-        break;
-    case PARAM_AUDIO_VOLUME:
-        adev_getparam(render->adev, PARAM_AUDIO_VOLUME, param);
-        break;
-    case PARAM_VIDEO_POSITION:
-        {
-            int64_t *papts, *pvpts;
-            vdev_getavpts(render->vdev, &papts, &pvpts);
-            *(int64_t*)param = *papts > *pvpts ? *papts : *pvpts;
-        }
-        break;
-    case PARAM_PLAYER_SPEED:
-        *(int*)param = render->nRenderSpeedCur;
-        break;
-    }
-}
-
 int render_slowflag(void *hrender)
 {
     RENDER *render = (RENDER*)hrender;
@@ -311,4 +301,62 @@ int render_slowflag(void *hrender)
     if (aflag < 0 && vflag < 0) return -1;
     return 0;
 }
+
+void render_setparam(void *hrender, DWORD id, void *param)
+{
+    RENDER *render = (RENDER*)hrender;
+    switch (id)
+    {
+    case PARAM_MEDIA_POSITION:
+        if (*(int64_t*)param)
+        {
+            int64_t *papts = NULL;
+            int64_t *pvpts = NULL;
+            vdev_getavpts(render->vdev, &papts, &pvpts);
+            if (render->adev) *papts = *(int64_t*)param;
+            if (render->vdev) *pvpts = *(int64_t*)param;
+        }
+        break;
+    case PARAM_VIDEO_MODE:
+        render->nVideoMode = *(int*)param;
+        break;
+    case PARAM_AUDIO_VOLUME:
+        adev_setparam(render->adev, PARAM_AUDIO_VOLUME, param);
+        break;
+    case PARAM_PLAY_SPEED:
+        render_setspeed(render, *(int*)param);
+        break;
+    case PARAM_VISUAL_EFFECT:
+        render->nVEffectType = *(int*)param;
+        break;
+    }
+}
+
+void render_getparam(void *hrender, DWORD id, void *param)
+{
+    RENDER *render = (RENDER*)hrender;
+    switch (id)
+    {
+    case PARAM_MEDIA_POSITION:
+        {
+            int64_t *papts, *pvpts;
+            vdev_getavpts(render->vdev, &papts, &pvpts);
+            *(int64_t*)param = *papts > *pvpts ? *papts : *pvpts;
+        }
+        break;
+    case PARAM_VIDEO_MODE:
+        *(int*)param = render->nVideoMode;
+        break;
+    case PARAM_AUDIO_VOLUME:
+        adev_getparam(render->adev, PARAM_AUDIO_VOLUME, param);
+        break;
+    case PARAM_PLAY_SPEED:
+        *(int*)param = render->nRenderSpeedCur;
+        break;
+    case PARAM_VISUAL_EFFECT:
+        *(int*)param = render->nVEffectType;
+        break;
+    }
+}
+
 
