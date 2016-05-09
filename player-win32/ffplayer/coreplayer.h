@@ -23,7 +23,8 @@ enum {
 
 // param
 enum {
-    PARAM_VIDEO_WIDTH,
+    //++ public
+    PARAM_VIDEO_WIDTH = 0x1000,
     PARAM_VIDEO_HEIGHT,
     PARAM_VIDEO_DURATION,
     PARAM_VIDEO_POSITION,
@@ -33,6 +34,17 @@ enum {
     PARAM_AUTO_SLOW_DOWN,
     PARAM_MIN_PLAY_SPEED,
     PARAM_MAX_PLAY_SPEED,
+    //-- public
+
+    //++ for vdev
+    PARAM_VDEV_PIXEL_FORMAT = 0x2000,
+    PARAM_VDEV_FRAME_RATE,
+    PARAM_VDEV_SLOW_FLAG,
+    //-- for vdev
+
+    //++ for adev
+    PARAM_ADEV_SLOW_FLAG = 0x3000,
+    //-- for adev
 };
 
 // 函数声明

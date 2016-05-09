@@ -343,23 +343,43 @@ void vdev_d3d_getavpts(void *ctxt, int64_t **ppapts, int64_t **ppvpts)
     if (ppvpts) *ppvpts = &c->vpts;
 }
 
-void vdev_d3d_setfrate(void *ctxt, int frate)
+void vdev_d3d_setparam(void *ctxt, DWORD id, void *param)
 {
+    if (!ctxt || !param) return;
     DEVD3DCTXT *c = (DEVD3DCTXT*)ctxt;
-    c->tickframe = 1000 / frate;
+
+    switch (id) {
+    case PARAM_VDEV_PIXEL_FORMAT:
+        // pixel format is read only
+        // do nothing
+        break;
+    case PARAM_VDEV_FRAME_RATE:
+        c->tickframe = 1000 / (*(int*)param > 1 ? *(int*)param : 1);
+        break;
+    case PARAM_VDEV_SLOW_FLAG:
+        // slow flag is read only
+        // do nothing
+        break;
+    }
 }
 
-int vdev_d3d_slowflag(void *ctxt)
+void vdev_d3d_getparam(void *ctxt, DWORD id, void *param)
 {
+    if (!ctxt || !param) return;
     DEVD3DCTXT *c = (DEVD3DCTXT*)ctxt;
-    if (c->ticksleep < -100) return  1;
-    if (c->ticksleep >  50 ) return -1;
-    return 0;
-}
 
-int vdev_d3d_pixfmt(void *ctxt)
-{
-    DEVD3DCTXT *c = (DEVD3DCTXT*)ctxt;
-    return c->pixfmt == D3DFMT_YUY2 ? AV_PIX_FMT_YUYV422 : c->pixfmt == D3DFMT_UYVY ? AV_PIX_FMT_UYVY422 : AV_PIX_FMT_RGB32;
+    switch (id) {
+    case PARAM_VDEV_PIXEL_FORMAT:
+        *(int*)param = c->pixfmt == D3DFMT_YUY2 ? AV_PIX_FMT_YUYV422 : c->pixfmt == D3DFMT_UYVY ? AV_PIX_FMT_UYVY422 : AV_PIX_FMT_RGB32;
+        break;
+    case PARAM_VDEV_FRAME_RATE:
+        *(int*)param = 1000 / c->tickframe;
+        break;
+    case PARAM_VDEV_SLOW_FLAG:
+        if      (c->ticksleep < -100) *(int*)param = 1;
+        else if (c->ticksleep >  50 ) *(int*)param =-1;
+        else                          *(int*)param = 0;
+        break;
+    }
 }
 

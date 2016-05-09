@@ -223,25 +223,47 @@ void adev_syncapts(void *ctxt, int64_t *apts)
     }
 }
 
-void adev_volume(void *ctxt, int vol)
+void adev_setparam(void *ctxt, DWORD id, void *param)
 {
-    if (!ctxt) return;
+    if (!ctxt || !param) return;
     ADEV_CONTEXT *c = (ADEV_CONTEXT*)ctxt;
-    vol += c->vol_zerodb;
-    vol  = vol > 0   ? vol : 0  ;
-    vol  = vol < 255 ? vol : 255;
-    c->vol_curvol = vol;
+
+    switch (id) {
+    case PARAM_AUDIO_VOLUME:
+        {
+            int vol = *(int*)param;
+            vol += c->vol_zerodb;
+            vol  = vol > 0   ? vol : 0  ;
+            vol  = vol < 255 ? vol : 255;
+            c->vol_curvol = vol;
+        }
+        break;
+    case PARAM_ADEV_SLOW_FLAG:
+        // slow flag is read only
+        // do nothing
+        break;
+    }
 }
 
-int adev_slowflag(void *ctxt)
+void adev_getparam(void *ctxt, DWORD id, void *param)
 {
-    if (!ctxt) return 0;
+    if (!ctxt || !param) return;
     ADEV_CONTEXT *c = (ADEV_CONTEXT*)ctxt;
-    LONG      count = 0;
-    ReleaseSemaphore(c->bufsem, 0, &count);
-//  log_printf(TEXT("adev count = %ld\n"), count);
-    if (count >= DEF_ADEV_BUF_NUM - 1) return  1;
-    if (count <= 1                   ) return -1;
-    return 0;
+
+    switch (id) {
+    case PARAM_AUDIO_VOLUME:
+        *(int*)param = c->vol_curvol - c->vol_zerodb;
+        break;
+    case PARAM_ADEV_SLOW_FLAG:
+        {
+            LONG count = 0;
+            ReleaseSemaphore(c->bufsem, 0, &count);
+//          log_printf(TEXT("adev count = %ld\n"), count);
+            if      (count >= DEF_ADEV_BUF_NUM - 1) *(int*)param = 1;
+            else if (count <= 1                   ) *(int*)param =-1;
+            else                                    *(int*)param = 0;
+        }
+        break;
+    }
 }
 

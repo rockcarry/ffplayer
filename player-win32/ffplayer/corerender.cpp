@@ -49,7 +49,6 @@ typedef struct
     int            nRenderHeightNew;
     int            nRenderSpeedCur;
     int            nRenderSpeedNew;
-    int            nRenderVolume;
 
     #define RENDER_CLOSE (1 << 0)
     #define RENDER_PAUSE (1 << 1)
@@ -152,7 +151,7 @@ void render_audio(void *hrender, AVFrame *audio)
 
             // set vdev frame rate
             int framerate = (render->FrameRate.num * render->nRenderSpeedCur) / (render->FrameRate.den * 100);
-            vdev_setfrate(render->vdev, framerate > 1 ? framerate : 1);
+            vdev_setparam(render->vdev, PARAM_VDEV_FRAME_RATE, &framerate);
 
             //++ allocate & init swr context
             if (render->pSWRContext) {
@@ -187,6 +186,7 @@ void render_video(void *hrender, AVFrame *video)
     AVFrame  picture = {0};
     BYTE    *bmpbuf;
     int      stride;
+    int      pixfmt;
 
     do {
         if (  render->nRenderXPosCur  != render->nRenderXPosNew
@@ -202,9 +202,10 @@ void render_video(void *hrender, AVFrame *video)
                 render->nRenderWidthCur, render->nRenderHeightCur);
 
             if (render->pSWSContext) sws_freeContext(render->pSWSContext);
+            vdev_getparam(render->vdev, PARAM_VDEV_PIXEL_FORMAT, &pixfmt);
             render->pSWSContext = sws_getContext(
                 render->nVideoWidth, render->nVideoHeight, render->PixelFormat,
-                render->nRenderWidthCur, render->nRenderHeightCur, (AVPixelFormat)vdev_pixfmt(render->vdev),
+                render->nRenderWidthCur, render->nRenderHeightCur, (AVPixelFormat)pixfmt,
                 SWS_BILINEAR, 0, 0, 0);
         }
 
@@ -259,8 +260,7 @@ void render_setparam(void *hrender, DWORD id, void *param)
         render->nVideoMode = *(int*)param;
         break;
     case PARAM_AUDIO_VOLUME:
-        render->nRenderVolume = *(int*)param;
-        adev_volume(render->adev, *(int*)param);
+        adev_setparam(render->adev, PARAM_AUDIO_VOLUME, param);
         break;
     case PARAM_VIDEO_POSITION:
         if (*(int64_t*)param)
@@ -287,7 +287,7 @@ void render_getparam(void *hrender, DWORD id, void *param)
         *(int*)param = render->nVideoMode;
         break;
     case PARAM_AUDIO_VOLUME:
-        *(int*)param = render->nRenderVolume;
+        adev_getparam(render->adev, PARAM_AUDIO_VOLUME, param);
         break;
     case PARAM_VIDEO_POSITION:
         {
@@ -305,8 +305,8 @@ void render_getparam(void *hrender, DWORD id, void *param)
 int render_slowflag(void *hrender)
 {
     RENDER *render = (RENDER*)hrender;
-    int aflag = adev_slowflag(render->adev);
-    int vflag = vdev_slowflag(render->vdev);
+    int aflag; adev_getparam(render->adev, PARAM_ADEV_SLOW_FLAG, &aflag);
+    int vflag; vdev_getparam(render->vdev, PARAM_VDEV_SLOW_FLAG, &vflag);
     if (aflag > 0 || vflag > 0) return  1;
     if (aflag < 0 && vflag < 0) return -1;
     return 0;
