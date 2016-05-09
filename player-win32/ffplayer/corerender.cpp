@@ -290,6 +290,7 @@ void render_reset(void *hrender)
     RENDER *render = (RENDER*)hrender;
     adev_reset(render->adev);
     vdev_reset(render->vdev);
+    render->nRenderStatus = 0;
 }
 
 int render_slowflag(void *hrender)
