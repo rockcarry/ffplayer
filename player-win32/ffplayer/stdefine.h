@@ -6,6 +6,7 @@
 #include <windows.h>
 #include <mmsystem.h>
 #include <tchar.h>
+#define  usleep(us)  Sleep((us)/1000)
 #else
 // todo..
 #endif
