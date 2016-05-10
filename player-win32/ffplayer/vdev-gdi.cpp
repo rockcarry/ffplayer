@@ -42,6 +42,16 @@ typedef struct
     int64_t  completed_apts;
     int64_t  completed_vpts;
     int      refresh_flag;
+
+    //++ for visual effect
+    int      ve_w;
+    int      ve_h;
+    HDC      ve_hdc;
+    HPEN     ve_hpen;
+    HBITMAP  ve_hbmp;
+    BYTE    *ve_pbmp;
+    int      ve_stride;
+    //-- for visual effect
 } DEVGDICTXT;
 
 // 内部函数实现
@@ -164,11 +174,18 @@ void vdev_gdi_destroy(void *ctxt)
     int i;
     DEVGDICTXT *c = (DEVGDICTXT*)ctxt;
 
-    // make rendering thread safely exit
+    // make visual effect rendering thread safely exit
     c->nStatus = DEVGDI_CLOSE;
     WaitForSingleObject(c->hThread, -1);
     CloseHandle(c->hThread);
 
+    //++ for visual effect
+    DeleteDC(c->ve_hdc);
+    DeleteObject(c->ve_hpen);
+    DeleteObject(c->ve_hbmp);
+    //-- for visual effect
+
+    //++ for video
     DeleteDC (c->hdcsrc);
     ReleaseDC(c->hwnd, c->hdcdst);
     for (i=0; i<c->bufnum; i++) {
@@ -176,6 +193,7 @@ void vdev_gdi_destroy(void *ctxt)
             DeleteObject(c->hbitmaps[i]);
         }
     }
+    //-- for video
 
     // close semaphore
     CloseHandle(c->semr);
@@ -271,11 +289,61 @@ void vdev_gdi_veffect(void *ctxt, void *buf, int len, int type, int x, int y, in
 {
     DEVGDICTXT *c = (DEVGDICTXT*)ctxt;
     if (!c || c->vpts != -1 && !(type & VISUAL_EFFECT_FORCE_DISPLAY)) return;
-
     switch (type) {
     case VISUAL_EFFECT_WAVEFORM:
         {
-            // todo...
+            // create dc for ve
+            if (!c->ve_hdc) {
+                c->ve_hdc = CreateCompatibleDC(c->hdcdst);
+            }
+
+            // create pen for ve
+            if (!c->ve_hpen) {
+                c->ve_hpen = CreatePen(PS_SOLID, 1, RGB(0, 255, 0));
+                SelectObject(c->ve_hdc, c->ve_hpen);
+            }
+
+            // create bitmap for ve
+            if (!c->ve_hbmp || c->ve_w != w || c->ve_h != h) {
+                BITMAPINFO bmpinfo = {0};
+                bmpinfo.bmiHeader.biSize        =  sizeof(BITMAPINFOHEADER);
+                bmpinfo.bmiHeader.biWidth       =  w;
+                bmpinfo.bmiHeader.biHeight      = -h;
+                bmpinfo.bmiHeader.biPlanes      =  1;
+                bmpinfo.bmiHeader.biBitCount    =  32;
+                bmpinfo.bmiHeader.biCompression =  BI_RGB;
+                HBITMAP hbmp = CreateDIBSection(c->ve_hdc, &bmpinfo, DIB_RGB_COLORS, (void**)&c->ve_pbmp, NULL, 0);
+                HANDLE  hobj = SelectObject(c->ve_hdc, hbmp);
+                if (hobj) DeleteObject(hobj);
+
+                BITMAP bitmap = {0};
+                GetObject(hbmp, sizeof(BITMAP), &bitmap);
+                c->ve_hbmp   = hbmp;
+                c->ve_w      = w;
+                c->ve_h      = h;
+                c->ve_stride = bitmap.bmWidthBytes;
+            }
+
+            //++ draw visual effect
+            SHORT *sambuf = (SHORT*)buf;
+            int    samnum = len / 4;
+            int    sample = 0;
+            int    delta  = samnum / w > 1 ? samnum / w : 1;
+            int    sx, sy, i;
+
+            sample = (sambuf[0] + sambuf[1]) / 2;
+            sx     = 0;
+            sy     = y + h * (0x7FFF - sample) / 0x10000;
+            memset(c->ve_pbmp, 0, c->ve_stride * h);
+            MoveToEx(c->ve_hdc, sx, sy, NULL);
+            for (i=delta; i<samnum; i+=delta) {
+                sample = (sambuf[i*2+0] + sambuf[i*2+1]) / 2;
+                sx = x + w * i / samnum;
+                sy = y + h * (0x7FFF - sample) / 0x10000;
+                LineTo(c->ve_hdc, sx, sy);
+            }
+            BitBlt(c->hdcdst, x, y, w, h, c->ve_hdc, 0, 0, SRCCOPY);
+            //-- draw visual effect
         }
         break;
     case VISUAL_EFFECT_SPECTRUM:

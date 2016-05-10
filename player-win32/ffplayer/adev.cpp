@@ -6,7 +6,7 @@
 #pragma warning(disable:4312)
 
 // 内部常量定义
-#define DEF_ADEV_BUF_NUM  5
+#define DEF_ADEV_BUF_NUM  8
 #define DEF_ADEV_BUF_LEN  8192
 
 #define SW_VOLUME_MINDB  -30
@@ -18,6 +18,7 @@ typedef struct
     HWAVEOUT hWaveOut;
     WAVEHDR *pWaveHdr;
     int64_t *ppts;
+    SHORT   *curdata;
     int      bufnum;
     int      buflen;
     int      head;
@@ -36,6 +37,7 @@ static void CALLBACK waveOutProc(HWAVEOUT hwo, UINT uMsg, DWORD dwInstance, DWOR
     switch (uMsg)
     {
     case WOM_DONE:
+        memcpy(c->curdata, c->pWaveHdr[c->head].lpData, c->buflen);
         if (c->apts) *c->apts = c->ppts[c->head];
 //      log_printf(TEXT("apts = %lld\n"), *c->apts);
         if (++c->head == c->bufnum) c->head = 0;
@@ -89,7 +91,8 @@ void* adev_create(int bufnum, int buflen)
     ctxt->ppts     = (int64_t*)malloc(bufnum * sizeof(int64_t));
     ctxt->pWaveHdr = (WAVEHDR*)malloc(bufnum * (sizeof(WAVEHDR) + buflen));
     ctxt->bufsem   = CreateSemaphore(NULL, bufnum, bufnum, NULL);
-    if (!ctxt->ppts || !ctxt->pWaveHdr || !ctxt->bufsem) {
+    ctxt->curdata  = (SHORT  *)malloc(buflen);
+    if (!ctxt->ppts || !ctxt->pWaveHdr || !ctxt->bufsem || !ctxt->curdata) {
         log_printf(TEXT("failed to allocate waveout buffer and waveout semaphore !\n"));
         exit(0);
     }
@@ -107,6 +110,7 @@ void* adev_create(int bufnum, int buflen)
         CloseHandle(ctxt->bufsem);
         free(ctxt->ppts    );
         free(ctxt->pWaveHdr);
+        free(ctxt->curdata );
         free(ctxt);
         return NULL;
     }
@@ -151,6 +155,7 @@ void adev_destroy(void *ctxt)
     // free memory
     free(c->ppts    );
     free(c->pWaveHdr);
+    free(c->curdata );
     free(c);
 }
 
@@ -227,8 +232,8 @@ void adev_curdata(void *ctxt, void **buf, int *len)
 {
     if (!ctxt) return;
     ADEV_CONTEXT *c = (ADEV_CONTEXT*)ctxt;
-    if (buf) *buf = c->pWaveHdr[c->head].lpData;
-    if (len) *len = c->pWaveHdr[c->head].dwBufferLength;
+    if (buf) *buf = c->curdata;
+    if (len) *len = c->buflen;
 }
 
 void adev_setparam(void *ctxt, DWORD id, void *param)

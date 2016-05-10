@@ -81,7 +81,7 @@ static void* render_veffect_thread(void *param)
         vdev_veffect(render->vdev,  buf,  len, render->nVEffectType,
             render->nVEffectXPos , render->nVEffectYPos,
             render->nVEffectWidth, render->nVEffectHeight );
-        usleep(50*1000);
+        usleep(1000000 * render->FrameRate.den / render->FrameRate.num);
     }
     return NULL;
 }
