@@ -1,5 +1,5 @@
-#ifndef _NES_VDEV_H_
-#define _NES_VDEV_H_
+#ifndef __FFPLAYER_VDEV_H__
+#define __FFPLAYER_VDEV_H__
 
 // 包含头文件
 #include "corerender.h"
@@ -17,7 +17,6 @@ void  vdev_gdi_setrect (void *ctxt, int x, int y, int w, int h);
 void  vdev_gdi_pause   (void *ctxt, BOOL pause);
 void  vdev_gdi_reset   (void *ctxt);
 void  vdev_gdi_getavpts(void *ctxt, int64_t **ppapts, int64_t **ppvpts);
-void  vdev_gdi_veffect (void *ctxt, void *buf, int len, int type, int x, int y, int w, int h);
 void  vdev_gdi_setparam(void *ctxt, DWORD id, void *param);
 void  vdev_gdi_getparam(void *ctxt, DWORD id, void *param);
 
@@ -29,7 +28,6 @@ void  vdev_d3d_setrect (void *ctxt, int x, int y, int w, int h);
 void  vdev_d3d_pause   (void *ctxt, BOOL pause);
 void  vdev_d3d_reset   (void *ctxt);
 void  vdev_d3d_getavpts(void *ctxt, int64_t **ppapts, int64_t **ppvpts);
-void  vdev_d3d_veffect (void *ctxt, void *buf, int len, int type, int x, int y, int w, int h);
 void  vdev_d3d_setparam(void *ctxt, DWORD id, void *param);
 void  vdev_d3d_getparam(void *ctxt, DWORD id, void *param);
 
@@ -42,7 +40,6 @@ void  vdev_d3d_getparam(void *ctxt, DWORD id, void *param);
 #define vdev_pause      vdev_gdi_pause
 #define vdev_reset      vdev_gdi_reset
 #define vdev_getavpts   vdev_gdi_getavpts
-#define vdev_veffect    vdev_gdi_veffect
 #define vdev_getparam   vdev_gdi_getparam
 #define vdev_setparam   vdev_gdi_setparam
 #else
@@ -54,7 +51,6 @@ void  vdev_d3d_getparam(void *ctxt, DWORD id, void *param);
 #define vdev_pause      vdev_d3d_pause
 #define vdev_reset      vdev_d3d_reset
 #define vdev_getavpts   vdev_d3d_getavpts
-#define vdev_veffect    vdev_d3d_veffect
 #define vdev_getparam   vdev_d3d_getparam
 #define vdev_setparam   vdev_d3d_setparam
 #endif

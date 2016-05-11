@@ -1,5 +1,5 @@
-﻿#ifndef __CORE_PLAYER_H__
-#define __CORE_PLAYER_H__
+﻿#ifndef __FFPLAYER_COREPLAYER_H__
+#define __FFPLAYER_COREPLAYER_H__
 
 // 包含头文件
 #include "stdefine.h"
@@ -23,7 +23,6 @@ enum {
     VISUAL_EFFECT_DISABLE ,
     VISUAL_EFFECT_WAVEFORM,
     VISUAL_EFFECT_SPECTRUM,
-    VISUAL_EFFECT_FORCE_DISPLAY = (1 << 31),
 };
 
 // param

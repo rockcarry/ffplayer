@@ -1,5 +1,5 @@
-#ifndef _PKT_QUEUE_H_
-#define _PKT_QUEUE_H_
+#ifndef __FFPLAYER_PKTQUEUE_H__
+#define __FFPLAYER_PKTQUEUE_H__
 
 // 包含头文件
 #include "stdefine.h"

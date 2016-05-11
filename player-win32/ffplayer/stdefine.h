@@ -1,6 +1,6 @@
 /* 标准头文件 */
-#ifndef _STDEFINE_H_
-#define _STDEFINE_H_
+#ifndef __STDEFINE_H__
+#define __STDEFINE_H__
 
 #if defined(WIN32)
 #include <windows.h>

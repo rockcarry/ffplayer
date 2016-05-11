@@ -1,5 +1,5 @@
-﻿#ifndef _CORERENDER_H_
-#define _CORERENDER_H_
+﻿#ifndef __FFPLAYER_CORERENDER_H__
+#define __FFPLAYER_CORERENDER_H__
 
 // 包含头文件
 #include "stdefine.h"

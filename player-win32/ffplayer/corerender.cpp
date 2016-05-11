@@ -1,6 +1,7 @@
 // 包含头文件
 #include <pthread.h>
 #include "corerender.h"
+#include "veffect.h"
 #include "adev.h"
 #include "vdev.h"
 #include "log.h"
@@ -50,6 +51,7 @@ typedef struct
     int            nRenderSpeedCur;
     int            nRenderSpeedNew;
 
+    void          *pVEffectContext;
     int            nVEffectType;
     int            nVEffectXPos;
     int            nVEffectYPos;
@@ -77,10 +79,11 @@ static void* render_veffect_thread(void *param)
     while (!(render->nRenderStatus & RENDER_CLOSE)) {
         void *buf = NULL;
         int   len = 0;
-        adev_curdata(render->adev, &buf, &len);
-        vdev_veffect(render->vdev,  buf,  len, render->nVEffectType,
+        adev_curdata  (render->adev, &buf, &len);
+        veffect_render(render->pVEffectContext,
             render->nVEffectXPos , render->nVEffectYPos,
-            render->nVEffectWidth, render->nVEffectHeight );
+            render->nVEffectWidth, render->nVEffectHeight,
+            render->nVEffectType, buf, len);
         usleep(1000000 * render->FrameRate.den / render->FrameRate.num);
     }
     return NULL;
@@ -112,7 +115,7 @@ void* render_open(void *surface, AVRational frate, int pixfmt, int w, int h,
     render->nChanLayout  = ch_layout;
 
     // init for visual effect
-    render->nVEffectType = VISUAL_EFFECT_WAVEFORM;
+    render->pVEffectContext = veffect_create(surface);
     pthread_create(&render->hVEffectThread, NULL, render_veffect_thread, render);
 
     // create adev & vdev
@@ -139,6 +142,7 @@ void render_close(void *hrender)
     // wait visual effect thread exit
     render->nRenderStatus = RENDER_CLOSE;
     pthread_join(render->hVEffectThread, NULL);
+    veffect_destroy(render->pVEffectContext);
 
     //++ audio ++//
     // destroy adev

@@ -1,5 +1,5 @@
-#ifndef _FFPLAYER_LOG_H_
-#define _FFPLAYER_LOG_H_
+#ifndef __FFPLAYER_LOG_H__
+#define __FFPLAYER_LOG_H__
 
 // 包含头文件
 #include "stdefine.h"

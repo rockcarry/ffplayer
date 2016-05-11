@@ -344,14 +344,6 @@ void* player_open(char *file, void *extra)
         }
     }
 
-    // for video
-    if (player->iVideoStreamIndex != -1)
-    {
-        vformat = player->pVideoCodecContext->pix_fmt;
-        width   = player->pVideoCodecContext->width;
-        height  = player->pVideoCodecContext->height;
-    }
-
     // for audio
     if (player->iAudioStreamIndex != -1)
     {
@@ -365,9 +357,21 @@ void* player_open(char *file, void *extra)
         arate   = player->pAudioCodecContext->sample_rate;
     }
 
+    // for video
+    if (player->iVideoStreamIndex != -1)
+    {
+        vformat = player->pVideoCodecContext->pix_fmt;
+        width   = player->pVideoCodecContext->width;
+        height  = player->pVideoCodecContext->height;
+    }
+
     // open core render
     player->hCoreRender = render_open(extra, vrate, vformat, width, height,
         arate, (AVSampleFormat)aformat, alayout);
+    if (player->iVideoStreamIndex == -1) {
+        int effect = VISUAL_EFFECT_WAVEFORM;
+        render_setparam(player->hCoreRender, PARAM_VISUAL_EFFECT, &effect);
+    }
 
     // make sure player status paused
     player->nPlayerStatus = (PS_D_PAUSE|PS_A_PAUSE|PS_V_PAUSE);

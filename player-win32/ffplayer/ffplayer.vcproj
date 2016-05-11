@@ -210,6 +210,10 @@
 				RelativePath=".\vdev-gdi.cpp"
 				>
 			</File>
+			<File
+				RelativePath=".\veffect.cpp"
+				>
+			</File>
 		</Filter>
 		<Filter
 			Name="Header Files"
@@ -242,6 +246,10 @@
 			</File>
 			<File
 				RelativePath=".\vdev.h"
+				>
+			</File>
+			<File
+				RelativePath=".\veffect.h"
 				>
 			</File>
 		</Filter>
