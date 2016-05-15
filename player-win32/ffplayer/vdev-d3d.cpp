@@ -1,8 +1,11 @@
 // 包含头文件
 #include <d3d9.h>
-#include "coreplayer.h"
 #include "vdev.h"
 #include "log.h"
+
+extern "C" {
+#include "libavformat/avformat.h"
+}
 
 // 预编译开关
 #define ENABLE_WAIT_D3D_VSYNC  TRUE
@@ -13,64 +16,19 @@
 // 内部类型定义
 typedef struct
 {
-    int      bufnum;
-    int      x;
-    int      y;
-    int      w;
-    int      h;
-
-    HWND     hwnd;
-    int64_t *ppts;
-    int64_t  apts;
-    int64_t  vpts;
-
-    int      head;
-    int      tail;
-    HANDLE   semr;
-    HANDLE   semw;
-
-    int      tickframe;
-    int      ticksleep;
-    int      ticklast;
-
-    #define DEVD3D_CLOSE      (1 << 0)
-    #define DEVD3D_PAUSE      (1 << 1)
-    #define DEVD3D_COMPLETED  (1 << 2)
-    int      nStatus;
-    HANDLE   hThread;
-
-    int      completed_counter;
-    int64_t  completed_apts;
-    int64_t  completed_vpts;
-    int      refresh_flag;
+    // common members
+    VDEV_COMMON_MEMBERS
 
     LPDIRECT3D9           pD3D9;
     LPDIRECT3DDEVICE9     pD3DDev;
     LPDIRECT3DSURFACE9   *pSurfs;
     D3DPRESENT_PARAMETERS d3dpp;
-    int                   pixfmt;
-    int                   sw;
-    int                   sh;
-} DEVD3DCTXT;
+    D3DFORMAT             d3dfmt;
+} VDEVD3DCTXT;
 
 // 内部函数实现
-static void RefreshWindowBackground(HWND hwnd, int x, int y, int w, int h)
+static void d3d_draw_surf(VDEVD3DCTXT *c, LPDIRECT3DSURFACE9 surf)
 {
-    RECT rtwin, rect1, rect2, rect3, rect4;
-    GetClientRect(hwnd, &rtwin);
-    rect1.left = 0;   rect1.top = 0;   rect1.right = rtwin.right; rect1.bottom = y;
-    rect2.left = 0;   rect2.top = y;   rect2.right = x;           rect2.bottom = y+h;
-    rect3.left = x+w; rect3.top = y;   rect3.right = rtwin.right; rect3.bottom = y+h;
-    rect4.left = 0;   rect4.top = y+h; rect4.right = rtwin.right; rect4.bottom = rtwin.bottom;
-    InvalidateRect(hwnd, &rect1, TRUE);
-    InvalidateRect(hwnd, &rect2, TRUE);
-    InvalidateRect(hwnd, &rect3, TRUE);
-    InvalidateRect(hwnd, &rect4, TRUE);
-}
-
-static void d3d_draw_surf(DEVD3DCTXT *c, LPDIRECT3DSURFACE9 surf)
-{
-    RECT rect;
     IDirect3DSurface9 *pBackBuffer = NULL;
     if (SUCCEEDED(c->pD3DDev->GetBackBuffer(0, 0, D3DBACKBUFFER_TYPE_MONO, &pBackBuffer)))
     {
@@ -87,22 +45,22 @@ static void d3d_draw_surf(DEVD3DCTXT *c, LPDIRECT3DSURFACE9 surf)
 
 static DWORD WINAPI VideoRenderThreadProc(void *param)
 {
-    DEVD3DCTXT *c = (DEVD3DCTXT*)param;
+    VDEVD3DCTXT *c = (VDEVD3DCTXT*)param;
 
-    while (!(c->nStatus & DEVD3D_CLOSE))
+    while (!(c->nStatus & VDEV_CLOSE))
     {
         int ret = WaitForSingleObject(c->semr, c->tickframe);
         if (ret != WAIT_OBJECT_0) continue;
 
         if (c->refresh_flag) {
             c->refresh_flag = 0;
-            RefreshWindowBackground(c->hwnd, c->x, c->y, c->w, c->h);
+            vdev_refresh_background(c);
         }
 
         int64_t apts = c->apts;
         int64_t vpts = c->vpts = c->ppts[c->head];
 #if CLEAR_VDEV_WHEN_COMPLETED
-        if (vpts != -1 && !(c->nStatus & DEVD3D_COMPLETED)) {
+        if (vpts != -1 && !(c->nStatus & VDEV_COMPLETED)) {
 #else
         if (vpts != -1) {
 #endif
@@ -113,17 +71,20 @@ static DWORD WINAPI VideoRenderThreadProc(void *param)
         if (++c->head == c->bufnum) c->head = 0;
         ReleaseSemaphore(c->semw, 1, NULL);
 
-        if (!(c->nStatus & DEVD3D_PAUSE)) {
+        if (!(c->nStatus & VDEV_PAUSE)) {
+            // send play progress event
+            vdev_player_event(c, PLAY_PROGRESS, c->vpts > c->apts ? c->vpts : c->apts);
+
             //++ play completed ++//
             if (c->completed_apts != c->apts || c->completed_vpts != c->vpts) {
                 c->completed_apts = c->apts;
                 c->completed_vpts = c->vpts;
                 c->completed_counter = 0;
             }
-            else if (!(c->nStatus & DEVD3D_PAUSE) && ++c->completed_counter == 50) {
+            else if (!(c->nStatus & VDEV_PAUSE) && ++c->completed_counter == 50) {
                 log_printf(TEXT("play completed !\n"));
-                c->nStatus |= DEVD3D_COMPLETED;
-                PostMessage(c->hwnd, MSG_COREPLAYER, PLAY_COMPLETED, 0);
+                c->nStatus |= VDEV_COMPLETED;
+                vdev_player_event(c, PLAY_COMPLETED, 0);
 
 #if CLEAR_VDEV_WHEN_COMPLETED
                 InvalidateRect(c->hwnd, NULL, TRUE);
@@ -154,14 +115,14 @@ static DWORD WINAPI VideoRenderThreadProc(void *param)
 // 接口函数实现
 void* vdev_d3d_create(void *surface, int bufnum, int w, int h, int frate)
 {
-    DEVD3DCTXT *ctxt = (DEVD3DCTXT*)malloc(sizeof(DEVD3DCTXT));
+    VDEVD3DCTXT *ctxt = (VDEVD3DCTXT*)malloc(sizeof(VDEVD3DCTXT));
     if (!ctxt) {
         log_printf(TEXT("failed to allocate d3d vdev context !\n"));
         exit(0);
     }
 
     // init vdev context
-    memset(ctxt, 0, sizeof(DEVD3DCTXT));
+    memset(ctxt, 0, sizeof(VDEVD3DCTXT));
     bufnum          = bufnum ? bufnum : DEF_VDEV_BUF_NUM;
     ctxt->hwnd      = (HWND)surface;
     ctxt->bufnum    = bufnum;
@@ -219,14 +180,17 @@ void* vdev_d3d_create(void *surface, int bufnum, int w, int h, int frate)
     //++ try pixel format
     if (SUCCEEDED(ctxt->pD3DDev->CreateOffscreenPlainSurface(1, 1, D3DFMT_YUY2,
             D3DPOOL_DEFAULT, &ctxt->pSurfs[0], NULL))) {
-        ctxt->pixfmt = D3DFMT_YUY2;
+        ctxt->d3dfmt = D3DFMT_YUY2;
+        ctxt->pixfmt = AV_PIX_FMT_YUYV422;
     }
     else if (SUCCEEDED(ctxt->pD3DDev->CreateOffscreenPlainSurface(1, 1, D3DFMT_UYVY,
             D3DPOOL_DEFAULT, &ctxt->pSurfs[0], NULL))) {
-        ctxt->pixfmt = D3DFMT_UYVY;
+        ctxt->d3dfmt = D3DFMT_UYVY;
+        ctxt->pixfmt = AV_PIX_FMT_UYVY422;
     }
     else {
-        ctxt->pixfmt = D3DFMT_X8R8G8B8;
+        ctxt->d3dfmt = D3DFMT_X8R8G8B8;
+        ctxt->pixfmt = AV_PIX_FMT_RGB32;
     }
     ctxt->pSurfs[0]->Release();
     ctxt->pSurfs[0] = NULL;
@@ -240,9 +204,9 @@ void* vdev_d3d_create(void *surface, int bufnum, int w, int h, int frate)
 void vdev_d3d_destroy(void *ctxt)
 {
     int i;
-    DEVD3DCTXT *c = (DEVD3DCTXT*)ctxt;
+    VDEVD3DCTXT *c = (VDEVD3DCTXT*)ctxt;
     // make rendering thread safely exit
-    c->nStatus = DEVD3D_CLOSE;
+    c->nStatus = VDEV_CLOSE;
     WaitForSingleObject(c->hThread, -1);
     CloseHandle(c->hThread);
 
@@ -272,13 +236,13 @@ void vdev_d3d_destroy(void *ctxt)
 
 void vdev_d3d_request(void *ctxt, void **buf, int *stride)
 {
-    DEVD3DCTXT *c = (DEVD3DCTXT*)ctxt;
+    VDEVD3DCTXT *c = (VDEVD3DCTXT*)ctxt;
 
     WaitForSingleObject(c->semw, -1);
 
     if (!c->pSurfs[c->tail]) {
         // create surface
-        if (FAILED(c->pD3DDev->CreateOffscreenPlainSurface(c->sw, c->sh, (D3DFORMAT)c->pixfmt,
+        if (FAILED(c->pD3DDev->CreateOffscreenPlainSurface(c->sw, c->sh, (D3DFORMAT)c->d3dfmt,
                     D3DPOOL_DEFAULT, &c->pSurfs[c->tail], NULL)))
         {
             log_printf(TEXT("failed to create d3d off screen plain surface !\n"));
@@ -297,7 +261,7 @@ void vdev_d3d_request(void *ctxt, void **buf, int *stride)
 
 void vdev_d3d_post(void *ctxt, int64_t pts)
 {
-    DEVD3DCTXT *c = (DEVD3DCTXT*)ctxt;
+    VDEVD3DCTXT *c = (VDEVD3DCTXT*)ctxt;
     c->pSurfs[c->tail]->UnlockRect();
     c->ppts[c->tail] = pts;
     if (++c->tail == c->bufnum) c->tail = 0;
@@ -306,83 +270,8 @@ void vdev_d3d_post(void *ctxt, int64_t pts)
 
 void vdev_d3d_setrect(void *ctxt, int x, int y, int w, int h)
 {
-    DEVD3DCTXT *c = (DEVD3DCTXT*)ctxt;
+    VDEV_COMMON_CTXT *c = (VDEV_COMMON_CTXT*)ctxt;
     c->x = x; c->y = y;
     c->w = w; c->h = h;
     c->refresh_flag= 1;
 }
-
-void vdev_d3d_pause(void *ctxt, BOOL pause)
-{
-    DEVD3DCTXT *c = (DEVD3DCTXT*)ctxt;
-    if (pause) {
-        c->nStatus |=  DEVD3D_PAUSE;
-    }
-    else {
-        c->nStatus &= ~DEVD3D_PAUSE;
-    }
-}
-
-void vdev_d3d_reset(void *ctxt)
-{
-    DEVD3DCTXT *c = (DEVD3DCTXT*)ctxt;
-    while (WAIT_OBJECT_0 == WaitForSingleObject(c->semr, 0));
-    ReleaseSemaphore(c->semw, c->bufnum, NULL);
-    c->head    = c->tail =  0;
-    c->apts    = c->vpts = -1;
-    c->nStatus = 0;
-}
-
-void vdev_d3d_getavpts(void *ctxt, int64_t **ppapts, int64_t **ppvpts)
-{
-    DEVD3DCTXT *c = (DEVD3DCTXT*)ctxt;
-    if (ppapts) *ppapts = &c->apts;
-    if (ppvpts) *ppvpts = &c->vpts;
-}
-
-void vdev_d3d_setparam(void *ctxt, DWORD id, void *param)
-{
-    if (!ctxt || !param) return;
-    DEVD3DCTXT *c = (DEVD3DCTXT*)ctxt;
-
-    switch (id) {
-    case PARAM_VDEV_PIXEL_FORMAT:
-        // pixel format is read only
-        // do nothing
-        break;
-    case PARAM_VDEV_FRAME_RATE:
-        c->tickframe = 1000 / (*(int*)param > 1 ? *(int*)param : 1);
-        break;
-    case PARAM_VDEV_SLOW_FLAG:
-        // slow flag is read only
-        // do nothing
-        break;
-    }
-}
-
-void vdev_d3d_getparam(void *ctxt, DWORD id, void *param)
-{
-    if (!ctxt || !param) return;
-    DEVD3DCTXT *c = (DEVD3DCTXT*)ctxt;
-
-    switch (id) {
-    case PARAM_VDEV_PIXEL_FORMAT:
-        *(int*)param = c->pixfmt == D3DFMT_YUY2 ? AV_PIX_FMT_YUYV422 : c->pixfmt == D3DFMT_UYVY ? AV_PIX_FMT_UYVY422 : AV_PIX_FMT_RGB32;
-        break;
-    case PARAM_VDEV_FRAME_RATE:
-        *(int*)param = 1000 / c->tickframe;
-        break;
-    case PARAM_VDEV_SLOW_FLAG:
-        if      (c->ticksleep < -100) *(int*)param = 1;
-        else if (c->ticksleep >  50 ) *(int*)param =-1;
-        else                          *(int*)param = 0;
-        break;
-    case PARAM_VDEV_SURFACE_WIDTH:
-        *(int*)param = c->sw;
-        break;
-    case PARAM_VDEV_SURFACE_HEIGHT:
-        *(int*)param = c->sh;
-        break;
-    }
-}
-

@@ -11,6 +11,7 @@ extern "C" {
 // 常量定义
 // message
 #define MSG_COREPLAYER  (WM_APP + 1)
+#define PLAY_PROGRESS   (('R' << 24) | ('U' << 16) | ('N' << 8))
 #define PLAY_COMPLETED  (('E' << 24) | ('N' << 16) | ('D' << 8))
 
 // render mode
@@ -28,17 +29,31 @@ enum {
 // param
 enum {
     //++ public
+    // duration & position
     PARAM_MEDIA_DURATION = 0x1000,
     PARAM_MEDIA_POSITION,
+
+    // media detail info
     PARAM_VIDEO_WIDTH,
     PARAM_VIDEO_HEIGHT,
+
+    // video display mode
     PARAM_VIDEO_MODE,
+
+    // audio volume control
     PARAM_AUDIO_VOLUME,
+
+    // playback speed control
     PARAM_PLAY_SPEED,
     PARAM_AUTO_SLOW_DOWN,
     PARAM_MIN_PLAY_SPEED,
     PARAM_MAX_PLAY_SPEED,
+
+    // visual effect mode
     PARAM_VISUAL_EFFECT,
+
+    // player event callback
+    PARAM_PLAYER_CALLBACK,
     //-- public
 
     //++ for vdev
@@ -53,6 +68,9 @@ enum {
     PARAM_ADEV_SLOW_FLAG = 0x3000,
     //-- for adev
 };
+
+// player event callback
+typedef void (*PFN_PLAYER_CALLBACK)(__int32 msg, __int64 param);
 
 // 函数声明
 void* player_open    (char *file, void *extra);
@@ -69,17 +87,6 @@ void  player_getparam(void *hplayer, DWORD id, void *param);
 #endif
 
 #endif
-
-
-
-
-
-
-
-
-
-
-
 
 
 

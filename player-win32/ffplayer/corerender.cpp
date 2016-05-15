@@ -341,6 +341,9 @@ void render_setparam(void *hrender, DWORD id, void *param)
     case PARAM_VISUAL_EFFECT:
         render->nVEffectType = *(int*)param;
         break;
+    case PARAM_PLAYER_CALLBACK:
+        vdev_setparam(render->vdev, PARAM_PLAYER_CALLBACK, param);
+        break;
     }
 }
 

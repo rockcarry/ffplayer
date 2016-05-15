@@ -560,6 +560,9 @@ void player_setparam(void *hplayer, DWORD id, void *param)
     case PARAM_VISUAL_EFFECT:
         render_setparam(player->hCoreRender, PARAM_VISUAL_EFFECT, param);
         break;
+    case PARAM_PLAYER_CALLBACK:
+        render_setparam(player->hCoreRender, PARAM_PLAYER_CALLBACK, param);
+        break;
     }
 }
 

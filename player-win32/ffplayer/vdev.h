@@ -2,61 +2,99 @@
 #define __FFPLAYER_VDEV_H__
 
 // 包含头文件
-#include "corerender.h"
-
-// 预编译开关
-#define CLEAR_VDEV_WHEN_DESTROYED  TRUE
-#define CLEAR_VDEV_WHEN_COMPLETED  TRUE
+#include <stdint.h>
+#include "coreplayer.h"
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
+// 预编译开关
+#define CLEAR_VDEV_WHEN_DESTROYED  TRUE
+#define CLEAR_VDEV_WHEN_COMPLETED  TRUE
+
+// 常量定义
+#define VDEV_CLOSE      (1 << 0)
+#define VDEV_PAUSE      (1 << 1)
+#define VDEV_COMPLETED  (1 << 2)
+
+//++ vdev context common members
+#define VDEV_COMMON_MEMBERS \
+    int      bufnum; \
+    int      pixfmt; \
+    int      x;   /* video display rect x */ \
+    int      y;   /* video display rect y */ \
+    int      w;   /* video display rect w */ \
+    int      h;   /* video display rect h */ \
+    int      sw;  /* surface width        */ \
+    int      sh;  /* surface height       */ \
+                                             \
+    HWND     hwnd;                           \
+    int64_t *ppts;                           \
+    int64_t  apts;                           \
+    int64_t  vpts;                           \
+                                             \
+    int      head;                           \
+    int      tail;                           \
+    HANDLE   semr;                           \
+    HANDLE   semw;                           \
+                                             \
+    int      tickframe;                      \
+    int      ticksleep;                      \
+    int      ticklast;                       \
+                                             \
+    int      nStatus;                        \
+    HANDLE   hThread;                        \
+                                             \
+    int      completed_counter;              \
+    int64_t  completed_apts;                 \
+    int64_t  completed_vpts;                 \
+    int      refresh_flag;                   \
+                                             \
+    PFN_PLAYER_CALLBACK fpcb;
+//-- vdev context common members
+
+// 类型定义
+typedef struct {
+    VDEV_COMMON_MEMBERS
+} VDEV_COMMON_CTXT;
+
 // 函数声明
+void vdev_setrect (void *ctxt, int x, int y, int w, int h);
+void vdev_pause   (void *ctxt, BOOL pause);
+void vdev_reset   (void *ctxt);
+void vdev_getavpts(void *ctxt, int64_t **ppapts, int64_t **ppvpts);
+void vdev_setparam(void *ctxt, DWORD id, void *param);
+void vdev_getparam(void *ctxt, DWORD id, void *param);
+void vdev_player_event(void *ctxt, int32_t msg, int64_t param);
+void vdev_refresh_background(void *ctxt);
+
+// vdev-gdi
 void* vdev_gdi_create  (void *surface, int bufnum, int w, int h, int frate);
 void  vdev_gdi_destroy (void *ctxt);
 void  vdev_gdi_request (void *ctxt, void **buf, int *stride);
 void  vdev_gdi_post    (void *ctxt, int64_t pts);
 void  vdev_gdi_setrect (void *ctxt, int x, int y, int w, int h);
-void  vdev_gdi_pause   (void *ctxt, BOOL pause);
-void  vdev_gdi_reset   (void *ctxt);
-void  vdev_gdi_getavpts(void *ctxt, int64_t **ppapts, int64_t **ppvpts);
-void  vdev_gdi_setparam(void *ctxt, DWORD id, void *param);
-void  vdev_gdi_getparam(void *ctxt, DWORD id, void *param);
 
+// vdev-d3d
 void* vdev_d3d_create  (void *surface, int bufnum, int w, int h, int frate);
 void  vdev_d3d_destroy (void *ctxt);
 void  vdev_d3d_request (void *ctxt, void **buf, int *stride);
 void  vdev_d3d_post    (void *ctxt, int64_t pts);
 void  vdev_d3d_setrect (void *ctxt, int x, int y, int w, int h);
-void  vdev_d3d_pause   (void *ctxt, BOOL pause);
-void  vdev_d3d_reset   (void *ctxt);
-void  vdev_d3d_getavpts(void *ctxt, int64_t **ppapts, int64_t **ppvpts);
-void  vdev_d3d_setparam(void *ctxt, DWORD id, void *param);
-void  vdev_d3d_getparam(void *ctxt, DWORD id, void *param);
 
 #if 0
-#define vdev_create     vdev_gdi_create
-#define vdev_destroy    vdev_gdi_destroy
-#define vdev_request    vdev_gdi_request
-#define vdev_post       vdev_gdi_post
-#define vdev_setrect    vdev_gdi_setrect
-#define vdev_pause      vdev_gdi_pause
-#define vdev_reset      vdev_gdi_reset
-#define vdev_getavpts   vdev_gdi_getavpts
-#define vdev_getparam   vdev_gdi_getparam
-#define vdev_setparam   vdev_gdi_setparam
+#define vdev_create    vdev_gdi_create
+#define vdev_destroy   vdev_gdi_destroy
+#define vdev_request   vdev_gdi_request
+#define vdev_post      vdev_gdi_post
+#define vdev_setrect   vdev_gdi_setrect
 #else
-#define vdev_create     vdev_d3d_create
-#define vdev_destroy    vdev_d3d_destroy
-#define vdev_request    vdev_d3d_request
-#define vdev_post       vdev_d3d_post
-#define vdev_setrect    vdev_d3d_setrect
-#define vdev_pause      vdev_d3d_pause
-#define vdev_reset      vdev_d3d_reset
-#define vdev_getavpts   vdev_d3d_getavpts
-#define vdev_getparam   vdev_d3d_getparam
-#define vdev_setparam   vdev_d3d_setparam
+#define vdev_create    vdev_d3d_create
+#define vdev_destroy   vdev_d3d_destroy
+#define vdev_request   vdev_d3d_request
+#define vdev_post      vdev_d3d_post
+#define vdev_setrect   vdev_d3d_setrect
 #endif
 
 #ifdef __cplusplus

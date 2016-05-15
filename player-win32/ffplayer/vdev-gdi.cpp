@@ -1,7 +1,10 @@
 // 包含头文件
-#include "coreplayer.h"
 #include "vdev.h"
 #include "log.h"
+
+extern "C" {
+#include "libavformat/avformat.h"
+}
 
 // 内部常量定义
 #define DEF_VDEV_BUF_NUM  3
@@ -9,75 +12,34 @@
 // 内部类型定义
 typedef struct
 {
-    int      bufnum;
-    int      x;
-    int      y;
-    int      w;
-    int      h;
+    // common members
+    VDEV_COMMON_MEMBERS
 
-    HWND     hwnd;
     HDC      hdcsrc;
     HDC      hdcdst;
     HBITMAP *hbitmaps;
     BYTE   **pbmpbufs;
-    int64_t *ppts;
-    int64_t  apts;
-    int64_t  vpts;
-
-    int      head;
-    int      tail;
-    HANDLE   semr;
-    HANDLE   semw;
-
-    int      tickframe;
-    int      ticksleep;
-    int      ticklast;
-
-    #define DEVGDI_CLOSE      (1 << 0)
-    #define DEVGDI_PAUSE      (1 << 1)
-    #define DEVGDI_COMPLETED  (1 << 2)
-    int      nStatus;
-    HANDLE   hThread;
-
-    int      completed_counter;
-    int64_t  completed_apts;
-    int64_t  completed_vpts;
-    int      refresh_flag;
-} DEVGDICTXT;
+} VDEVGDICTXT;
 
 // 内部函数实现
-static void RefreshWindowBackground(HWND hwnd, int x, int y, int w, int h)
-{
-    RECT rtwin, rect1, rect2, rect3, rect4;
-    GetClientRect(hwnd, &rtwin);
-    rect1.left = 0;   rect1.top = 0;   rect1.right = rtwin.right; rect1.bottom = y;
-    rect2.left = 0;   rect2.top = y;   rect2.right = x;           rect2.bottom = y+h;
-    rect3.left = x+w; rect3.top = y;   rect3.right = rtwin.right; rect3.bottom = y+h;
-    rect4.left = 0;   rect4.top = y+h; rect4.right = rtwin.right; rect4.bottom = rtwin.bottom;
-    InvalidateRect(hwnd, &rect1, TRUE);
-    InvalidateRect(hwnd, &rect2, TRUE);
-    InvalidateRect(hwnd, &rect3, TRUE);
-    InvalidateRect(hwnd, &rect4, TRUE);
-}
-
 static DWORD WINAPI VideoRenderThreadProc(void *param)
 {
-    DEVGDICTXT *c = (DEVGDICTXT*)param;
+    VDEVGDICTXT *c = (VDEVGDICTXT*)param;
 
-    while (!(c->nStatus & DEVGDI_CLOSE))
+    while (!(c->nStatus & VDEV_CLOSE))
     {
         int ret = WaitForSingleObject(c->semr, c->tickframe);
         if (ret != WAIT_OBJECT_0) continue;
 
         if (c->refresh_flag) {
             c->refresh_flag = 0;
-            RefreshWindowBackground(c->hwnd, c->x, c->y, c->w, c->h);
+            vdev_refresh_background(c);
         }
 
         int64_t apts = c->apts;
         int64_t vpts = c->vpts = c->ppts[c->head];
 #if CLEAR_VDEV_WHEN_COMPLETED
-        if (vpts != -1 && !(c->nStatus & DEVGDI_COMPLETED)) {
+        if (vpts != -1 && !(c->nStatus & VDEV_COMPLETED)) {
 #else
         if (vpts != -1) {
 #endif
@@ -89,7 +51,10 @@ static DWORD WINAPI VideoRenderThreadProc(void *param)
         if (++c->head == c->bufnum) c->head = 0;
         ReleaseSemaphore(c->semw, 1, NULL);
 
-        if (!(c->nStatus & (DEVGDI_PAUSE|DEVGDI_COMPLETED))) {
+        if (!(c->nStatus & (VDEV_PAUSE|VDEV_COMPLETED))) {
+            // send play progress event
+            vdev_player_event(c, PLAY_PROGRESS, c->vpts > c->apts ? c->vpts : c->apts);
+
             //++ play completed ++//
             if (c->completed_apts != c->apts || c->completed_vpts != c->vpts) {
                 c->completed_apts = c->apts;
@@ -98,8 +63,8 @@ static DWORD WINAPI VideoRenderThreadProc(void *param)
             }
             else if (++c->completed_counter == 50) {
                 log_printf(TEXT("play completed !\n"));
-                c->nStatus |= DEVGDI_COMPLETED;
-                PostMessage(c->hwnd, MSG_COREPLAYER, PLAY_COMPLETED, 0);
+                c->nStatus |= VDEV_COMPLETED;
+                vdev_player_event(c, PLAY_COMPLETED, 0);
 
 #if CLEAR_VDEV_WHEN_COMPLETED
                 InvalidateRect(c->hwnd, NULL, TRUE);
@@ -130,17 +95,18 @@ static DWORD WINAPI VideoRenderThreadProc(void *param)
 // 接口函数实现
 void* vdev_gdi_create(void *surface, int bufnum, int w, int h, int frate)
 {
-    DEVGDICTXT *ctxt = (DEVGDICTXT*)malloc(sizeof(DEVGDICTXT));
+    VDEVGDICTXT *ctxt = (VDEVGDICTXT*)malloc(sizeof(VDEVGDICTXT));
     if (!ctxt) {
         log_printf(TEXT("failed to allocate gdi vdev context !\n"));
         exit(0);
     }
 
     // init vdev context
-    memset(ctxt, 0, sizeof(DEVGDICTXT));
+    memset(ctxt, 0, sizeof(VDEVGDICTXT));
     bufnum          = bufnum ? bufnum : DEF_VDEV_BUF_NUM;
     ctxt->hwnd      = (HWND)surface;
     ctxt->bufnum    = bufnum;
+    ctxt->pixfmt    = AV_PIX_FMT_RGB32;
     ctxt->w         = w;
     ctxt->h         = h;
     ctxt->tickframe = 1000 / frate;
@@ -174,10 +140,10 @@ void* vdev_gdi_create(void *surface, int bufnum, int w, int h, int frate)
 void vdev_gdi_destroy(void *ctxt)
 {
     int i;
-    DEVGDICTXT *c = (DEVGDICTXT*)ctxt;
+    VDEVGDICTXT *c = (VDEVGDICTXT*)ctxt;
 
     // make visual effect rendering thread safely exit
-    c->nStatus = DEVGDI_CLOSE;
+    c->nStatus = VDEV_CLOSE;
     WaitForSingleObject(c->hThread, -1);
     CloseHandle(c->hThread);
 
@@ -209,7 +175,7 @@ void vdev_gdi_destroy(void *ctxt)
 
 void vdev_gdi_request(void *ctxt, void **buffer, int *stride)
 {
-    DEVGDICTXT *c = (DEVGDICTXT*)ctxt;
+    VDEVGDICTXT *c = (VDEVGDICTXT*)ctxt;
 
     WaitForSingleObject(c->semw, -1);
 
@@ -245,7 +211,7 @@ void vdev_gdi_request(void *ctxt, void **buffer, int *stride)
 
 void vdev_gdi_post(void *ctxt, int64_t pts)
 {
-    DEVGDICTXT *c = (DEVGDICTXT*)ctxt;
+    VDEVGDICTXT *c = (VDEVGDICTXT*)ctxt;
     c->ppts[c->tail] = pts;
     if (++c->tail == c->bufnum) c->tail = 0;
     ReleaseSemaphore(c->semr, 1, NULL);
@@ -253,83 +219,9 @@ void vdev_gdi_post(void *ctxt, int64_t pts)
 
 void vdev_gdi_setrect(void *ctxt, int x, int y, int w, int h)
 {
-    DEVGDICTXT *c = (DEVGDICTXT*)ctxt;
-    c->x = x; c->y = y;
-    c->w = w; c->h = h;
-    c->refresh_flag= 1;
+    VDEV_COMMON_CTXT *c = (VDEV_COMMON_CTXT*)ctxt;
+    c->x  = x; c->y  = y;
+    c->w  = w; c->h  = h;
+    c->sw = w; c->sh = h;
+    c->refresh_flag  = 1;
 }
-
-void vdev_gdi_pause(void *ctxt, BOOL pause)
-{
-    DEVGDICTXT *c = (DEVGDICTXT*)ctxt;
-    if (pause) {
-        c->nStatus |=  DEVGDI_PAUSE;
-    }
-    else {
-        c->nStatus &= ~DEVGDI_PAUSE;
-    }
-}
-
-void vdev_gdi_reset(void *ctxt)
-{
-    DEVGDICTXT *c = (DEVGDICTXT*)ctxt;
-    while (WAIT_OBJECT_0 == WaitForSingleObject(c->semr, 0));
-    ReleaseSemaphore(c->semw, c->bufnum, NULL);
-    c->head    = c->tail =  0;
-    c->apts    = c->vpts = -1;
-    c->nStatus = 0;
-}
-
-void vdev_gdi_getavpts(void *ctxt, int64_t **ppapts, int64_t **ppvpts)
-{
-    DEVGDICTXT *c = (DEVGDICTXT*)ctxt;
-    if (ppapts) *ppapts = &c->apts;
-    if (ppvpts) *ppvpts = &c->vpts;
-}
-
-void vdev_gdi_setparam(void *ctxt, DWORD id, void *param)
-{
-    if (!ctxt || !param) return;
-    DEVGDICTXT *c = (DEVGDICTXT*)ctxt;
-
-    switch (id) {
-    case PARAM_VDEV_PIXEL_FORMAT:
-        // pixel format is read only
-        // do nothing
-        break;
-    case PARAM_VDEV_FRAME_RATE:
-        c->tickframe = 1000 / (*(int*)param > 1 ? *(int*)param : 1);
-        break;
-    case PARAM_VDEV_SLOW_FLAG:
-        // slow flag is read only
-        // do nothing
-        break;
-    }
-}
-
-void vdev_gdi_getparam(void *ctxt, DWORD id, void *param)
-{
-    if (!ctxt || !param) return;
-    DEVGDICTXT *c = (DEVGDICTXT*)ctxt;
-
-    switch (id) {
-    case PARAM_VDEV_PIXEL_FORMAT:
-        *(int*)param = AV_PIX_FMT_RGB32;
-        break;
-    case PARAM_VDEV_FRAME_RATE:
-        *(int*)param = 1000 / c->tickframe;
-        break;
-    case PARAM_VDEV_SLOW_FLAG:
-        if      (c->ticksleep < -100) *(int*)param = 1;
-        else if (c->ticksleep >  50 ) *(int*)param =-1;
-        else                          *(int*)param = 0;
-        break;
-    case PARAM_VDEV_SURFACE_WIDTH:
-        *(int*)param = c->w;
-        break;
-    case PARAM_VDEV_SURFACE_HEIGHT:
-        *(int*)param = c->h;
-        break;
-    }
-}
-

@@ -203,6 +203,10 @@
 				>
 			</File>
 			<File
+				RelativePath=".\vdev-cmn.cpp"
+				>
+			</File>
+			<File
 				RelativePath=".\vdev-d3d.cpp"
 				>
 			</File>
