@@ -76,6 +76,7 @@ static void render_setspeed(RENDER *render, int speed)
 static void* render_veffect_thread(void *param)
 {
     RENDER *render = (RENDER*)param;
+    int     timeus = 1000000LL * render->FrameRate.den / render->FrameRate.num;
     while (!(render->nRenderStatus & RENDER_CLOSE)) {
         void *buf = NULL;
         int   len = 0;
@@ -84,7 +85,7 @@ static void* render_veffect_thread(void *param)
             render->nVEffectXPos , render->nVEffectYPos,
             render->nVEffectWidth, render->nVEffectHeight,
             render->nVEffectType, buf, len);
-        usleep(1000000 * render->FrameRate.den / render->FrameRate.num);
+        usleep(timeus);
     }
     return NULL;
 }
