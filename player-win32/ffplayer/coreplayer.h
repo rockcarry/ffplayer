@@ -45,6 +45,8 @@ enum {
     PARAM_VDEV_PIXEL_FORMAT = 0x2000,
     PARAM_VDEV_FRAME_RATE,
     PARAM_VDEV_SLOW_FLAG,
+    PARAM_VDEV_SURFACE_WIDTH,
+    PARAM_VDEV_SURFACE_HEIGHT,
     //-- for vdev
 
     //++ for adev

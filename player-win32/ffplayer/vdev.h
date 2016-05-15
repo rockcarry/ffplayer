@@ -35,7 +35,7 @@ void  vdev_d3d_getavpts(void *ctxt, int64_t **ppapts, int64_t **ppvpts);
 void  vdev_d3d_setparam(void *ctxt, DWORD id, void *param);
 void  vdev_d3d_getparam(void *ctxt, DWORD id, void *param);
 
-#if 1
+#if 0
 #define vdev_create     vdev_gdi_create
 #define vdev_destroy    vdev_gdi_destroy
 #define vdev_request    vdev_gdi_request

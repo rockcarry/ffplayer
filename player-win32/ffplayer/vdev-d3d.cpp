@@ -4,6 +4,9 @@
 #include "vdev.h"
 #include "log.h"
 
+// 预编译开关
+#define ENABLE_WAIT_D3D_VSYNC  TRUE
+
 // 内部常量定义
 #define DEF_VDEV_BUF_NUM  3
 
@@ -44,10 +47,10 @@ typedef struct
     LPDIRECT3D9           pD3D9;
     LPDIRECT3DDEVICE9     pD3DDev;
     LPDIRECT3DSURFACE9   *pSurfs;
-    IDirect3DSwapChain9  *pSwapChain;
     D3DPRESENT_PARAMETERS d3dpp;
-    int                   d3d_reset;
     int                   pixfmt;
+    int                   sw;
+    int                   sh;
 } DEVD3DCTXT;
 
 // 内部函数实现
@@ -68,30 +71,14 @@ static void RefreshWindowBackground(HWND hwnd, int x, int y, int w, int h)
 static void d3d_draw_surf(DEVD3DCTXT *c, LPDIRECT3DSURFACE9 surf)
 {
     RECT rect;
-
-    if (c->d3d_reset) {
-        c->d3d_reset = 0;
-        GetClientRect(c->hwnd, &rect);
-        c->d3dpp.BackBufferWidth  = rect.right;
-        c->d3dpp.BackBufferHeight = rect.bottom;
-        if (c->pSwapChain) c->pSwapChain->Release();
-        if (FAILED(c->pD3DDev->CreateAdditionalSwapChain(&c->d3dpp, &c->pSwapChain))) {
-            log_printf(TEXT("failed to create swap chain !\n"));
-            exit(0);
-        }
-    }
-
     IDirect3DSurface9 *pBackBuffer = NULL;
-    if (SUCCEEDED(c->pSwapChain->GetBackBuffer(0, D3DBACKBUFFER_TYPE_MONO, &pBackBuffer)))
+    if (SUCCEEDED(c->pD3DDev->GetBackBuffer(0, 0, D3DBACKBUFFER_TYPE_MONO, &pBackBuffer)))
     {
         if (pBackBuffer) {
-            rect.left   = c->x;
-            rect.top    = c->y;
-            rect.right  = c->x + c->w;
-            rect.bottom = c->y + c->h;
-            if (SUCCEEDED(c->pD3DDev->StretchRect(surf, NULL, pBackBuffer, &rect, D3DTEXF_LINEAR)))
+            if (SUCCEEDED(c->pD3DDev->StretchRect(surf, NULL, pBackBuffer, NULL, D3DTEXF_LINEAR)))
             {
-                c->pSwapChain->Present(&rect, &rect, NULL, NULL, NULL);
+                RECT rect = { c->x, c->y, c->x + c->w, c->y + c->h };
+                c->pD3DDev->Present(NULL, &rect, NULL, NULL);
             }
             pBackBuffer->Release();
         }
@@ -180,9 +167,10 @@ void* vdev_d3d_create(void *surface, int bufnum, int w, int h, int frate)
     ctxt->bufnum    = bufnum;
     ctxt->w         = w;
     ctxt->h         = h;
+    ctxt->sw        = w < GetSystemMetrics(SM_CXSCREEN) ? w : GetSystemMetrics(SM_CXSCREEN);
+    ctxt->sh        = h < GetSystemMetrics(SM_CYSCREEN) ? h : GetSystemMetrics(SM_CYSCREEN);
     ctxt->tickframe = 1000 / frate;
     ctxt->ticksleep = ctxt->tickframe;
-    ctxt->d3d_reset = 1;
     ctxt->apts      =-1;
     ctxt->vpts      =-1;
 
@@ -208,12 +196,18 @@ void* vdev_d3d_create(void *surface, int bufnum, int w, int h, int frate)
     ctxt->pD3D9->GetAdapterDisplayMode(D3DADAPTER_DEFAULT, &d3dmode);
     ctxt->d3dpp.BackBufferFormat      = D3DFMT_UNKNOWN;
     ctxt->d3dpp.BackBufferCount       = 1;
+    ctxt->d3dpp.BackBufferWidth       = ctxt->sw;
+    ctxt->d3dpp.BackBufferHeight      = ctxt->sh;
     ctxt->d3dpp.MultiSampleType       = D3DMULTISAMPLE_NONE;
     ctxt->d3dpp.SwapEffect            = D3DSWAPEFFECT_DISCARD;
     ctxt->d3dpp.hDeviceWindow         = ctxt->hwnd;
     ctxt->d3dpp.Windowed              = TRUE;
     ctxt->d3dpp.EnableAutoDepthStencil= FALSE;
+#if ENABLE_WAIT_D3D_VSYNC
     ctxt->d3dpp.PresentationInterval  = d3dmode.RefreshRate < 60 ? D3DPRESENT_INTERVAL_IMMEDIATE : D3DPRESENT_INTERVAL_ONE;
+#else
+    ctxt->d3dpp.PresentationInterval  = D3DPRESENT_INTERVAL_IMMEDIATE;
+#endif
 
     if (FAILED(ctxt->pD3D9->CreateDevice(D3DADAPTER_DEFAULT, D3DDEVTYPE_HAL, ctxt->hwnd,
                 D3DCREATE_SOFTWARE_VERTEXPROCESSING, &ctxt->d3dpp, &ctxt->pD3DDev)) )
@@ -223,17 +217,19 @@ void* vdev_d3d_create(void *surface, int bufnum, int w, int h, int frate)
     }
 
     //++ try pixel format
-    if (SUCCEEDED(ctxt->pD3DDev->CreateOffscreenPlainSurface(100, 100, D3DFMT_YUY2,
+    if (SUCCEEDED(ctxt->pD3DDev->CreateOffscreenPlainSurface(1, 1, D3DFMT_YUY2,
             D3DPOOL_DEFAULT, &ctxt->pSurfs[0], NULL))) {
         ctxt->pixfmt = D3DFMT_YUY2;
     }
-    else if (SUCCEEDED(ctxt->pD3DDev->CreateOffscreenPlainSurface(100, 100, D3DFMT_UYVY,
+    else if (SUCCEEDED(ctxt->pD3DDev->CreateOffscreenPlainSurface(1, 1, D3DFMT_UYVY,
             D3DPOOL_DEFAULT, &ctxt->pSurfs[0], NULL))) {
         ctxt->pixfmt = D3DFMT_UYVY;
     }
     else {
         ctxt->pixfmt = D3DFMT_X8R8G8B8;
     }
+    ctxt->pSurfs[0]->Release();
+    ctxt->pSurfs[0] = NULL;
     //-- try pixel format
 
     // create video rendering thread
@@ -256,9 +252,8 @@ void vdev_d3d_destroy(void *ctxt)
         }
     }
 
-    c->pSwapChain->Release();
-    c->pD3DDev   ->Release();
-    c->pD3D9     ->Release();
+    c->pD3DDev->Release();
+    c->pD3D9  ->Release();
 
     // close semaphore
     CloseHandle(c->semr);
@@ -281,22 +276,9 @@ void vdev_d3d_request(void *ctxt, void **buf, int *stride)
 
     WaitForSingleObject(c->semw, -1);
 
-    D3DSURFACE_DESC desc;
-    int sufw = 0;
-    int sufh = 0;
-    if (c->pSurfs[c->tail]) {
-        c->pSurfs[c->tail]->GetDesc(&desc);
-        sufw = desc.Width ;
-        sufh = desc.Height;
-    }
-
-    if (sufw != c->w || sufh != c->h) {
-        if (c->pSurfs[c->tail]) {
-            c->pSurfs[c->tail]->Release();
-        }
-
+    if (!c->pSurfs[c->tail]) {
         // create surface
-        if (FAILED(c->pD3DDev->CreateOffscreenPlainSurface(c->w, c->h, (D3DFORMAT)c->pixfmt,
+        if (FAILED(c->pD3DDev->CreateOffscreenPlainSurface(c->sw, c->sh, (D3DFORMAT)c->pixfmt,
                     D3DPOOL_DEFAULT, &c->pSurfs[c->tail], NULL)))
         {
             log_printf(TEXT("failed to create d3d off screen plain surface !\n"));
@@ -328,7 +310,6 @@ void vdev_d3d_setrect(void *ctxt, int x, int y, int w, int h)
     c->x = x; c->y = y;
     c->w = w; c->h = h;
     c->refresh_flag= 1;
-    c->d3d_reset   = 1;
 }
 
 void vdev_d3d_pause(void *ctxt, BOOL pause)
@@ -395,6 +376,12 @@ void vdev_d3d_getparam(void *ctxt, DWORD id, void *param)
         if      (c->ticksleep < -100) *(int*)param = 1;
         else if (c->ticksleep >  50 ) *(int*)param =-1;
         else                          *(int*)param = 0;
+        break;
+    case PARAM_VDEV_SURFACE_WIDTH:
+        *(int*)param = c->sw;
+        break;
+    case PARAM_VDEV_SURFACE_HEIGHT:
+        *(int*)param = c->sh;
         break;
     }
 }

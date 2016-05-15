@@ -324,6 +324,12 @@ void vdev_gdi_getparam(void *ctxt, DWORD id, void *param)
         else if (c->ticksleep >  50 ) *(int*)param =-1;
         else                          *(int*)param = 0;
         break;
+    case PARAM_VDEV_SURFACE_WIDTH:
+        *(int*)param = c->w;
+        break;
+    case PARAM_VDEV_SURFACE_HEIGHT:
+        *(int*)param = c->h;
+        break;
     }
 }
 

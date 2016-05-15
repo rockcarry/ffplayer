@@ -121,7 +121,7 @@ void* render_open(void *surface, AVRational frate, int pixfmt, int w, int h,
 
     // create adev & vdev
     render->adev = adev_create(0, (int)(44100.0 * frate.den / frate.num + 0.5) * 4);
-    render->vdev = vdev_create(surface, 0, 0, 0, frate.num / frate.den);
+    render->vdev = vdev_create(surface, 0, w, h, frate.num / frate.den);
 
     // make adev & vdev sync together
     int64_t *papts = NULL;
@@ -222,7 +222,6 @@ void render_video(void *hrender, AVFrame *video)
     AVFrame  picture = {0};
     BYTE    *bmpbuf;
     int      stride;
-    int      pixfmt;
 
     do {
         if (  render->nRenderXPosCur  != render->nRenderXPosNew
@@ -234,15 +233,22 @@ void render_video(void *hrender, AVFrame *video)
             render->nRenderWidthCur  = render->nRenderWidthNew;
             render->nRenderHeightCur = render->nRenderHeightNew;
 
+            int swold, shold, swnew, shnew;
+            vdev_getparam(render->vdev, PARAM_VDEV_SURFACE_WIDTH , &swold);
+            vdev_getparam(render->vdev, PARAM_VDEV_SURFACE_HEIGHT, &shold);
             vdev_setrect(render->vdev, render->nRenderXPosCur, render->nRenderYPosCur,
                 render->nRenderWidthCur, render->nRenderHeightCur);
+            vdev_getparam(render->vdev, PARAM_VDEV_SURFACE_WIDTH , &swnew);
+            vdev_getparam(render->vdev, PARAM_VDEV_SURFACE_HEIGHT, &shnew);
 
-            if (render->pSWSContext) sws_freeContext(render->pSWSContext);
-            vdev_getparam(render->vdev, PARAM_VDEV_PIXEL_FORMAT, &pixfmt);
-            render->pSWSContext = sws_getContext(
-                render->nVideoWidth, render->nVideoHeight, render->PixelFormat,
-                render->nRenderWidthCur, render->nRenderHeightCur, (AVPixelFormat)pixfmt,
-                SWS_BILINEAR, 0, 0, 0);
+            if (!render->pSWSContext || swold != swnew || shold != shnew) {
+                int pixfmt; vdev_getparam(render->vdev, PARAM_VDEV_PIXEL_FORMAT, &pixfmt);
+                sws_freeContext(render->pSWSContext);
+                render->pSWSContext = sws_getContext(
+                    render->nVideoWidth, render->nVideoHeight, render->PixelFormat,
+                    swnew, shnew, (AVPixelFormat)pixfmt,
+                    SWS_BILINEAR, 0, 0, 0);
+            }
         }
 
         vdev_request(render->vdev, (void**)&bmpbuf, &stride);
