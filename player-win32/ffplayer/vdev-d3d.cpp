@@ -30,8 +30,9 @@ typedef struct
     int      ticksleep;
     int      ticklast;
 
-    #define DEVD3D_CLOSE  (1 << 0)
-    #define DEVD3D_PAUSE  (1 << 1)
+    #define DEVD3D_CLOSE      (1 << 0)
+    #define DEVD3D_PAUSE      (1 << 1)
+    #define DEVD3D_COMPLETED  (1 << 2)
     int      nStatus;
     HANDLE   hThread;
 
@@ -45,7 +46,7 @@ typedef struct
     LPDIRECT3DSURFACE9   *pSurfs;
     IDirect3DSwapChain9  *pSwapChain;
     D3DPRESENT_PARAMETERS d3dpp;
-    int                   need_reset;
+    int                   d3d_reset;
     int                   pixfmt;
 } DEVD3DCTXT;
 
@@ -68,8 +69,8 @@ static void d3d_draw_surf(DEVD3DCTXT *c, LPDIRECT3DSURFACE9 surf)
 {
     RECT rect;
 
-    if (c->need_reset) {
-        c->need_reset = 0;
+    if (c->d3d_reset) {
+        c->d3d_reset = 0;
         GetClientRect(c->hwnd, &rect);
         c->d3dpp.BackBufferWidth  = rect.right;
         c->d3dpp.BackBufferHeight = rect.bottom;
@@ -113,7 +114,11 @@ static DWORD WINAPI VideoRenderThreadProc(void *param)
 
         int64_t apts = c->apts;
         int64_t vpts = c->vpts = c->ppts[c->head];
+#if CLEAR_VDEV_WHEN_COMPLETED
+        if (vpts != -1 && !(c->nStatus & DEVD3D_COMPLETED)) {
+#else
         if (vpts != -1) {
+#endif
             d3d_draw_surf(c, c->pSurfs[c->head]);
         }
 
@@ -129,8 +134,13 @@ static DWORD WINAPI VideoRenderThreadProc(void *param)
                 c->completed_counter = 0;
             }
             else if (!(c->nStatus & DEVD3D_PAUSE) && ++c->completed_counter == 50) {
-                PostMessage(c->hwnd, MSG_COREPLAYER, PLAY_COMPLETED, 0);
                 log_printf(TEXT("play completed !\n"));
+                c->nStatus |= DEVD3D_COMPLETED;
+                PostMessage(c->hwnd, MSG_COREPLAYER, PLAY_COMPLETED, 0);
+
+#if CLEAR_VDEV_WHEN_COMPLETED
+                InvalidateRect(c->hwnd, NULL, TRUE);
+#endif
             }
             //-- play completed --//
 
@@ -172,7 +182,7 @@ void* vdev_d3d_create(void *surface, int bufnum, int w, int h, int frate)
     ctxt->h         = h;
     ctxt->tickframe = 1000 / frate;
     ctxt->ticksleep = ctxt->tickframe;
-    ctxt->need_reset= 1;
+    ctxt->d3d_reset = 1;
     ctxt->apts      =-1;
     ctxt->vpts      =-1;
 
@@ -254,6 +264,11 @@ void vdev_d3d_destroy(void *ctxt)
     CloseHandle(c->semr);
     CloseHandle(c->semw);
 
+#if CLEAR_VDEV_WHEN_DESTROYED
+    // clear window to background
+    InvalidateRect(c->hwnd, NULL, TRUE);
+#endif
+
     // free memory
     free(c->ppts  );
     free(c->pSurfs);
@@ -313,7 +328,7 @@ void vdev_d3d_setrect(void *ctxt, int x, int y, int w, int h)
     c->x = x; c->y = y;
     c->w = w; c->h = h;
     c->refresh_flag= 1;
-    c->need_reset  = 1;
+    c->d3d_reset   = 1;
 }
 
 void vdev_d3d_pause(void *ctxt, BOOL pause)
@@ -332,8 +347,9 @@ void vdev_d3d_reset(void *ctxt)
     DEVD3DCTXT *c = (DEVD3DCTXT*)ctxt;
     while (WAIT_OBJECT_0 == WaitForSingleObject(c->semr, 0));
     ReleaseSemaphore(c->semw, c->bufnum, NULL);
-    c->head = c->tail =  0;
-    c->apts = c->vpts = -1;
+    c->head    = c->tail =  0;
+    c->apts    = c->vpts = -1;
+    c->nStatus = 0;
 }
 
 void vdev_d3d_getavpts(void *ctxt, int64_t **ppapts, int64_t **ppvpts)

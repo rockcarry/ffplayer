@@ -4,6 +4,10 @@
 // 包含头文件
 #include "corerender.h"
 
+// 预编译开关
+#define CLEAR_VDEV_WHEN_DESTROYED  TRUE
+#define CLEAR_VDEV_WHEN_COMPLETED  TRUE
+
 #ifdef __cplusplus
 extern "C" {
 #endif

@@ -33,8 +33,9 @@ typedef struct
     int      ticksleep;
     int      ticklast;
 
-    #define DEVGDI_CLOSE  (1 << 0)
-    #define DEVGDI_PAUSE  (1 << 1)
+    #define DEVGDI_CLOSE      (1 << 0)
+    #define DEVGDI_PAUSE      (1 << 1)
+    #define DEVGDI_COMPLETED  (1 << 2)
     int      nStatus;
     HANDLE   hThread;
 
@@ -75,7 +76,11 @@ static DWORD WINAPI VideoRenderThreadProc(void *param)
 
         int64_t apts = c->apts;
         int64_t vpts = c->vpts = c->ppts[c->head];
+#if CLEAR_VDEV_WHEN_COMPLETED
+        if (vpts != -1 && !(c->nStatus & DEVGDI_COMPLETED)) {
+#else
         if (vpts != -1) {
+#endif
             SelectObject(c->hdcsrc, c->hbitmaps[c->head]);
             BitBlt(c->hdcdst, c->x, c->y, c->w, c->h, c->hdcsrc, 0, 0, SRCCOPY);
         }
@@ -84,7 +89,7 @@ static DWORD WINAPI VideoRenderThreadProc(void *param)
         if (++c->head == c->bufnum) c->head = 0;
         ReleaseSemaphore(c->semw, 1, NULL);
 
-        if (!(c->nStatus & DEVGDI_PAUSE)) {
+        if (!(c->nStatus & (DEVGDI_PAUSE|DEVGDI_COMPLETED))) {
             //++ play completed ++//
             if (c->completed_apts != c->apts || c->completed_vpts != c->vpts) {
                 c->completed_apts = c->apts;
@@ -92,8 +97,13 @@ static DWORD WINAPI VideoRenderThreadProc(void *param)
                 c->completed_counter = 0;
             }
             else if (++c->completed_counter == 50) {
-                PostMessage(c->hwnd, MSG_COREPLAYER, PLAY_COMPLETED, 0);
                 log_printf(TEXT("play completed !\n"));
+                c->nStatus |= DEVGDI_COMPLETED;
+                PostMessage(c->hwnd, MSG_COREPLAYER, PLAY_COMPLETED, 0);
+
+#if CLEAR_VDEV_WHEN_COMPLETED
+                InvalidateRect(c->hwnd, NULL, TRUE);
+#endif
             }
             //-- play completed --//
 
@@ -185,6 +195,11 @@ void vdev_gdi_destroy(void *ctxt)
     CloseHandle(c->semr);
     CloseHandle(c->semw);
 
+#if CLEAR_VDEV_WHEN_DESTROYED
+    // clear window to background
+    InvalidateRect(c->hwnd, NULL, TRUE);
+#endif
+
     // free memory
     free(c->ppts    );
     free(c->hbitmaps);
@@ -260,8 +275,9 @@ void vdev_gdi_reset(void *ctxt)
     DEVGDICTXT *c = (DEVGDICTXT*)ctxt;
     while (WAIT_OBJECT_0 == WaitForSingleObject(c->semr, 0));
     ReleaseSemaphore(c->semw, c->bufnum, NULL);
-    c->head = c->tail =  0;
-    c->apts = c->vpts = -1;
+    c->head    = c->tail =  0;
+    c->apts    = c->vpts = -1;
+    c->nStatus = 0;
 }
 
 void vdev_gdi_getavpts(void *ctxt, int64_t **ppapts, int64_t **ppvpts)
