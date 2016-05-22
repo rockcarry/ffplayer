@@ -102,6 +102,10 @@ void pktqueue_reset(void *ctxt)
         av_packet_unref(packet);
         pktqueue_read_post_v(ctxt);
     }
+
+    ppq->fhead = ppq->ftail = 0;
+    ppq->ahead = ppq->atail = 0;
+    ppq->vhead = ppq->vtail = 0;
 }
 
 BOOL pktqueue_write_request(void *ctxt, AVPacket **pppkt)
