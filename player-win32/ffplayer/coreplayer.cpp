@@ -201,7 +201,10 @@ static void* VideoDecodeThreadProc(void *param)
 
         // read packet
         if (!pktqueue_read_request_v(player->hPacketQueue, &packet)) {
-            render_video(player->hCoreRender, vframe);
+            if ((player->nPlayerStatus & PS_V_SEEK)) {
+                player->nPlayerStatus |= (PS_V_SEEK << 16);
+            }
+            else render_video(player->hCoreRender, vframe);
             usleep(20*1000); continue;
         }
 
