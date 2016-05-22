@@ -90,20 +90,17 @@ void pktqueue_destroy(void *ctxt)
 
 void pktqueue_reset(void *ctxt)
 {
-    PKTQUEUE *ppq = (PKTQUEUE*)ctxt;
+    PKTQUEUE *ppq    = (PKTQUEUE*)ctxt;
+    AVPacket *packet = NULL;
 
-    int i;
-    while (0 == sem_trywait(&ppq->fsem));
-    while (0 == sem_trywait(&ppq->asem));
-    while (0 == sem_trywait(&ppq->vsem));
-    sem_post_multiple(&ppq->fsem, ppq->fsize);
+    while (pktqueue_read_request_a(ctxt, &packet)) {
+        av_packet_unref(packet);
+        pktqueue_read_post_a(ctxt);
+    }
 
-    ppq->fhead = ppq->ftail = 0;
-    ppq->ahead = ppq->atail = 0;
-    ppq->vhead = ppq->vtail = 0;
-
-    for (i=0; i<ppq->fsize; i++) {
-        ppq->fpkts[i] = &ppq->bpkts[i];
+    while (pktqueue_read_request_v(ctxt, &packet)) {
+        av_packet_unref(packet);
+        pktqueue_read_post_v(ctxt);
     }
 }
 
