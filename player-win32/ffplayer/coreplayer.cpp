@@ -383,7 +383,7 @@ void* player_open(char *file, void *extra)
     pthread_create(&player->hVDecodeThread, NULL, VideoDecodeThreadProc, player);
 
     // for auto slow down
-    player->nAutoSlowDown = 1;
+    player->nAutoSlowDown = 0;
     player->nMinPlaySpeed = 50;
     player->nMaxPlaySpeed = 100;
     return player;
