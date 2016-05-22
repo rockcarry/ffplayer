@@ -144,7 +144,7 @@ void vdev_gdi_destroy(void *ctxt)
 
     // make visual effect rendering thread safely exit
     c->nStatus = VDEV_CLOSE;
-    WaitForSingleObject(c->hThread, -1);
+    WaitForSingleObject(c->hThread, 100);
     CloseHandle(c->hThread);
 
     //++ for video
