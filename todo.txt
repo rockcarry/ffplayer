@@ -1,0 +1,6 @@
+1. optimize code for auto slow down
+2. implements spectrum visual effect
+3. optimize speed for seek function
+4. implements manual adjust av sync time
+5. subtitle
+
