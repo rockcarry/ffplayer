@@ -126,10 +126,10 @@ void* vdev_d3d_create(void *surface, int bufnum, int w, int h, int frate)
     bufnum          = bufnum ? bufnum : DEF_VDEV_BUF_NUM;
     ctxt->hwnd      = (HWND)surface;
     ctxt->bufnum    = bufnum;
-    ctxt->w         = w;
-    ctxt->h         = h;
-    ctxt->sw        = w < GetSystemMetrics(SM_CXSCREEN) ? w : GetSystemMetrics(SM_CXSCREEN);
-    ctxt->sh        = h < GetSystemMetrics(SM_CYSCREEN) ? h : GetSystemMetrics(SM_CYSCREEN);
+    ctxt->w         = w > 1 ? w : 1;
+    ctxt->h         = h > 1 ? h : 1;
+    ctxt->sw        = ctxt->w < GetSystemMetrics(SM_CXSCREEN) ? ctxt->w : GetSystemMetrics(SM_CXSCREEN);
+    ctxt->sh        = ctxt->h < GetSystemMetrics(SM_CYSCREEN) ? ctxt->h : GetSystemMetrics(SM_CYSCREEN);
     ctxt->tickframe = 1000 / frate;
     ctxt->ticksleep = ctxt->tickframe;
     ctxt->apts      =-1;
