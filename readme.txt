@@ -11,6 +11,17 @@ The ffmpeg share library (dlls, libs & headers) are come from ffmpeg offical web
 
 The windows version become stable, and the android version is coming. The android verion ffplayer is working now, but lots of work need to be done, to make it better.
 
+
+features
+========
+1. low memory and cpu usage
+2. audio/video synchronized very will
+3. gdi and direct3d rendering on win32 platform
+4. support variable speed playback 1% to 100%, 200% ..
+5. auto slow speed down when could't decoding in time
+6. waveform and spectrum visual effect
+
+
 rockcarry
 2016.1.7
 
