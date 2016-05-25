@@ -78,13 +78,15 @@ static void* render_veffect_thread(void *param)
     RENDER *render = (RENDER*)param;
     int     timeus = 1000000LL * render->FrameRate.den / render->FrameRate.num;
     while (!(render->nRenderStatus & RENDER_CLOSE)) {
-        void *buf = NULL;
-        int   len = 0;
-        adev_curdata  (render->adev, &buf, &len);
-        veffect_render(render->pVEffectContext,
-            render->nVEffectXPos , render->nVEffectYPos,
-            render->nVEffectWidth, render->nVEffectHeight,
-            render->nVEffectType, buf, len);
+        if (render->nVEffectType != VISUAL_EFFECT_DISABLE) {
+            void *buf = NULL;
+            int   len = 0;
+            adev_curdata  (render->adev, &buf, &len);
+            veffect_render(render->pVEffectContext,
+                render->nVEffectXPos , render->nVEffectYPos,
+                render->nVEffectWidth, render->nVEffectHeight,
+                render->nVEffectType, buf, len);
+        }
         usleep(timeus);
     }
     return NULL;
@@ -340,6 +342,12 @@ void render_setparam(void *hrender, DWORD id, void *param)
         break;
     case PARAM_VISUAL_EFFECT:
         render->nVEffectType = *(int*)param;
+        if (render->nVEffectType == VISUAL_EFFECT_DISABLE) {
+            veffect_render(render->pVEffectContext,
+                render->nVEffectXPos , render->nVEffectYPos,
+                render->nVEffectWidth, render->nVEffectHeight,
+                VISUAL_EFFECT_DISABLE, 0, 0);
+        }
         break;
     case PARAM_PLAYER_CALLBACK:
         vdev_setparam(render->vdev, PARAM_PLAYER_CALLBACK, param);

@@ -195,6 +195,10 @@
 				>
 			</File>
 			<File
+				RelativePath=".\fft.cpp"
+				>
+			</File>
+			<File
 				RelativePath=".\log.cpp"
 				>
 			</File>
@@ -234,6 +238,10 @@
 			</File>
 			<File
 				RelativePath=".\corerender.h"
+				>
+			</File>
+			<File
+				RelativePath=".\fft.h"
 				>
 			</File>
 			<File

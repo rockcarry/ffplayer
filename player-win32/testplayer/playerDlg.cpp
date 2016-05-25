@@ -92,7 +92,8 @@ BEGIN_MESSAGE_MAP(CplayerDlg, CDialog)
     ON_WM_LBUTTONDOWN()
     ON_WM_CTLCOLOR()
     ON_WM_SIZE()
-    ON_COMMAND(ID_VIDEO_MODE, &CplayerDlg::OnVideoMode)
+    ON_COMMAND(ID_VIDEO_MODE , &CplayerDlg::OnVideoMode )
+    ON_COMMAND(ID_EFFECT_MODE, &CplayerDlg::OnEffectMode)
 END_MESSAGE_MAP()
 
 
@@ -267,6 +268,14 @@ void CplayerDlg::OnVideoMode()
 {
     int mode = 0;
     player_getparam(g_hplayer, PARAM_VIDEO_MODE, &mode);
-    mode = (mode == VIDEO_MODE_LETTERBOX) ? VIDEO_MODE_STRETCHED : VIDEO_MODE_LETTERBOX;
+    mode++; mode %= VIDEO_MODE_MAX_NUM;
     player_setparam(g_hplayer, PARAM_VIDEO_MODE, &mode);
+}
+
+void CplayerDlg::OnEffectMode()
+{
+    int mode = 0;
+    player_getparam(g_hplayer, PARAM_VISUAL_EFFECT, &mode);
+    mode++; mode %= VISUAL_EFFECT_MAX_NUM;
+    player_setparam(g_hplayer, PARAM_VISUAL_EFFECT, &mode);
 }
