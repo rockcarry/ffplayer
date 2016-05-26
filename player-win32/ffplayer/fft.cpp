@@ -18,21 +18,21 @@ typedef struct {
 } FFT_CONTEXT;
 
 // 内部函数实现
-// c1 = c1 + c2
+// r = c1 + c2
 static _inline void complex_add(float *r, float *c1, float *c2)
 {
     r[0] = c1[0] + c2[0];
     r[1] = c1[1] + c2[1];
 }
 
-// c1 = c1 - c2
+// r = c1 - c2
 static _inline void complex_sub(float *r, float *c1, float *c2)
 {
     r[0] = c1[0] - c2[0];
     r[1] = c1[1] - c2[1];
 }
 
-// c1 = c1 * c2
+// r = c1 * c2
 static _inline void complex_mul(float *r, float *c1, float *c2)
 {
     r[0] = c1[0] * c2[0] - c1[1] * c2[1];
