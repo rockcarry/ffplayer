@@ -544,9 +544,6 @@ void player_setparam(void *hplayer, DWORD id, void *param)
             player->rtVideo.right - player->rtVideo.left,
             player->rtVideo.bottom - player->rtVideo.top);
         break;
-    case PARAM_AUDIO_VOLUME:
-        render_setparam(player->hRender, PARAM_AUDIO_VOLUME, param);
-        break;
     case PARAM_PLAY_SPEED:
         render_setparam(player->hRender, PARAM_PLAY_SPEED, param);
         player->nMaxPlaySpeed = *(int*)param;
@@ -560,11 +557,8 @@ void player_setparam(void *hplayer, DWORD id, void *param)
     case PARAM_MAX_PLAY_SPEED:
         player->nMaxPlaySpeed = *(int*)param;
         break;
-    case PARAM_VISUAL_EFFECT:
-        render_setparam(player->hRender, PARAM_VISUAL_EFFECT, param);
-        break;
-    case PARAM_PLAYER_CALLBACK:
-        render_setparam(player->hRender, PARAM_PLAYER_CALLBACK, param);
+    default:
+        render_setparam(player->hRender, id, param);
         break;
     }
 }
@@ -580,12 +574,6 @@ void player_getparam(void *hplayer, DWORD id, void *param)
         if (!player->pAVFormatContext) *(int64_t*)param = 0;
         else *(int64_t*)param = (player->pAVFormatContext->duration * 1000 / AV_TIME_BASE);
         break;
-    case PARAM_MEDIA_POSITION:
-        render_getparam(player->hRender, PARAM_MEDIA_POSITION, param);
-        break;
-    case PARAM_VIDEO_MODE:
-        render_getparam(player->hRender, PARAM_VIDEO_MODE, param);
-        break;
     case PARAM_VIDEO_WIDTH:
         if (!player->pVideoCodecContext) *(int*)param = 0;
         else *(int*)param = player->pVideoCodecContext->width;
@@ -593,12 +581,6 @@ void player_getparam(void *hplayer, DWORD id, void *param)
     case PARAM_VIDEO_HEIGHT:
         if (!player->pVideoCodecContext) *(int*)param = 0;
         else *(int*)param = player->pVideoCodecContext->height;
-        break;
-    case PARAM_AUDIO_VOLUME:
-        render_getparam(player->hRender, PARAM_AUDIO_VOLUME, param);
-        break;
-    case PARAM_PLAY_SPEED:
-        render_getparam(player->hRender, PARAM_PLAY_SPEED, param);
         break;
     case PARAM_AUTO_SLOW_DOWN:
         *(int*)param = player->nAutoSlowDown;
@@ -609,12 +591,11 @@ void player_getparam(void *hplayer, DWORD id, void *param)
     case PARAM_MAX_PLAY_SPEED:
         *(int*)param = player->nMaxPlaySpeed;
         break;
-    case PARAM_VISUAL_EFFECT:
-        render_getparam(player->hRender, PARAM_VISUAL_EFFECT, param);
+    default:
+        render_getparam(player->hRender, id, param);
         break;
     }
 }
-
 
 
 

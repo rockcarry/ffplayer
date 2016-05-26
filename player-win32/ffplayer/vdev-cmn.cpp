@@ -50,6 +50,9 @@ void vdev_setparam(void *ctxt, DWORD id, void *param)
     case PARAM_PLAYER_CALLBACK:
         c->fpcb = (PFN_PLAYER_CALLBACK)param;
         break;
+    case PARAM_AVSYNC_TIME_DIFF:
+        c->tickavdiff = *(int*)param;
+        break;
     }
 }
 
@@ -75,6 +78,9 @@ void vdev_getparam(void *ctxt, DWORD id, void *param)
         break;
     case PARAM_VDEV_SURFACE_HEIGHT:
         *(int*)param = c->sh;
+        break;
+    case PARAM_AVSYNC_TIME_DIFF:
+        *(int*)param = c->tickavdiff;
         break;
     }
 }

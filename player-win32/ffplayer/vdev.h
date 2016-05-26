@@ -39,6 +39,7 @@ extern "C" {
     HANDLE   semr;                           \
     HANDLE   semw;                           \
                                              \
+    int      tickavdiff;                     \
     int      tickframe;                      \
     int      ticksleep;                      \
     int      ticklast;                       \

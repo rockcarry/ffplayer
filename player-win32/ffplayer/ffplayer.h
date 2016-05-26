@@ -54,6 +54,9 @@ enum {
     // visual effect mode
     PARAM_VISUAL_EFFECT,
 
+    // audio/video sync diff
+    PARAM_AVSYNC_TIME_DIFF,
+
     // player event callback
     PARAM_PLAYER_CALLBACK,
     //-- public

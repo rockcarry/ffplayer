@@ -354,6 +354,9 @@ void render_setparam(void *hrender, DWORD id, void *param)
                 VISUAL_EFFECT_DISABLE, 0, 0);
         }
         break;
+    case PARAM_AVSYNC_TIME_DIFF:
+        vdev_setparam(render->vdev, PARAM_AVSYNC_TIME_DIFF, param);
+        break;
     case PARAM_PLAYER_CALLBACK:
         vdev_setparam(render->vdev, PARAM_PLAYER_CALLBACK, param);
         break;
@@ -383,6 +386,9 @@ void render_getparam(void *hrender, DWORD id, void *param)
         break;
     case PARAM_VISUAL_EFFECT:
         *(int*)param = render->nVEffectType;
+        break;
+    case PARAM_AVSYNC_TIME_DIFF:
+        vdev_getparam(render->vdev, PARAM_AVSYNC_TIME_DIFF, param);
         break;
     }
 }
