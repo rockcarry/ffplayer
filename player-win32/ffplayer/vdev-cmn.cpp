@@ -87,7 +87,7 @@ void vdev_player_event(void *ctxt, __int32 msg, __int64 param)
     }
     else {
         if (msg == PLAY_COMPLETED) {
-            PostMessage(c->hwnd, MSG_COREPLAYER, PLAY_COMPLETED, 0);
+            PostMessage(c->hwnd, MSG_FFPLAYER, PLAY_COMPLETED, 0);
         }
     }
 }

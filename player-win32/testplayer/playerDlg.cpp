@@ -5,7 +5,7 @@
 #include "player.h"
 #include "playerDlg.h"
 extern "C" {
-#include "../ffplayer/coreplayer.h"
+#include "../ffplayer/ffplayer.h"
 }
 
 #ifdef _DEBUG
@@ -251,7 +251,7 @@ BOOL CplayerDlg::PreTranslateMessage(MSG *pMsg)
 {
     if (TranslateAccelerator(GetSafeHwnd(), m_hAcc, pMsg)) return TRUE;
 
-    if (pMsg->message == MSG_COREPLAYER)
+    if (pMsg->message == MSG_FFPLAYER)
     {
         switch (pMsg->wParam)
         {

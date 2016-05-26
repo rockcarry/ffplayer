@@ -15,16 +15,22 @@
 // 内部类型定义
 typedef struct
 {
+    // waveout
     HWAVEOUT hWaveOut;
     WAVEHDR *pWaveHdr;
+
     int64_t *ppts;
-    SHORT   *curdata;
     int      bufnum;
     int      buflen;
     int      head;
     int      tail;
     HANDLE   bufsem;
     int64_t *apts;
+
+    // store current audio data
+    SHORT   *curdata;
+
+    // software volume
     int      vol_scaler[256];
     int      vol_zerodb;
     int      vol_curvol;

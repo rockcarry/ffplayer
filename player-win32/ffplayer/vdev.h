@@ -3,7 +3,7 @@
 
 // 包含头文件
 #include <stdint.h>
-#include "coreplayer.h"
+#include "ffplayer.h"
 
 #ifdef __cplusplus
 extern "C" {

@@ -1,6 +1,6 @@
 // 包含头文件
 #include <math.h>
-#include "coreplayer.h"
+#include "ffplayer.h"
 #include "veffect.h"
 #include "fft.h"
 #include "log.h"

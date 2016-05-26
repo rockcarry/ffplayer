@@ -64,7 +64,7 @@
 				AdditionalDependencies="d3d9.lib winmm.lib avcodec.lib avformat.lib avutil.lib swscale.lib swresample.lib pthreadVC2.lib"
 				LinkIncremental="2"
 				AdditionalLibraryDirectories="..\..\dx9sdk\lib;&quot;..\..\ffmpeg-win32\bin&quot;;&quot;..\..\pthreads-win32\lib&quot;"
-				ModuleDefinitionFile="coreplayer.def"
+				ModuleDefinitionFile="ffplayer.def"
 				GenerateDebugInformation="true"
 				SubSystem="2"
 				TargetMachine="1"
@@ -141,7 +141,7 @@
 				AdditionalDependencies="d3d9.lib winmm.lib avcodec.lib avformat.lib avutil.lib swscale.lib pthreadVC2.lib swresample.lib"
 				LinkIncremental="1"
 				AdditionalLibraryDirectories="..\..\dx9sdk\lib;&quot;..\..\ffmpeg-win32\bin&quot;;&quot;..\..\pthreads-win32\lib&quot;"
-				ModuleDefinitionFile="coreplayer.def"
+				ModuleDefinitionFile="ffplayer.def"
 				GenerateDebugInformation="true"
 				SubSystem="2"
 				OptimizeReferences="1"
@@ -187,11 +187,11 @@
 				>
 			</File>
 			<File
-				RelativePath=".\coreplayer.cpp"
+				RelativePath=".\ffplayer.cpp"
 				>
 			</File>
 			<File
-				RelativePath=".\corerender.cpp"
+				RelativePath=".\ffrender.cpp"
 				>
 			</File>
 			<File
@@ -233,11 +233,11 @@
 				>
 			</File>
 			<File
-				RelativePath=".\coreplayer.h"
+				RelativePath=".\ffplayer.h"
 				>
 			</File>
 			<File
-				RelativePath=".\corerender.h"
+				RelativePath=".\ffrender.h"
 				>
 			</File>
 			<File

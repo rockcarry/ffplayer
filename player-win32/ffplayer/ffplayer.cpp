@@ -1,8 +1,8 @@
 ﻿// 包含头文件
 #include <pthread.h>
 #include "pktqueue.h"
-#include "coreplayer.h"
-#include "corerender.h"
+#include "ffrender.h"
+#include "ffplayer.h"
 #include "log.h"
 
 extern "C" {
@@ -31,12 +31,12 @@ typedef struct
     int              iVideoStreamIndex;
     double           dVideoTimeBase;
 
-    // render
-    void            *hCoreRender;
-    RECT             rtVideoRect;
-
     // packet queue
     void            *hPacketQueue;
+
+    // render
+    void            *hRender;
+    RECT             rtVideo;
 
     // auto slow down
     int              nAutoSlowDown;
@@ -155,7 +155,7 @@ static void* AudioDecodeThreadProc(void *param)
                         }
                     }
                     //-- for seek operation
-                    else render_audio(player->hCoreRender, aframe);
+                    else render_audio(player->hRender, aframe);
                 }
 
                 packet->data += consumed;
@@ -204,7 +204,7 @@ static void* VideoDecodeThreadProc(void *param)
             if ((player->nPlayerStatus & PS_V_SEEK)) {
                 player->nPlayerStatus |= (PS_V_SEEK << 16);
             }
-            else render_video(player->hCoreRender, vframe);
+            else render_video(player->hRender, vframe);
             usleep(20*1000); continue;
         }
 
@@ -214,12 +214,12 @@ static void* VideoDecodeThreadProc(void *param)
             if (player->nAutoSlowDown) {
                 int play_speed = 100;
                 int slow_flag  = 0;
-                render_getparam(player->hCoreRender, PARAM_PLAY_SPEED, &play_speed);
-                slow_flag = render_slowflag(player->hCoreRender);
+                render_getparam(player->hRender, PARAM_PLAY_SPEED, &play_speed);
+                slow_flag = render_slowflag(player->hRender);
                 if (slow_flag > 0 && play_speed <= player->nMinPlaySpeed) slow_flag = 0;
                 if (slow_flag < 0 && play_speed >= player->nMaxPlaySpeed) slow_flag = 0;
                 play_speed -= slow_flag;
-                render_setparam(player->hCoreRender, PARAM_PLAY_SPEED, &play_speed);
+                render_setparam(player->hRender, PARAM_PLAY_SPEED, &play_speed);
 //              log_printf(TEXT("play speed: %d\n"), play_speed);
             }
             //- for auto slow down
@@ -243,7 +243,7 @@ static void* VideoDecodeThreadProc(void *param)
                         }
                     }
                     //-- for seek operation
-                    else render_video(player->hCoreRender, vframe);
+                    else render_video(player->hRender, vframe);
                 }
 
                 packet->data += consumed;
@@ -368,12 +368,12 @@ void* player_open(char *file, void *extra)
         height  = player->pVideoCodecContext->height;
     }
 
-    // open core render
-    player->hCoreRender = render_open(extra, vrate, vformat, width, height,
+    // open render
+    player->hRender = render_open(extra, vrate, vformat, width, height,
         arate, (AVSampleFormat)aformat, alayout);
     if (player->iVideoStreamIndex == -1) {
         int effect = VISUAL_EFFECT_WAVEFORM;
-        render_setparam(player->hCoreRender, PARAM_VISUAL_EFFECT, &effect);
+        render_setparam(player->hRender, PARAM_VISUAL_EFFECT, &effect);
     }
 
     // make sure player status paused
@@ -399,8 +399,8 @@ void player_close(void *hplayer)
     PLAYER *player = (PLAYER*)hplayer;
 
     player->nPlayerStatus = PS_CLOSE;
-    if (player->hCoreRender) {
-        render_reset(player->hCoreRender);
+    if (player->hRender) {
+        render_reset(player->hRender);
     }
 
     // wait audio/video demuxing thread exit
@@ -415,7 +415,7 @@ void player_close(void *hplayer)
     // destroy packet queue
     pktqueue_destroy(player->hPacketQueue);
 
-    if (player->hCoreRender       ) render_close (player->hCoreRender);
+    if (player->hRender           ) render_close (player->hRender);
     if (player->pVideoCodecContext) avcodec_close(player->pVideoCodecContext);
     if (player->pAudioCodecContext) avcodec_close(player->pAudioCodecContext);
     if (player->pAVFormatContext  ) avformat_close_input(&player->pAVFormatContext);
@@ -431,7 +431,7 @@ void player_play(void *hplayer)
     if (!hplayer) return;
     PLAYER *player = (PLAYER*)hplayer;
     player->nPlayerStatus = 0;
-    render_start(player->hCoreRender);
+    render_start(player->hRender);
 }
 
 void player_pause(void *hplayer)
@@ -439,7 +439,7 @@ void player_pause(void *hplayer)
     if (!hplayer) return;
     PLAYER *player = (PLAYER*)hplayer;
     player->nPlayerStatus |= PS_R_PAUSE;
-    render_pause(player->hCoreRender);
+    render_pause(player->hRender);
 }
 
 void player_setrect(void *hplayer, int type, int x, int y, int w, int h)
@@ -449,7 +449,7 @@ void player_setrect(void *hplayer, int type, int x, int y, int w, int h)
 
     //++ if set visual effect rect
     if (type == 1) {
-        render_setrect(player->hCoreRender, type, x, y, w, h);
+        render_setrect(player->hRender, type, x, y, w, h);
         return;
     }
     //-- if set visual effect rect
@@ -462,10 +462,10 @@ void player_setrect(void *hplayer, int type, int x, int y, int w, int h)
     player_getparam(hplayer, PARAM_VIDEO_MODE  , &mode);
     if (!vw || !vh) return;
 
-    player->rtVideoRect.left   = x;
-    player->rtVideoRect.top    = y;
-    player->rtVideoRect.right  = x + w;
-    player->rtVideoRect.bottom = y + h;
+    player->rtVideo.left   = x;
+    player->rtVideo.top    = y;
+    player->rtVideo.right  = x + w;
+    player->rtVideo.bottom = y + h;
 
     switch (mode)
     {
@@ -479,7 +479,7 @@ void player_setrect(void *hplayer, int type, int x, int y, int w, int h)
 
     if (rw <= 0) rw = 1;
     if (rh <= 0) rh = 1;
-    render_setrect(player->hCoreRender, type, x + (w - rw) / 2, y + (h - rh) / 2, rw, rh);
+    render_setrect(player->hRender, type, x + (w - rw) / 2, y + (h - rh) / 2, rw, rh);
 }
 
 void player_seek(void *hplayer, LONGLONG ms)
@@ -494,7 +494,7 @@ void player_seek(void *hplayer, LONGLONG ms)
     player->nPlayerStatus &=~PAUSE_ACK;
 
     // wait for demuxing, audio decoding & video decoding threads paused
-    render_start(player->hCoreRender);
+    render_start(player->hRender);
     while ((player->nPlayerStatus & PAUSE_ACK) != PAUSE_ACK) usleep(20*1000);
 
     // seek frame
@@ -506,8 +506,8 @@ void player_seek(void *hplayer, LONGLONG ms)
     pktqueue_reset(player->hPacketQueue);
 
     // reset render
-    render_reset   (player->hCoreRender);
-    render_setparam(player->hCoreRender, PARAM_MEDIA_POSITION, &ms);
+    render_reset   (player->hRender);
+    render_setparam(player->hRender, PARAM_MEDIA_POSITION, &ms);
 
     // restart all thread and render
     int SEEK_REQ = 0;
@@ -526,7 +526,7 @@ void player_seek(void *hplayer, LONGLONG ms)
 
     // pause render if needed
     if (player->nPlayerStatus & PS_R_PAUSE) {
-        usleep(20*1000); render_pause(player->hCoreRender);
+        usleep(20*1000); render_pause(player->hRender);
     }
 }
 
@@ -538,17 +538,17 @@ void player_setparam(void *hplayer, DWORD id, void *param)
     switch (id)
     {
     case PARAM_VIDEO_MODE:
-        render_setparam(player->hCoreRender, PARAM_VIDEO_MODE, param);
+        render_setparam(player->hRender, PARAM_VIDEO_MODE, param);
         player_setrect(hplayer, 0,
-            player->rtVideoRect.left, player->rtVideoRect.top,
-            player->rtVideoRect.right - player->rtVideoRect.left,
-            player->rtVideoRect.bottom - player->rtVideoRect.top);
+            player->rtVideo.left, player->rtVideo.top,
+            player->rtVideo.right - player->rtVideo.left,
+            player->rtVideo.bottom - player->rtVideo.top);
         break;
     case PARAM_AUDIO_VOLUME:
-        render_setparam(player->hCoreRender, PARAM_AUDIO_VOLUME, param);
+        render_setparam(player->hRender, PARAM_AUDIO_VOLUME, param);
         break;
     case PARAM_PLAY_SPEED:
-        render_setparam(player->hCoreRender, PARAM_PLAY_SPEED, param);
+        render_setparam(player->hRender, PARAM_PLAY_SPEED, param);
         player->nMaxPlaySpeed = *(int*)param;
         break;
     case PARAM_AUTO_SLOW_DOWN:
@@ -561,10 +561,10 @@ void player_setparam(void *hplayer, DWORD id, void *param)
         player->nMaxPlaySpeed = *(int*)param;
         break;
     case PARAM_VISUAL_EFFECT:
-        render_setparam(player->hCoreRender, PARAM_VISUAL_EFFECT, param);
+        render_setparam(player->hRender, PARAM_VISUAL_EFFECT, param);
         break;
     case PARAM_PLAYER_CALLBACK:
-        render_setparam(player->hCoreRender, PARAM_PLAYER_CALLBACK, param);
+        render_setparam(player->hRender, PARAM_PLAYER_CALLBACK, param);
         break;
     }
 }
@@ -581,10 +581,10 @@ void player_getparam(void *hplayer, DWORD id, void *param)
         else *(int64_t*)param = (player->pAVFormatContext->duration * 1000 / AV_TIME_BASE);
         break;
     case PARAM_MEDIA_POSITION:
-        render_getparam(player->hCoreRender, PARAM_MEDIA_POSITION, param);
+        render_getparam(player->hRender, PARAM_MEDIA_POSITION, param);
         break;
     case PARAM_VIDEO_MODE:
-        render_getparam(player->hCoreRender, PARAM_VIDEO_MODE, param);
+        render_getparam(player->hRender, PARAM_VIDEO_MODE, param);
         break;
     case PARAM_VIDEO_WIDTH:
         if (!player->pVideoCodecContext) *(int*)param = 0;
@@ -595,10 +595,10 @@ void player_getparam(void *hplayer, DWORD id, void *param)
         else *(int*)param = player->pVideoCodecContext->height;
         break;
     case PARAM_AUDIO_VOLUME:
-        render_getparam(player->hCoreRender, PARAM_AUDIO_VOLUME, param);
+        render_getparam(player->hRender, PARAM_AUDIO_VOLUME, param);
         break;
     case PARAM_PLAY_SPEED:
-        render_getparam(player->hCoreRender, PARAM_PLAY_SPEED, param);
+        render_getparam(player->hRender, PARAM_PLAY_SPEED, param);
         break;
     case PARAM_AUTO_SLOW_DOWN:
         *(int*)param = player->nAutoSlowDown;
@@ -610,7 +610,7 @@ void player_getparam(void *hplayer, DWORD id, void *param)
         *(int*)param = player->nMaxPlaySpeed;
         break;
     case PARAM_VISUAL_EFFECT:
-        render_getparam(player->hCoreRender, PARAM_VISUAL_EFFECT, param);
+        render_getparam(player->hRender, PARAM_VISUAL_EFFECT, param);
         break;
     }
 }

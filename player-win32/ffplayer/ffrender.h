@@ -1,9 +1,8 @@
-﻿#ifndef __FFPLAYER_CORERENDER_H__
-#define __FFPLAYER_CORERENDER_H__
+﻿#ifndef __FFPLAYER_FFRENDER_H__
+#define __FFPLAYER_FFRENDER_H__
 
 // 包含头文件
-#include "stdefine.h"
-#include "coreplayer.h"
+#include "ffplayer.h"
 
 #ifdef __cplusplus
 extern "C" {

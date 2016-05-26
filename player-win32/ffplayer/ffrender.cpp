@@ -1,16 +1,14 @@
 // 包含头文件
 #include <pthread.h>
-#include "corerender.h"
+#include "ffrender.h"
 #include "veffect.h"
 #include "adev.h"
 #include "vdev.h"
 #include "log.h"
 
 extern "C" {
-#include "libavformat/avformat.h"
-#include "libavcodec/avcodec.h"
-#include "libswscale/swscale.h"
 #include "libswresample/swresample.h"
+#include "libswscale/swscale.h"
 }
 
 #pragma warning(disable:4311)
@@ -19,9 +17,11 @@ extern "C" {
 // 内部类型定义
 typedef struct
 {
+    // adev & vdev
     void          *adev;
     void          *vdev;
 
+    // swresampler & swscaler
     SwrContext    *pSWRContext;
     SwsContext    *pSWSContext;
 
@@ -40,6 +40,7 @@ typedef struct
     BYTE          *pAdevBufCur;
     AUDIOBUF      *pAdevHdrCur;
 
+    // video render rect
     int            nRenderXPosCur;
     int            nRenderYPosCur;
     int            nRenderXPosNew;
@@ -48,9 +49,12 @@ typedef struct
     int            nRenderHeightCur;
     int            nRenderWidthNew;
     int            nRenderHeightNew;
+
+    // playback speed
     int            nRenderSpeedCur;
     int            nRenderSpeedNew;
 
+    // visual effect
     void          *pVEffectContext;
     int            nVEffectType;
     int            nVEffectXPos;
@@ -59,6 +63,7 @@ typedef struct
     int            nVEffectHeight;
     pthread_t      hVEffectThread;
 
+    // render status
     #define RENDER_CLOSE (1 << 0)
     #define RENDER_PAUSE (1 << 1)
     int            nRenderStatus;

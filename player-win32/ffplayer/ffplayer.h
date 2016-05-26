@@ -1,5 +1,5 @@
-﻿#ifndef __FFPLAYER_COREPLAYER_H__
-#define __FFPLAYER_COREPLAYER_H__
+﻿#ifndef __FFPLAYER_FFPLAYER_H__
+#define __FFPLAYER_FFPLAYER_H__
 
 // 包含头文件
 #include "stdefine.h"
@@ -10,7 +10,7 @@ extern "C" {
 
 // 常量定义
 // message
-#define MSG_COREPLAYER  (WM_APP + 1)
+#define MSG_FFPLAYER    (WM_APP + 1)
 #define PLAY_PROGRESS   (('R' << 24) | ('U' << 16) | ('N' << 8))
 #define PLAY_COMPLETED  (('E' << 24) | ('N' << 16) | ('D' << 8))
 
