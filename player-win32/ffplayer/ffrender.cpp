@@ -22,51 +22,51 @@ typedef struct
     void          *vdev;
 
     // swresampler & swscaler
-    SwrContext    *pSWRContext;
-    SwsContext    *pSWSContext;
+    SwrContext    *swr_context;
+    SwsContext    *sws_context;
 
-    int            nSampleRate;
-    AVSampleFormat SampleFormat;
-    int64_t        nChanLayout;
+    int            sample_rate;
+    AVSampleFormat sample_fmt;
+    int64_t        chan_layout;
 
-    int            nVideoMode;
-    int            nVideoWidth;
-    int            nVideoHeight;
-    int            nFramePeriod;
-    AVRational     FrameRate;
-    AVPixelFormat  PixelFormat;
+    int            video_mode;
+    int            video_width;
+    int            video_height;
+    int            frame_period;
+    AVRational     frame_rate;
+    AVPixelFormat  pixel_fmt;
 
-    int            nAdevBufAvail;
-    BYTE          *pAdevBufCur;
-    AUDIOBUF      *pAdevHdrCur;
+    int            adev_buf_avail;
+    uint8_t       *adev_buf_cur;
+    AUDIOBUF      *adev_hdr_cur;
 
     // video render rect
-    int            nRenderXPosCur;
-    int            nRenderYPosCur;
-    int            nRenderXPosNew;
-    int            nRenderYPosNew;
-    int            nRenderWidthCur;
-    int            nRenderHeightCur;
-    int            nRenderWidthNew;
-    int            nRenderHeightNew;
+    int            render_xcur;
+    int            render_ycur;
+    int            render_xnew;
+    int            render_ynew;
+    int            render_wcur;
+    int            render_hcur;
+    int            render_wnew;
+    int            render_hnew;
 
     // playback speed
-    int            nRenderSpeedCur;
-    int            nRenderSpeedNew;
+    int            render_speed_cur;
+    int            render_speed_new;
 
     // visual effect
-    void          *pVEffectContext;
-    int            nVEffectType;
-    int            nVEffectXPos;
-    int            nVEffectYPos;
-    int            nVEffectWidth;
-    int            nVEffectHeight;
-    pthread_t      hVEffectThread;
+    void          *veffect_context;
+    int            veffect_type;
+    int            veffect_x;
+    int            veffect_y;
+    int            veffect_w;
+    int            veffect_h;
+    pthread_t      veffect_thread;
 
     // render status
     #define RENDER_CLOSE (1 << 0)
     #define RENDER_PAUSE (1 << 1)
-    int            nRenderStatus;
+    int            render_status;
 } RENDER;
 
 // 内部函数实现
@@ -74,23 +74,23 @@ static void render_setspeed(RENDER *render, int speed)
 {
     if (speed > 0)
     {
-        render->nRenderSpeedNew = speed;
+        render->render_speed_new = speed;
     }
 }
 
 static void* render_veffect_thread(void *param)
 {
     RENDER *render = (RENDER*)param;
-    int     timeus = 1000000LL * render->FrameRate.den / render->FrameRate.num;
-    while (!(render->nRenderStatus & RENDER_CLOSE)) {
-        if (render->nVEffectType != VISUAL_EFFECT_DISABLE) {
+    int     timeus = 1000000LL * render->frame_rate.den / render->frame_rate.num;
+    while (!(render->render_status & RENDER_CLOSE)) {
+        if (render->veffect_type != VISUAL_EFFECT_DISABLE) {
             void *buf = NULL;
             int   len = 0;
             adev_curdata  (render->adev, &buf, &len);
-            veffect_render(render->pVEffectContext,
-                render->nVEffectXPos , render->nVEffectYPos,
-                render->nVEffectWidth, render->nVEffectHeight,
-                render->nVEffectType, buf, len);
+            veffect_render(render->veffect_context,
+                render->veffect_x, render->veffect_y,
+                render->veffect_w, render->veffect_h,
+                render->veffect_type, buf, len);
         }
         usleep(timeus);
     }
@@ -111,20 +111,20 @@ void* render_open(void *surface, AVRational frate, int pixfmt, int w, int h,
     memset(render, 0, sizeof(RENDER));
 
     // init for video
-    render->nVideoWidth  = w;
-    render->nVideoHeight = h;
-    render->nFramePeriod = 1000 * frate.den / frate.num;
-    render->FrameRate    = frate;
-    render->PixelFormat  = (AVPixelFormat)pixfmt;
+    render->video_width  = w;
+    render->video_height = h;
+    render->frame_period = 1000 * frate.den / frate.num;
+    render->frame_rate   = frate;
+    render->pixel_fmt    = (AVPixelFormat)pixfmt;
 
     // init for audio
-    render->nSampleRate  = srate;
-    render->SampleFormat = sndfmt;
-    render->nChanLayout  = ch_layout;
+    render->sample_rate  = srate;
+    render->sample_fmt   = sndfmt;
+    render->chan_layout  = ch_layout;
 
     // init for visual effect
-    render->pVEffectContext = veffect_create(surface);
-    pthread_create(&render->hVEffectThread, NULL, render_veffect_thread, render);
+    render->veffect_context = veffect_create(surface);
+    pthread_create(&render->veffect_thread, NULL, render_veffect_thread, render);
 
     // create adev & vdev
     render->adev = adev_create(0, (int)(44100.0 * frate.den / frate.num + 0.5) * 4);
@@ -148,16 +148,16 @@ void render_close(void *hrender)
     RENDER *render = (RENDER*)hrender;
 
     // wait visual effect thread exit
-    render->nRenderStatus = RENDER_CLOSE;
-    pthread_join(render->hVEffectThread, NULL);
-    veffect_destroy(render->pVEffectContext);
+    render->render_status = RENDER_CLOSE;
+    pthread_join(render->veffect_thread, NULL);
+    veffect_destroy(render->veffect_context);
 
     //++ audio ++//
     // destroy adev
     adev_destroy(render->adev);
 
     // free swr context
-    swr_free(&render->pSWRContext);
+    swr_free(&render->swr_context);
     //-- audio --//
 
     //++ video ++//
@@ -165,8 +165,8 @@ void render_close(void *hrender)
     vdev_destroy(render->vdev);
 
     // free sws context
-    if (render->pSWSContext) {
-        sws_freeContext(render->pSWSContext);
+    if (render->sws_context) {
+        sws_freeContext(render->sws_context);
     }
     //-- video --//
 
@@ -182,42 +182,42 @@ void render_audio(void *hrender, AVFrame *audio)
 
     if (!render->adev) return;
     do {
-        if (render->nAdevBufAvail == 0) {
-            adev_request(render->adev, &render->pAdevHdrCur);
-            apts += render->nFramePeriod * render->nRenderSpeedCur / 100;
-            render->nAdevBufAvail = (int  )render->pAdevHdrCur->size;
-            render->pAdevBufCur   = (BYTE*)render->pAdevHdrCur->data;
+        if (render->adev_buf_avail == 0) {
+            adev_request(render->adev, &render->adev_hdr_cur);
+            apts += render->frame_period * render->render_speed_cur / 100;
+            render->adev_buf_avail = (int  )render->adev_hdr_cur->size;
+            render->adev_buf_cur   = (BYTE*)render->adev_hdr_cur->data;
         }
 
-        if (render->nRenderSpeedCur != render->nRenderSpeedNew) {
-            render->nRenderSpeedCur = render->nRenderSpeedNew;
+        if (render->render_speed_cur != render->render_speed_new) {
+            render->render_speed_cur = render->render_speed_new;
 
             // set vdev frame rate
-            int framerate = (render->FrameRate.num * render->nRenderSpeedCur) / (render->FrameRate.den * 100);
+            int framerate = (render->frame_rate.num * render->render_speed_cur) / (render->frame_rate.den * 100);
             vdev_setparam(render->vdev, PARAM_VDEV_FRAME_RATE, &framerate);
 
             //++ allocate & init swr context
-            if (render->pSWRContext) {
-                swr_free(&render->pSWRContext);
+            if (render->swr_context) {
+                swr_free(&render->swr_context);
             }
-            int samprate = 44100 * 100 / render->nRenderSpeedCur;
-            render->pSWRContext = swr_alloc_set_opts(NULL, AV_CH_LAYOUT_STEREO, AV_SAMPLE_FMT_S16, samprate,
-                render->nChanLayout, render->SampleFormat, render->nSampleRate, 0, NULL);
-            swr_init(render->pSWRContext);
+            int samprate = 44100 * 100 / render->render_speed_cur;
+            render->swr_context = swr_alloc_set_opts(NULL, AV_CH_LAYOUT_STEREO, AV_SAMPLE_FMT_S16, samprate,
+                render->chan_layout, render->sample_fmt, render->sample_rate, 0, NULL);
+            swr_init(render->swr_context);
             //-- allocate & init swr context
         }
 
         //++ do resample audio data ++//
-        sampnum = swr_convert(render->pSWRContext, (uint8_t**)&render->pAdevBufCur,
-            render->nAdevBufAvail / 4, (const uint8_t**)audio->extended_data,
+        sampnum = swr_convert(render->swr_context, (uint8_t**)&render->adev_buf_cur,
+            render->adev_buf_avail / 4, (const uint8_t**)audio->extended_data,
             audio->nb_samples);
-        audio->extended_data  = NULL;
-        audio->nb_samples     = 0;
-        render->nAdevBufAvail -= sampnum * 4;
-        render->pAdevBufCur   += sampnum * 4;
+        audio->extended_data    = NULL;
+        audio->nb_samples       = 0;
+        render->adev_buf_avail -= sampnum * 4;
+        render->adev_buf_cur   += sampnum * 4;
         //-- do resample audio data --//
 
-        if (render->nAdevBufAvail == 0) {
+        if (render->adev_buf_avail == 0) {
             adev_post(render->adev, apts);
         }
     } while (sampnum > 0);
@@ -231,28 +231,28 @@ void render_video(void *hrender, AVFrame *video)
     int      stride;
 
     do {
-        if (  render->nRenderXPosCur  != render->nRenderXPosNew
-           || render->nRenderYPosCur  != render->nRenderYPosNew
-           || render->nRenderWidthCur != render->nRenderWidthNew
-           || render->nRenderHeightCur!= render->nRenderHeightNew ) {
-            render->nRenderXPosCur   = render->nRenderXPosNew;
-            render->nRenderYPosCur   = render->nRenderYPosNew;
-            render->nRenderWidthCur  = render->nRenderWidthNew;
-            render->nRenderHeightCur = render->nRenderHeightNew;
+        if (  render->render_xcur != render->render_xnew
+           || render->render_ycur != render->render_ynew
+           || render->render_wcur != render->render_wnew
+           || render->render_hcur != render->render_hnew ) {
+            render->render_xcur = render->render_xnew;
+            render->render_ycur = render->render_ynew;
+            render->render_wcur = render->render_wnew;
+            render->render_hcur = render->render_hnew;
 
             int swold, shold, swnew, shnew;
             vdev_getparam(render->vdev, PARAM_VDEV_SURFACE_WIDTH , &swold);
             vdev_getparam(render->vdev, PARAM_VDEV_SURFACE_HEIGHT, &shold);
-            vdev_setrect(render->vdev, render->nRenderXPosCur, render->nRenderYPosCur,
-                render->nRenderWidthCur, render->nRenderHeightCur);
+            vdev_setrect(render->vdev, render->render_xcur, render->render_ycur,
+                render->render_wcur, render->render_hcur);
             vdev_getparam(render->vdev, PARAM_VDEV_SURFACE_WIDTH , &swnew);
             vdev_getparam(render->vdev, PARAM_VDEV_SURFACE_HEIGHT, &shnew);
 
-            if (!render->pSWSContext || swold != swnew || shold != shnew) {
+            if (!render->sws_context || swold != swnew || shold != shnew) {
                 int pixfmt; vdev_getparam(render->vdev, PARAM_VDEV_PIXEL_FORMAT, &pixfmt);
-                sws_freeContext(render->pSWSContext);
-                render->pSWSContext = sws_getContext(
-                    render->nVideoWidth, render->nVideoHeight, render->PixelFormat,
+                sws_freeContext(render->sws_context);
+                render->sws_context = sws_getContext(
+                    render->video_width, render->video_height, render->pixel_fmt,
                     swnew, shnew, (AVPixelFormat)pixfmt,
                     SWS_BILINEAR, 0, 0, 0);
             }
@@ -262,10 +262,10 @@ void render_video(void *hrender, AVFrame *video)
         if (video->pts != -1) {
             picture.data[0]     = bmpbuf;
             picture.linesize[0] = stride;
-            sws_scale(render->pSWSContext, video->data, video->linesize, 0, render->nVideoHeight, picture.data, picture.linesize);
+            sws_scale(render->sws_context, video->data, video->linesize, 0, render->video_height, picture.data, picture.linesize);
         }
         vdev_post(render->vdev, video->pts);
-    } while (render->nRenderStatus & RENDER_PAUSE);
+    } while (render->render_status & RENDER_PAUSE);
 }
 
 void render_setrect(void *hrender, int type, int x, int y, int w, int h)
@@ -273,16 +273,16 @@ void render_setrect(void *hrender, int type, int x, int y, int w, int h)
     RENDER *render = (RENDER*)hrender;
     switch (type) {
     case 0:
-        render->nRenderXPosNew   = x;
-        render->nRenderYPosNew   = y;
-        render->nRenderWidthNew  = w > 1 ? w : 1;
-        render->nRenderHeightNew = h > 1 ? h : 1;
+        render->render_xnew = x;
+        render->render_ynew = y;
+        render->render_wnew = w > 1 ? w : 1;
+        render->render_hnew = h > 1 ? h : 1;
         break;
     case 1:
-        render->nVEffectXPos     = x;
-        render->nVEffectYPos     = y;
-        render->nVEffectWidth    = w > 1 ? w : 1;
-        render->nVEffectHeight   = h > 1 ? h : 1;
+        render->veffect_x = x;
+        render->veffect_y = y;
+        render->veffect_w = w > 1 ? w : 1;
+        render->veffect_h = h > 1 ? h : 1;
         break;
     }
 }
@@ -290,7 +290,7 @@ void render_setrect(void *hrender, int type, int x, int y, int w, int h)
 void render_start(void *hrender)
 {
     RENDER *render = (RENDER*)hrender;
-    render->nRenderStatus &=~RENDER_PAUSE;
+    render->render_status &=~RENDER_PAUSE;
     adev_pause(render->adev, FALSE);
     vdev_pause(render->vdev, FALSE);
 }
@@ -298,7 +298,7 @@ void render_start(void *hrender)
 void render_pause(void *hrender)
 {
     RENDER *render = (RENDER*)hrender;
-    render->nRenderStatus |= RENDER_PAUSE;
+    render->render_status |= RENDER_PAUSE;
     adev_pause(render->adev, TRUE);
     vdev_pause(render->vdev, TRUE);
 }
@@ -308,7 +308,7 @@ void render_reset(void *hrender)
     RENDER *render = (RENDER*)hrender;
     adev_reset(render->adev);
     vdev_reset(render->vdev);
-    render->nRenderStatus = 0;
+    render->render_status = 0;
 }
 
 int render_slowflag(void *hrender)
@@ -337,7 +337,7 @@ void render_setparam(void *hrender, DWORD id, void *param)
         }
         break;
     case PARAM_VIDEO_MODE:
-        render->nVideoMode = *(int*)param;
+        render->video_mode = *(int*)param;
         break;
     case PARAM_AUDIO_VOLUME:
         adev_setparam(render->adev, PARAM_AUDIO_VOLUME, param);
@@ -346,11 +346,11 @@ void render_setparam(void *hrender, DWORD id, void *param)
         render_setspeed(render, *(int*)param);
         break;
     case PARAM_VISUAL_EFFECT:
-        render->nVEffectType = *(int*)param;
-        if (render->nVEffectType == VISUAL_EFFECT_DISABLE) {
-            veffect_render(render->pVEffectContext,
-                render->nVEffectXPos , render->nVEffectYPos,
-                render->nVEffectWidth, render->nVEffectHeight,
+        render->veffect_type = *(int*)param;
+        if (render->veffect_type == VISUAL_EFFECT_DISABLE) {
+            veffect_render(render->veffect_context,
+                render->veffect_x, render->veffect_y,
+                render->veffect_w, render->veffect_h,
                 VISUAL_EFFECT_DISABLE, 0, 0);
         }
         break;
@@ -376,16 +376,16 @@ void render_getparam(void *hrender, DWORD id, void *param)
         }
         break;
     case PARAM_VIDEO_MODE:
-        *(int*)param = render->nVideoMode;
+        *(int*)param = render->video_mode;
         break;
     case PARAM_AUDIO_VOLUME:
         adev_getparam(render->adev, PARAM_AUDIO_VOLUME, param);
         break;
     case PARAM_PLAY_SPEED:
-        *(int*)param = render->nRenderSpeedCur;
+        *(int*)param = render->render_speed_cur;
         break;
     case PARAM_VISUAL_EFFECT:
-        *(int*)param = render->nVEffectType;
+        *(int*)param = render->veffect_type;
         break;
     case PARAM_AVSYNC_TIME_DIFF:
         vdev_getparam(render->vdev, PARAM_AVSYNC_TIME_DIFF, param);

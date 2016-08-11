@@ -26,7 +26,7 @@ static DWORD WINAPI VideoRenderThreadProc(void *param)
 {
     VDEVGDICTXT *c = (VDEVGDICTXT*)param;
 
-    while (!(c->nStatus & VDEV_CLOSE))
+    while (!(c->status & VDEV_CLOSE))
     {
         int ret = WaitForSingleObject(c->semr, c->tickframe);
         if (ret != WAIT_OBJECT_0) continue;
@@ -39,7 +39,7 @@ static DWORD WINAPI VideoRenderThreadProc(void *param)
         int64_t apts = c->apts;
         int64_t vpts = c->vpts = c->ppts[c->head];
 #if CLEAR_VDEV_WHEN_COMPLETED
-        if (vpts != -1 && !(c->nStatus & VDEV_COMPLETED)) {
+        if (vpts != -1 && !(c->status & VDEV_COMPLETED)) {
 #else
         if (vpts != -1) {
 #endif
@@ -51,7 +51,7 @@ static DWORD WINAPI VideoRenderThreadProc(void *param)
         if (++c->head == c->bufnum) c->head = 0;
         ReleaseSemaphore(c->semw, 1, NULL);
 
-        if (!(c->nStatus & (VDEV_PAUSE|VDEV_COMPLETED))) {
+        if (!(c->status & (VDEV_PAUSE|VDEV_COMPLETED))) {
             // send play progress event
             vdev_player_event(c, PLAY_PROGRESS, c->vpts > c->apts ? c->vpts : c->apts);
 
@@ -63,7 +63,7 @@ static DWORD WINAPI VideoRenderThreadProc(void *param)
             }
             else if (++c->completed_counter == 50) {
                 log_printf(TEXT("play completed !\n"));
-                c->nStatus |= VDEV_COMPLETED;
+                c->status |= VDEV_COMPLETED;
                 vdev_player_event(c, PLAY_COMPLETED, 0);
 
 #if CLEAR_VDEV_WHEN_COMPLETED
@@ -133,7 +133,7 @@ void* vdev_gdi_create(void *surface, int bufnum, int w, int h, int frate)
     }
 
     // create video rendering thread
-    ctxt->hThread = CreateThread(NULL, 0, VideoRenderThreadProc, ctxt, 0, NULL);
+    ctxt->thread = CreateThread(NULL, 0, VideoRenderThreadProc, ctxt, 0, NULL);
     return ctxt;
 }
 
@@ -143,9 +143,9 @@ void vdev_gdi_destroy(void *ctxt)
     VDEVGDICTXT *c = (VDEVGDICTXT*)ctxt;
 
     // make visual effect rendering thread safely exit
-    c->nStatus = VDEV_CLOSE;
-    WaitForSingleObject(c->hThread, 100);
-    CloseHandle(c->hThread);
+    c->status = VDEV_CLOSE;
+    WaitForSingleObject(c->thread, 100);
+    CloseHandle(c->thread);
 
     //++ for video
     DeleteDC (c->hdcsrc);

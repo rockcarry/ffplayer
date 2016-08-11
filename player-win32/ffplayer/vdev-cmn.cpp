@@ -6,10 +6,10 @@ void vdev_pause(void *ctxt, BOOL pause)
 {
     VDEV_COMMON_CTXT *c = (VDEV_COMMON_CTXT*)ctxt;
     if (pause) {
-        c->nStatus |=  VDEV_PAUSE;
+        c->status |=  VDEV_PAUSE;
     }
     else {
-        c->nStatus &= ~VDEV_PAUSE;
+        c->status &= ~VDEV_PAUSE;
     }
 }
 
@@ -18,9 +18,9 @@ void vdev_reset(void *ctxt)
     VDEV_COMMON_CTXT *c = (VDEV_COMMON_CTXT*)ctxt;
     while (WAIT_OBJECT_0 == WaitForSingleObject(c->semr, 0));
     ReleaseSemaphore(c->semw, c->bufnum, NULL);
-    c->head    = c->tail =  0;
-    c->apts    = c->vpts = -1;
-    c->nStatus = 0;
+    c->head   = c->tail =  0;
+    c->apts   = c->vpts = -1;
+    c->status = 0;
 }
 
 void vdev_getavpts(void *ctxt, int64_t **ppapts, int64_t **ppvpts)

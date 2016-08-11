@@ -47,7 +47,7 @@ static DWORD WINAPI VideoRenderThreadProc(void *param)
 {
     VDEVD3DCTXT *c = (VDEVD3DCTXT*)param;
 
-    while (!(c->nStatus & VDEV_CLOSE))
+    while (!(c->status & VDEV_CLOSE))
     {
         int ret = WaitForSingleObject(c->semr, c->tickframe);
         if (ret != WAIT_OBJECT_0) continue;
@@ -60,7 +60,7 @@ static DWORD WINAPI VideoRenderThreadProc(void *param)
         int64_t apts = c->apts;
         int64_t vpts = c->vpts = c->ppts[c->head];
 #if CLEAR_VDEV_WHEN_COMPLETED
-        if (vpts != -1 && !(c->nStatus & VDEV_COMPLETED)) {
+        if (vpts != -1 && !(c->status & VDEV_COMPLETED)) {
 #else
         if (vpts != -1) {
 #endif
@@ -71,7 +71,7 @@ static DWORD WINAPI VideoRenderThreadProc(void *param)
         if (++c->head == c->bufnum) c->head = 0;
         ReleaseSemaphore(c->semw, 1, NULL);
 
-        if (!(c->nStatus & VDEV_PAUSE)) {
+        if (!(c->status & VDEV_PAUSE)) {
             // send play progress event
             vdev_player_event(c, PLAY_PROGRESS, c->vpts > c->apts ? c->vpts : c->apts);
 
@@ -81,9 +81,9 @@ static DWORD WINAPI VideoRenderThreadProc(void *param)
                 c->completed_vpts = c->vpts;
                 c->completed_counter = 0;
             }
-            else if (!(c->nStatus & VDEV_PAUSE) && ++c->completed_counter == 50) {
+            else if (!(c->status & VDEV_PAUSE) && ++c->completed_counter == 50) {
                 log_printf(TEXT("play completed !\n"));
-                c->nStatus |= VDEV_COMPLETED;
+                c->status |= VDEV_COMPLETED;
                 vdev_player_event(c, PLAY_COMPLETED, 0);
 
 #if CLEAR_VDEV_WHEN_COMPLETED
@@ -197,7 +197,7 @@ void* vdev_d3d_create(void *surface, int bufnum, int w, int h, int frate)
     //-- try pixel format
 
     // create video rendering thread
-    ctxt->hThread = CreateThread(NULL, 0, VideoRenderThreadProc, ctxt, 0, NULL);
+    ctxt->thread = CreateThread(NULL, 0, VideoRenderThreadProc, ctxt, 0, NULL);
     return ctxt;
 }
 
@@ -206,9 +206,9 @@ void vdev_d3d_destroy(void *ctxt)
     int i;
     VDEVD3DCTXT *c = (VDEVD3DCTXT*)ctxt;
     // make rendering thread safely exit
-    c->nStatus = VDEV_CLOSE;
-    WaitForSingleObject(c->hThread, 100);
-    CloseHandle(c->hThread);
+    c->status = VDEV_CLOSE;
+    WaitForSingleObject(c->thread, 100);
+    CloseHandle(c->thread);
 
     for (i=0; i<c->bufnum; i++) {
         if (c->pSurfs[i]) {

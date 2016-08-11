@@ -44,8 +44,8 @@ extern "C" {
     int      ticksleep;                      \
     int      ticklast;                       \
                                              \
-    int      nStatus;                        \
-    HANDLE   hThread;                        \
+    int      status;                         \
+    HANDLE   thread;                         \
                                              \
     int      completed_counter;              \
     int64_t  completed_apts;                 \
