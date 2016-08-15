@@ -43,10 +43,6 @@ void vdev_setparam(void *ctxt, DWORD id, void *param)
     case PARAM_VDEV_FRAME_RATE:
         c->tickframe = 1000 / (*(int*)param > 1 ? *(int*)param : 1);
         break;
-    case PARAM_VDEV_SLOW_FLAG:
-        // slow flag is read only
-        // do nothing
-        break;
     case PARAM_PLAYER_CALLBACK:
         c->fpcb = (PFN_PLAYER_CALLBACK)param;
         break;
@@ -67,11 +63,6 @@ void vdev_getparam(void *ctxt, DWORD id, void *param)
         break;
     case PARAM_VDEV_FRAME_RATE:
         *(int*)param = 1000 / c->tickframe;
-        break;
-    case PARAM_VDEV_SLOW_FLAG:
-        if      (c->ticksleep < -100) *(int*)param = 1;
-        else if (c->ticksleep >  50 ) *(int*)param =-1;
-        else                          *(int*)param = 0;
         break;
     case PARAM_VDEV_SURFACE_WIDTH:
         *(int*)param = c->sw;

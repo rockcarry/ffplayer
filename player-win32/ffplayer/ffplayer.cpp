@@ -38,11 +38,6 @@ typedef struct
     void            *hRender;
     RECT             rtVideo;
 
-    // auto slow down
-    int              auto_slow_down;
-    int              min_play_speed;
-    int              max_play_speed;
-
     // thread
     #define PS_D_PAUSE    (1 << 0)  // demux pause
     #define PS_A_PAUSE    (1 << 1)  // audio decoding pause
@@ -210,20 +205,6 @@ static void* VideoDecodeThreadProc(void *param)
 
         //++ decode video packet ++//
         if (player->vstream_index != -1) {
-            //+ for auto slow down
-            if (player->auto_slow_down) {
-                int play_speed = 100;
-                int slow_flag  = 0;
-                render_getparam(player->hRender, PARAM_PLAY_SPEED, &play_speed);
-                slow_flag = render_slowflag(player->hRender);
-                if (slow_flag > 0 && play_speed <= player->min_play_speed) slow_flag = 0;
-                if (slow_flag < 0 && play_speed >= player->max_play_speed) slow_flag = 0;
-                play_speed -= slow_flag;
-                render_setparam(player->hRender, PARAM_PLAY_SPEED, &play_speed);
-//              log_printf(TEXT("play speed: %d\n"), play_speed);
-            }
-            //- for auto slow down
-
             while (packet->size > 0) {
                 int consumed = 0;
                 int gotvideo = 0;
@@ -382,10 +363,7 @@ void* player_open(char *file, void *win, int adevtype, int vdevtype)
     pthread_create(&player->hADecodeThread, NULL, AudioDecodeThreadProc, player);
     pthread_create(&player->hVDecodeThread, NULL, VideoDecodeThreadProc, player);
 
-    // for auto slow down
-    player->auto_slow_down = 0;
-    player->min_play_speed = 50;
-    player->max_play_speed = 100;
+    // return
     return player;
 
 error_handler:
@@ -546,16 +524,6 @@ void player_setparam(void *hplayer, DWORD id, void *param)
         break;
     case PARAM_PLAY_SPEED:
         render_setparam(player->hRender, PARAM_PLAY_SPEED, param);
-        player->max_play_speed = *(int*)param;
-        break;
-    case PARAM_AUTO_SLOW_DOWN:
-        player->auto_slow_down = *(int*)param;
-        break;
-    case PARAM_MIN_PLAY_SPEED:
-        player->min_play_speed = *(int*)param;
-        break;
-    case PARAM_MAX_PLAY_SPEED:
-        player->max_play_speed = *(int*)param;
         break;
     default:
         render_setparam(player->hRender, id, param);
@@ -581,15 +549,6 @@ void player_getparam(void *hplayer, DWORD id, void *param)
     case PARAM_VIDEO_HEIGHT:
         if (!player->vcodec_context) *(int*)param = 0;
         else *(int*)param = player->vcodec_context->height;
-        break;
-    case PARAM_AUTO_SLOW_DOWN:
-        *(int*)param = player->auto_slow_down;
-        break;
-    case PARAM_MIN_PLAY_SPEED:
-        *(int*)param = player->min_play_speed;
-        break;
-    case PARAM_MAX_PLAY_SPEED:
-        *(int*)param = player->max_play_speed;
         break;
     default:
         render_getparam(player->hRender, id, param);

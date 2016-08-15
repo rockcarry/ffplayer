@@ -72,8 +72,7 @@ typedef struct
 // 内部函数实现
 static void render_setspeed(RENDER *render, int speed)
 {
-    if (speed > 0)
-    {
+    if (speed > 0) {
         render->render_speed_new = speed;
     }
 }
@@ -309,16 +308,6 @@ void render_reset(void *hrender)
     adev_reset(render->adev);
     vdev_reset(render->vdev);
     render->render_status = 0;
-}
-
-int render_slowflag(void *hrender)
-{
-    RENDER *render = (RENDER*)hrender;
-    int aflag; adev_getparam(render->adev, PARAM_ADEV_SLOW_FLAG, &aflag);
-    int vflag; vdev_getparam(render->vdev, PARAM_VDEV_SLOW_FLAG, &vflag);
-    if (aflag > 0 || vflag > 0) return  1;
-    if (aflag < 0 && vflag < 0) return -1;
-    return 0;
 }
 
 void render_setparam(void *hrender, DWORD id, void *param)

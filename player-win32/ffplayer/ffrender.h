@@ -30,7 +30,6 @@ void render_pause   (void *hrender);
 void render_reset   (void *hrender);
 void render_setparam(void *hrender, DWORD id, void *param);
 void render_getparam(void *hrender, DWORD id, void *param);
-int  render_slowflag(void *hrender);
 
 #ifdef __cplusplus
 }

@@ -257,10 +257,6 @@ void adev_setparam(void *ctxt, DWORD id, void *param)
             c->vol_curvol = vol;
         }
         break;
-    case PARAM_ADEV_SLOW_FLAG:
-        // slow flag is read only
-        // do nothing
-        break;
     }
 }
 
@@ -272,16 +268,6 @@ void adev_getparam(void *ctxt, DWORD id, void *param)
     switch (id) {
     case PARAM_AUDIO_VOLUME:
         *(int*)param = c->vol_curvol - c->vol_zerodb;
-        break;
-    case PARAM_ADEV_SLOW_FLAG:
-        {
-            LONG count = 0;
-            ReleaseSemaphore(c->bufsem, 0, &count);
-//          log_printf(TEXT("adev count = %ld\n"), count);
-            if      (count >= DEF_ADEV_BUF_NUM - 1) *(int*)param = 1;
-            else if (count <= 1                   ) *(int*)param =-1;
-            else                                    *(int*)param = 0;
-        }
         break;
     }
 }

@@ -58,9 +58,6 @@ enum {
 
     // playback speed control
     PARAM_PLAY_SPEED,
-    PARAM_AUTO_SLOW_DOWN,
-    PARAM_MIN_PLAY_SPEED,
-    PARAM_MAX_PLAY_SPEED,
 
     // visual effect mode
     PARAM_VISUAL_EFFECT,
@@ -74,14 +71,12 @@ enum {
 
     //++ for adev
     PARAM_ADEV_RENDER_TYPE = 0x2000,
-    PARAM_ADEV_SLOW_FLAG,
     //-- for adev
 
     //++ for vdev
     PARAM_VDEV_RENDER_TYPE = 0x3000,
     PARAM_VDEV_PIXEL_FORMAT,
     PARAM_VDEV_FRAME_RATE,
-    PARAM_VDEV_SLOW_FLAG,
     PARAM_VDEV_SURFACE_WIDTH,
     PARAM_VDEV_SURFACE_HEIGHT,
     //-- for vdev
