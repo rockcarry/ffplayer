@@ -349,6 +349,27 @@ void render_setparam(void *hrender, DWORD id, void *param)
     case PARAM_PLAYER_CALLBACK:
         vdev_setparam(render->vdev, PARAM_PLAYER_CALLBACK, param);
         break;
+    case PARAM_ADEV_RENDER_TYPE:
+        // we only support WAVEOUT adev now
+        break;
+    case PARAM_VDEV_RENDER_TYPE:
+        {
+            VDEV_COMMON_CTXT *vdev = (VDEV_COMMON_CTXT*)render->vdev;
+            int               type = *(int*)param;
+            if (type != vdev->type) {
+                render->vdev = NULL;
+                //++ re-create vdev
+                HWND hwnd      = vdev->hwnd;
+                int  w         = vdev->w;
+                int  h         = vdev->h;
+                int  tickframe = vdev->tickframe;
+                vdev_destroy(vdev);
+                render->vdev = vdev_create(type, hwnd, 0, w, h, 30);
+                ((VDEV_COMMON_CTXT*)render->vdev)->tickframe = tickframe;
+                //-- re-create vdev
+            }
+        }
+        break;
     }
 }
 
@@ -378,6 +399,12 @@ void render_getparam(void *hrender, DWORD id, void *param)
         break;
     case PARAM_AVSYNC_TIME_DIFF:
         vdev_getparam(render->vdev, PARAM_AVSYNC_TIME_DIFF, param);
+        break;
+    case PARAM_ADEV_RENDER_TYPE:
+        *(int*)param = ADEV_RENDER_TYPE_WAVEOUT;
+        break;
+    case PARAM_VDEV_RENDER_TYPE:
+        *(int*)param = ((VDEV_COMMON_CTXT*)render->vdev)->type;
         break;
     }
 }
