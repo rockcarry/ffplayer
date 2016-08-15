@@ -68,7 +68,7 @@ void CplayerDlg::PlayerOpenFile(void)
 
         /*
         int speed = 150;
-        player_setparam(g_hplayer, PARAM_PLAYER_SPEED, &speed);
+        player_setparam(g_hplayer, PARAM_PLAY_SPEED, &speed);
         */
 
         // software volume scale -30dB to 12dB
