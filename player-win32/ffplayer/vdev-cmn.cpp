@@ -93,7 +93,7 @@ void vdev_refresh_background(void *ctxt)
 {
     VDEV_COMMON_CTXT *c = (VDEV_COMMON_CTXT*)ctxt;
     RECT rtwin, rect1, rect2, rect3, rect4;
-    int  x = c->x, y = c->w, w = c->w, h = c->h;
+    int  x = c->x, y = c->y, w = c->w, h = c->h;
     GetClientRect(c->hwnd, &rtwin);
     rect1.left = 0;   rect1.top = 0;   rect1.right = rtwin.right; rect1.bottom = y;
     rect2.left = 0;   rect2.top = y;   rect2.right = x;           rect2.bottom = y+h;
