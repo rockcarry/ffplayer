@@ -145,7 +145,7 @@ static void* AudioDecodeThreadProc(void *param)
                     aframe->pts = (int64_t)(av_frame_get_best_effort_timestamp(aframe) * player->astream_timebase);
                     //++ for seek operation
                     if ((player->player_status & PS_A_SEEK)) {
-                        if (player->seek_dest_pts - aframe->pts < 50) {
+                        if (player->seek_dest_pts - aframe->pts < 100) {
                             player->player_status |= (PS_A_SEEK << 16);
                         }
                     }
@@ -219,7 +219,7 @@ static void* VideoDecodeThreadProc(void *param)
                     vframe->pts = (int64_t)(av_frame_get_best_effort_timestamp(vframe) * player->vstream_timebase);
                     //++ for seek operation
                     if ((player->player_status & PS_V_SEEK)) {
-                        if (player->seek_dest_pts - vframe->pts < 50) {
+                        if (player->seek_dest_pts - vframe->pts < 100) {
                             player->player_status |= (PS_V_SEEK << 16);
                         }
                     }
@@ -465,13 +465,13 @@ void player_seek(void *hplayer, LONGLONG ms)
     if (!hplayer) return;
     PLAYER *player = (PLAYER*)hplayer;
 
-    // render seek start
+    // pause demuxing and audio & video decoding
     #define PAUSE_REQ ((PS_D_PAUSE|PS_A_PAUSE|PS_V_PAUSE) << 0 )
     #define PAUSE_ACK ((PS_D_PAUSE|PS_A_PAUSE|PS_V_PAUSE) << 16)
     player->player_status |= PAUSE_REQ;
     player->player_status &=~PAUSE_ACK;
 
-    // wait for demuxing, audio decoding & video decoding threads paused
+    // wait for demuxing, audio & video decoding threads paused
     render_start(player->hRender);
     while ((player->player_status & PAUSE_ACK) != PAUSE_ACK) usleep(20*1000);
 
@@ -490,14 +490,15 @@ void player_seek(void *hplayer, LONGLONG ms)
     // restart all thread and render
     int SEEK_REQ = 0;
     int SEEK_ACK = 0;
+    int timeout  = 100;
     if (player->astream_index != -1) { SEEK_REQ |= PS_A_SEEK; SEEK_ACK |= PS_A_SEEK << 16; }
     if (player->vstream_index != -1) { SEEK_REQ |= PS_V_SEEK; SEEK_ACK |= PS_V_SEEK << 16; }
     player->seek_dest_pts  = ms;
-    player->player_status &= ~SEEK_ACK;
     player->player_status |=  SEEK_REQ;
-    player->player_status &= ~(PAUSE_REQ | PAUSE_ACK);
+    player->player_status &= ~(SEEK_ACK | PAUSE_REQ | PAUSE_ACK);
     while ( !(player->player_status & (PS_D_PAUSE << 16))
-          && (player->player_status & SEEK_ACK) != SEEK_ACK ) {
+          && (player->player_status & SEEK_ACK) != SEEK_ACK
+          && --timeout) {
         usleep(20*1000);
     }
     player->player_status &= ~(SEEK_REQ | SEEK_ACK);
