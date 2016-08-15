@@ -73,7 +73,7 @@ static int init_software_volmue_scaler(int *scaler, int mindb, int maxdb)
 }
 
 // 接口函数实现
-void* adev_create(int bufnum, int buflen)
+void* adev_create(int type, int bufnum, int buflen)
 {
     ADEV_CONTEXT *ctxt = NULL;
     WAVEFORMATEX  wfx  = {0};

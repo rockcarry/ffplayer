@@ -114,4 +114,50 @@ void vdev_refresh_background(void *ctxt)
     InvalidateRect(c->hwnd, &rect4, TRUE);
 }
 
+void* vdev_create(int type, void *surface, int bufnum, int w, int h, int frate)
+{
+    VDEV_COMMON_CTXT *c = NULL;
+    switch (type) {
+    case VDEV_RENDER_TYPE_GDI: c = (VDEV_COMMON_CTXT*)vdev_gdi_create(surface, bufnum, w, h, frate); break;
+    case VDEV_RENDER_TYPE_D3D: c = (VDEV_COMMON_CTXT*)vdev_d3d_create(surface, bufnum, w, h, frate); break;
+    }
+    if (c) c->type = type;
+    return c;
+}
+
+void vdev_destroy(void *ctxt)
+{
+    VDEV_COMMON_CTXT *c = (VDEV_COMMON_CTXT*)ctxt;
+    switch (c->type) {
+    case VDEV_RENDER_TYPE_GDI: vdev_gdi_destroy(ctxt); break;
+    case VDEV_RENDER_TYPE_D3D: vdev_d3d_destroy(ctxt); break;
+    }
+}
+
+void vdev_request(void *ctxt, void **buf, int *stride)
+{
+    VDEV_COMMON_CTXT *c = (VDEV_COMMON_CTXT*)ctxt;
+    switch (c->type) {
+    case VDEV_RENDER_TYPE_GDI: vdev_gdi_request(ctxt, buf, stride); break;
+    case VDEV_RENDER_TYPE_D3D: vdev_d3d_request(ctxt, buf, stride); break;
+    }
+}
+
+void vdev_post(void *ctxt, int64_t pts)
+{
+    VDEV_COMMON_CTXT *c = (VDEV_COMMON_CTXT*)ctxt;
+    switch (c->type) {
+    case VDEV_RENDER_TYPE_GDI: vdev_gdi_post(ctxt, pts); break;
+    case VDEV_RENDER_TYPE_D3D: vdev_d3d_post(ctxt, pts); break;
+    }
+}
+
+void vdev_setrect(void *ctxt, int x, int y, int w, int h)
+{
+    VDEV_COMMON_CTXT *c = (VDEV_COMMON_CTXT*)ctxt;
+    switch (c->type) {
+    case VDEV_RENDER_TYPE_GDI: vdev_gdi_setrect(ctxt, x, y, w, h); break;
+    case VDEV_RENDER_TYPE_D3D: vdev_d3d_setrect(ctxt, x, y, w, h); break;
+    }
+}
 

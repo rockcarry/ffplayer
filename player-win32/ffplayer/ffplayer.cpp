@@ -263,7 +263,7 @@ static void* VideoDecodeThreadProc(void *param)
 }
 
 // 函数实现
-void* player_open(char *file, void *extra)
+void* player_open(char *file, void *win, int adevtype, int vdevtype)
 {
     PLAYER        *player   = NULL;
     AVCodec       *decoder  = NULL;
@@ -369,8 +369,8 @@ void* player_open(char *file, void *extra)
     }
 
     // open render
-    player->hRender = render_open(extra, vrate, vformat, width, height,
-        arate, (AVSampleFormat)aformat, alayout);
+    player->hRender = render_open(vdevtype, win, vrate, vformat, width, height,
+        adevtype, arate, (AVSampleFormat)aformat, alayout);
     if (player->vstream_index == -1) {
         int effect = VISUAL_EFFECT_WAVEFORM;
         render_setparam(player->hRender, PARAM_VISUAL_EFFECT, &effect);
@@ -400,7 +400,7 @@ void player_close(void *hplayer)
 
     player->player_status = PS_CLOSE;
     if (player->hRender) {
-        render_reset(player->hRender);
+        render_start(player->hRender);
     }
 
     // wait audio/video demuxing thread exit

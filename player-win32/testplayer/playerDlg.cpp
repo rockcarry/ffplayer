@@ -61,7 +61,7 @@ void CplayerDlg::PlayerOpenFile(void)
     }
 
     // player open file
-    g_hplayer = player_open(str, GetSafeHwnd());
+    g_hplayer = player_open(str, GetSafeHwnd(), ADEV_RENDER_TYPE_WAVEOUT, VDEV_RENDER_TYPE_GDI);
     if (g_hplayer)
     {
         m_bPlayPause = FALSE;

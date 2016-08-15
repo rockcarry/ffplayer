@@ -14,6 +14,17 @@ extern "C" {
 #define PLAY_PROGRESS   (('R' << 24) | ('U' << 16) | ('N' << 8))
 #define PLAY_COMPLETED  (('E' << 24) | ('N' << 16) | ('D' << 8))
 
+// adev render type
+enum {
+    ADEV_RENDER_TYPE_WAVEOUT,
+};
+
+// vdev render type
+enum {
+    VDEV_RENDER_TYPE_GDI,
+    VDEV_RENDER_TYPE_D3D,
+};
+
 // render mode
 enum {
     VIDEO_MODE_LETTERBOX,
@@ -61,24 +72,26 @@ enum {
     PARAM_PLAYER_CALLBACK,
     //-- public
 
+    //++ for adev
+    PARAM_ADEV_RENDER_TYPE = 0x2000,
+    PARAM_ADEV_SLOW_FLAG,
+    //-- for adev
+
     //++ for vdev
-    PARAM_VDEV_PIXEL_FORMAT = 0x2000,
+    PARAM_VDEV_RENDER_TYPE = 0x3000,
+    PARAM_VDEV_PIXEL_FORMAT,
     PARAM_VDEV_FRAME_RATE,
     PARAM_VDEV_SLOW_FLAG,
     PARAM_VDEV_SURFACE_WIDTH,
     PARAM_VDEV_SURFACE_HEIGHT,
     //-- for vdev
-
-    //++ for adev
-    PARAM_ADEV_SLOW_FLAG = 0x3000,
-    //-- for adev
 };
 
 // player event callback
 typedef void (*PFN_PLAYER_CALLBACK)(__int32 msg, __int64 param);
 
 // 函数声明
-void* player_open    (char *file, void *extra);
+void* player_open    (char *file, void *win, int adevtype, int vdevtype);
 void  player_close   (void *hplayer);
 void  player_play    (void *hplayer);
 void  player_pause   (void *hplayer);

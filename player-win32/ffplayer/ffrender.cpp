@@ -98,8 +98,8 @@ static void* render_veffect_thread(void *param)
 }
 
 // º¯ÊıÊµÏÖ
-void* render_open(void *surface, AVRational frate, int pixfmt, int w, int h,
-                 int srate, AVSampleFormat sndfmt, int64_t ch_layout)
+void* render_open(int vdevtype, void *surface, AVRational frate, int pixfmt, int w, int h,
+                  int adevtype, int srate, AVSampleFormat sndfmt, int64_t ch_layout)
 {
     RENDER *render = (RENDER*)malloc(sizeof(RENDER));
     if (!render) {
@@ -127,8 +127,8 @@ void* render_open(void *surface, AVRational frate, int pixfmt, int w, int h,
     pthread_create(&render->veffect_thread, NULL, render_veffect_thread, render);
 
     // create adev & vdev
-    render->adev = adev_create(0, (int)(44100.0 * frate.den / frate.num + 0.5) * 4);
-    render->vdev = vdev_create(surface, 0, w, h, frate.num / frate.den);
+    render->adev = adev_create(adevtype, 0, (int)(44100.0 * frate.den / frate.num + 0.5) * 4);
+    render->vdev = vdev_create(vdevtype, surface, 0, w, h, frate.num / frate.den);
 
     // make adev & vdev sync together
     int64_t *papts = NULL;

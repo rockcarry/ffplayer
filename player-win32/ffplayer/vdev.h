@@ -20,6 +20,7 @@ extern "C" {
 
 //++ vdev context common members
 #define VDEV_COMMON_MEMBERS \
+    int      type;   \
     int      bufnum; \
     int      pixfmt; \
     int      x;   /* video display rect x */ \
@@ -61,42 +62,34 @@ typedef struct {
 } VDEV_COMMON_CTXT;
 
 // º¯ÊýÉùÃ÷
-void vdev_setrect (void *ctxt, int x, int y, int w, int h);
-void vdev_pause   (void *ctxt, BOOL pause);
-void vdev_reset   (void *ctxt);
-void vdev_getavpts(void *ctxt, int64_t **ppapts, int64_t **ppvpts);
-void vdev_setparam(void *ctxt, DWORD id, void *param);
-void vdev_getparam(void *ctxt, DWORD id, void *param);
-void vdev_player_event(void *ctxt, int32_t msg, int64_t param);
-void vdev_refresh_background(void *ctxt);
+void  vdev_setrect (void *ctxt, int x, int y, int w, int h);
+void  vdev_pause   (void *ctxt, BOOL pause);
+void  vdev_reset   (void *ctxt);
+void  vdev_getavpts(void *ctxt, int64_t **ppapts, int64_t **ppvpts);
+void  vdev_setparam(void *ctxt, DWORD id, void *param);
+void  vdev_getparam(void *ctxt, DWORD id, void *param);
+void  vdev_player_event(void *ctxt, int32_t msg, int64_t param);
+void  vdev_refresh_background(void *ctxt);
+
+void* vdev_create  (int type, void *surface, int bufnum, int w, int h, int frate);
+void  vdev_destroy (void *ctxt);
+void  vdev_request (void *ctxt, void **buf, int *stride);
+void  vdev_post    (void *ctxt, int64_t pts);
+void  vdev_setrect (void *ctxt, int x, int y, int w, int h);
 
 // vdev-gdi
-void* vdev_gdi_create  (void *surface, int bufnum, int w, int h, int frate);
-void  vdev_gdi_destroy (void *ctxt);
-void  vdev_gdi_request (void *ctxt, void **buf, int *stride);
-void  vdev_gdi_post    (void *ctxt, int64_t pts);
-void  vdev_gdi_setrect (void *ctxt, int x, int y, int w, int h);
+void* vdev_gdi_create (void *surface, int bufnum, int w, int h, int frate);
+void  vdev_gdi_destroy(void *ctxt);
+void  vdev_gdi_request(void *ctxt, void **buf, int *stride);
+void  vdev_gdi_post   (void *ctxt, int64_t pts);
+void  vdev_gdi_setrect(void *ctxt, int x, int y, int w, int h);
 
 // vdev-d3d
-void* vdev_d3d_create  (void *surface, int bufnum, int w, int h, int frate);
-void  vdev_d3d_destroy (void *ctxt);
-void  vdev_d3d_request (void *ctxt, void **buf, int *stride);
-void  vdev_d3d_post    (void *ctxt, int64_t pts);
-void  vdev_d3d_setrect (void *ctxt, int x, int y, int w, int h);
-
-#if 0
-#define vdev_create    vdev_gdi_create
-#define vdev_destroy   vdev_gdi_destroy
-#define vdev_request   vdev_gdi_request
-#define vdev_post      vdev_gdi_post
-#define vdev_setrect   vdev_gdi_setrect
-#else
-#define vdev_create    vdev_d3d_create
-#define vdev_destroy   vdev_d3d_destroy
-#define vdev_request   vdev_d3d_request
-#define vdev_post      vdev_d3d_post
-#define vdev_setrect   vdev_d3d_setrect
-#endif
+void* vdev_d3d_create (void *surface, int bufnum, int w, int h, int frate);
+void  vdev_d3d_destroy(void *ctxt);
+void  vdev_d3d_request(void *ctxt, void **buf, int *stride);
+void  vdev_d3d_post   (void *ctxt, int64_t pts);
+void  vdev_d3d_setrect(void *ctxt, int x, int y, int w, int h);
 
 #ifdef __cplusplus
 }
