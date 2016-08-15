@@ -1,4 +1,4 @@
-1. optimize code for auto slow down
-2. optimize speed for seek function
-3. subtitle
+1. comment for code
+2. subtitle
+
 
