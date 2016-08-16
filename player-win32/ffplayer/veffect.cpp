@@ -141,6 +141,7 @@ void veffect_render(void *ctxt, int x, int y, int w, int h, int type, void *buf,
     case VISUAL_EFFECT_SPECTRUM:
         {
             short *ssrc = (short*)buf;
+            float *fsrc = (float*)ve->data_buf;
             float *fdst = (float*)ve->data_buf;
             int    i;
             for (i=0; i<ve->data_len; i++) {
@@ -149,12 +150,13 @@ void veffect_render(void *ctxt, int x, int y, int w, int h, int type, void *buf,
                 ssrc   += 2;
             }
             fft_execute(ve->fft, ve->data_buf, ve->data_buf);
-            fdst = (float*)ve->data_buf;
+            fsrc = fdst = (float*)ve->data_buf;
             for (i=0; i<ve->data_len; i++) {
-                *fdst = sqrt(fdst[0] * fdst[0] + fdst[1] * fdst[1]);
+                *fdst = sqrt(fsrc[0] * fsrc[0] + fsrc[1] * fsrc[1]);
                 fdst += 1;
+                fsrc += 2;
             }
-            draw_effect(ve, x, y, w, h, 0x100000, ve->data_buf, ve->data_len);
+            draw_effect(ve, x, y, w, h, 0x100000, ve->data_buf, ve->data_len / 2);
         }
         break;
     }

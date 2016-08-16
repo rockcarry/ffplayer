@@ -248,7 +248,7 @@ void* player_open(char *file, void *win, int adevtype, int vdevtype)
 {
     PLAYER        *player   = NULL;
     AVCodec       *decoder  = NULL;
-    AVRational     vrate    = { 30, 1 };
+    AVRational     vrate    = { 21, 1 };
     int            vformat  = 0;
     int            width    = 0;
     int            height   = 0;
@@ -299,7 +299,7 @@ void* player_open(char *file, void *win, int adevtype, int vdevtype)
             player->vstream_timebase = av_q2d(player->avformat_context->streams[i]->time_base) * 1000;
             vrate = player->avformat_context->streams[i]->r_frame_rate;
             if (vrate.num / vrate.den > 100) {
-                vrate.num = 30;
+                vrate.num = 21;
                 vrate.den = 1;
             }
             break;
