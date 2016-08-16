@@ -1,14 +1,16 @@
 #!/bin/bash
+set -e
 
-if [ -d ffmpeg ]; then
-  cd ffmpeg
-else
-  git clone git://source.ffmpeg.org/ffmpeg.git ffmpeg
-  cd ffmpeg
+#++ build ffmpeg ++#
+if [ ! -d ffmpeg ]; then
+git clone git://source.ffmpeg.org/ffmpeg.git
 fi
 
-sed -i '/check_cflags -Werror=missing-prototypes/d' configure
+#+ patch for mingw32 compile error
+sed -i '/check_cflags -Werror=missing-prototypes/d' ffmpeg/configure
+#- patch for mingw32 compile error
 
+cd ffmpeg
 ./configure \
 --arch=x86 \
 --cpu=i586 \
@@ -20,26 +22,36 @@ sed -i '/check_cflags -Werror=missing-prototypes/d' configure
 --enable-static \
 --enable-shared \
 --enable-small \
+--enable-memalign-hack \
+--disable-swscale-alpha \
 --disable-symver \
 --disable-debug \
---enable-memalign-hack \
 --disable-programs \
 --disable-doc \
 --disable-avdevice \
 --disable-avfilter \
 --disable-postproc \
 --disable-encoders \
+--disable-muxers   \
+--disable-parsers  \
+--disable-bsfs     \
 --disable-devices  \
 --disable-filters  \
---disable-muxers \
---disable-swscale-alpha \
 --enable-asm \
 --enable-gpl \
 --enable-version3 \
---enable-nonfree
-
+--enable-nonfree \
+--enable-d3d11va \
+--enable-dxva2   \
+--enable-nvenc   \
+--enable-opencl  \
+--enable-libmfx  \
+--enable-libass  \
+--extra-cflags="-I$PWD/../include" \
+--extra-ldflags="-L$PWD/../lib"
 make -j8 && make install
-
 cd -
+#++ build ffmpeg ++#
 
-rm -rf ffmpeg lib
+echo done
+
