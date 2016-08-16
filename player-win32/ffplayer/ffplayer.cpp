@@ -31,12 +31,12 @@ typedef struct
     int              vstream_index;
     double           vstream_timebase;
 
-    // packet queue
-    void            *hPacketQueue;
+    // pktqueue
+    void            *pktqueue;
 
     // render
-    void            *hRender;
-    RECT             rtVideo;
+    void            *render;
+    RECT             vdrect;
 
     // thread
     #define PS_D_PAUSE    (1 << 0)  // demux pause
@@ -49,13 +49,13 @@ typedef struct
     int              player_status;
     int64_t          seek_dest_pts;
 
-    pthread_t        hAVDemuxThread;
-    pthread_t        hADecodeThread;
-    pthread_t        hVDecodeThread;
+    pthread_t        avdemux_thread;
+    pthread_t        adecode_thread;
+    pthread_t        vdecode_thread;
 } PLAYER;
 
 // 内部函数实现
-static void* AVDemuxThreadProc(void *param)
+static void* av_demux_thread_proc(void *param)
 {
     PLAYER   *player = (PLAYER*)param;
     AVPacket *packet = NULL;
@@ -70,7 +70,7 @@ static void* AVDemuxThreadProc(void *param)
         }
         //-- when demux pause --//
 
-        if (!pktqueue_write_request(player->hPacketQueue, &packet)) { usleep(20*1000); continue; }
+        if (!pktqueue_write_request(player->pktqueue, &packet)) { usleep(20*1000); continue; }
 
         retv = av_read_frame(player->avformat_context, packet);
         //++ play completed ++//
@@ -82,27 +82,27 @@ static void* AVDemuxThreadProc(void *param)
         // audio
         if (packet->stream_index == player->astream_index)
         {
-            pktqueue_write_post_a(player->hPacketQueue);
+            pktqueue_write_post_a(player->pktqueue);
         }
 
         // video
         if (packet->stream_index == player->vstream_index)
         {
-            pktqueue_write_post_v(player->hPacketQueue);
+            pktqueue_write_post_v(player->pktqueue);
         }
 
         if (  packet->stream_index != player->astream_index
            && packet->stream_index != player->vstream_index )
         {
             av_packet_unref(packet); // free packet
-            pktqueue_write_cancel(player->hPacketQueue);
+            pktqueue_write_cancel(player->pktqueue);
         }
     }
 
     return NULL;
 }
 
-static void* AudioDecodeThreadProc(void *param)
+static void* audio_decode_thread_proc(void *param)
 {
     PLAYER   *player = (PLAYER*)param;
     AVPacket *packet = NULL;
@@ -127,7 +127,7 @@ static void* AudioDecodeThreadProc(void *param)
         //++ for seek operation
 
         // read packet
-        if (!pktqueue_read_request_a(player->hPacketQueue, &packet)) { usleep(20*1000); continue; }
+        if (!pktqueue_read_request_a(player->pktqueue, &packet)) { usleep(20*1000); continue; }
 
         //++ decode audio packet ++//
         if (player->astream_index != -1) {
@@ -150,7 +150,7 @@ static void* AudioDecodeThreadProc(void *param)
                         }
                     }
                     //-- for seek operation
-                    else render_audio(player->hRender, aframe);
+                    else render_audio(player->render, aframe);
                 }
 
                 packet->data += consumed;
@@ -162,14 +162,14 @@ static void* AudioDecodeThreadProc(void *param)
         // free packet
         av_packet_unref(packet);
 
-        pktqueue_read_post_a(player->hPacketQueue);
+        pktqueue_read_post_a(player->pktqueue);
     }
 
     av_frame_free(&aframe);
     return NULL;
 }
 
-static void* VideoDecodeThreadProc(void *param)
+static void* video_decode_thread_proc(void *param)
 {
     PLAYER   *player = (PLAYER*)param;
     AVPacket *packet = NULL;
@@ -195,11 +195,11 @@ static void* VideoDecodeThreadProc(void *param)
         //++ for seek operation
 
         // read packet
-        if (!pktqueue_read_request_v(player->hPacketQueue, &packet)) {
+        if (!pktqueue_read_request_v(player->pktqueue, &packet)) {
             if ((player->player_status & PS_V_SEEK)) {
                 player->player_status |= (PS_V_SEEK << 16);
             }
-            else render_video(player->hRender, vframe);
+            else render_video(player->render, vframe);
             usleep(20*1000); continue;
         }
 
@@ -224,7 +224,7 @@ static void* VideoDecodeThreadProc(void *param)
                         }
                     }
                     //-- for seek operation
-                    else render_video(player->hRender, vframe);
+                    else render_video(player->render, vframe);
                 }
 
                 packet->data += consumed;
@@ -236,7 +236,7 @@ static void* VideoDecodeThreadProc(void *param)
         // free packet
         av_packet_unref(packet);
 
-        pktqueue_read_post_v(player->hPacketQueue);
+        pktqueue_read_post_v(player->pktqueue);
     }
 
     av_frame_free(&vframe);
@@ -268,7 +268,7 @@ void* player_open(char *file, void *win, int adevtype, int vdevtype)
     memset(player, 0, sizeof(PLAYER));
 
     // create packet queue
-    player->hPacketQueue = pktqueue_create(0);
+    player->pktqueue = pktqueue_create(0);
 
     // open input file
     if (avformat_open_input(&player->avformat_context, file, NULL, 0) != 0) {
@@ -350,18 +350,18 @@ void* player_open(char *file, void *win, int adevtype, int vdevtype)
     }
 
     // open render
-    player->hRender = render_open(vdevtype, win, vrate, vformat, width, height,
+    player->render = render_open(vdevtype, win, vrate, vformat, width, height,
         adevtype, arate, (AVSampleFormat)aformat, alayout);
     if (player->vstream_index == -1) {
         int effect = VISUAL_EFFECT_WAVEFORM;
-        render_setparam(player->hRender, PARAM_VISUAL_EFFECT, &effect);
+        render_setparam(player->render, PARAM_VISUAL_EFFECT, &effect);
     }
 
     // make sure player status paused
     player->player_status = (PS_D_PAUSE|PS_A_PAUSE|PS_V_PAUSE);
-    pthread_create(&player->hAVDemuxThread, NULL, AVDemuxThreadProc    , player);
-    pthread_create(&player->hADecodeThread, NULL, AudioDecodeThreadProc, player);
-    pthread_create(&player->hVDecodeThread, NULL, VideoDecodeThreadProc, player);
+    pthread_create(&player->avdemux_thread, NULL, av_demux_thread_proc    , player);
+    pthread_create(&player->adecode_thread, NULL, audio_decode_thread_proc, player);
+    pthread_create(&player->vdecode_thread, NULL, video_decode_thread_proc, player);
 
     // return
     return player;
@@ -377,23 +377,23 @@ void player_close(void *hplayer)
     PLAYER *player = (PLAYER*)hplayer;
 
     player->player_status = PS_CLOSE;
-    if (player->hRender) {
-        render_start(player->hRender);
+    if (player->render) {
+        render_start(player->render);
     }
 
     // wait audio/video demuxing thread exit
-    pthread_join(player->hAVDemuxThread, NULL);
+    pthread_join(player->avdemux_thread, NULL);
 
     // wait audio decoding thread exit
-    pthread_join(player->hADecodeThread, NULL);
+    pthread_join(player->adecode_thread, NULL);
 
     // wait video decoding thread exit
-    pthread_join(player->hVDecodeThread, NULL);
+    pthread_join(player->vdecode_thread, NULL);
 
     // destroy packet queue
-    pktqueue_destroy(player->hPacketQueue);
+    pktqueue_destroy(player->pktqueue);
 
-    if (player->hRender         ) render_close (player->hRender);
+    if (player->render          ) render_close (player->render);
     if (player->vcodec_context  ) avcodec_close(player->vcodec_context);
     if (player->acodec_context  ) avcodec_close(player->acodec_context);
     if (player->avformat_context) avformat_close_input(&player->avformat_context);
@@ -409,7 +409,7 @@ void player_play(void *hplayer)
     if (!hplayer) return;
     PLAYER *player = (PLAYER*)hplayer;
     player->player_status = 0;
-    render_start(player->hRender);
+    render_start(player->render);
 }
 
 void player_pause(void *hplayer)
@@ -417,7 +417,7 @@ void player_pause(void *hplayer)
     if (!hplayer) return;
     PLAYER *player = (PLAYER*)hplayer;
     player->player_status |= PS_R_PAUSE;
-    render_pause(player->hRender);
+    render_pause(player->render);
 }
 
 void player_setrect(void *hplayer, int type, int x, int y, int w, int h)
@@ -427,7 +427,7 @@ void player_setrect(void *hplayer, int type, int x, int y, int w, int h)
 
     //++ if set visual effect rect
     if (type == 1) {
-        render_setrect(player->hRender, type, x, y, w, h);
+        render_setrect(player->render, type, x, y, w, h);
         return;
     }
     //-- if set visual effect rect
@@ -440,10 +440,10 @@ void player_setrect(void *hplayer, int type, int x, int y, int w, int h)
     player_getparam(hplayer, PARAM_VIDEO_MODE  , &mode);
     if (!vw || !vh) return;
 
-    player->rtVideo.left   = x;
-    player->rtVideo.top    = y;
-    player->rtVideo.right  = x + w;
-    player->rtVideo.bottom = y + h;
+    player->vdrect.left   = x;
+    player->vdrect.top    = y;
+    player->vdrect.right  = x + w;
+    player->vdrect.bottom = y + h;
 
     switch (mode)
     {
@@ -457,7 +457,7 @@ void player_setrect(void *hplayer, int type, int x, int y, int w, int h)
 
     if (rw <= 0) rw = 1;
     if (rh <= 0) rh = 1;
-    render_setrect(player->hRender, type, x + (w - rw) / 2, y + (h - rh) / 2, rw, rh);
+    render_setrect(player->render, type, x + (w - rw) / 2, y + (h - rh) / 2, rw, rh);
 }
 
 void player_seek(void *hplayer, LONGLONG ms)
@@ -472,7 +472,7 @@ void player_seek(void *hplayer, LONGLONG ms)
     player->player_status &=~PAUSE_ACK;
 
     // wait for demuxing, audio & video decoding threads paused
-    render_start(player->hRender);
+    render_start(player->render);
     while ((player->player_status & PAUSE_ACK) != PAUSE_ACK) usleep(20*1000);
 
     // seek frame
@@ -481,11 +481,11 @@ void player_seek(void *hplayer, LONGLONG ms)
     if (player->vstream_index != -1) avcodec_flush_buffers(player->vcodec_context);
 
     // reset packet queue
-    pktqueue_reset(player->hPacketQueue);
+    pktqueue_reset(player->pktqueue);
 
     // reset render
-    render_reset   (player->hRender);
-    render_setparam(player->hRender, PARAM_MEDIA_POSITION, &ms);
+    render_reset   (player->render);
+    render_setparam(player->render, PARAM_MEDIA_POSITION, &ms);
 
     // restart all thread and render
     int SEEK_REQ = 0;
@@ -505,7 +505,7 @@ void player_seek(void *hplayer, LONGLONG ms)
 
     // pause render if needed
     if (player->player_status & PS_R_PAUSE) {
-        usleep(20*1000); render_pause(player->hRender);
+        usleep(20*1000); render_pause(player->render);
     }
 }
 
@@ -517,17 +517,17 @@ void player_setparam(void *hplayer, DWORD id, void *param)
     switch (id)
     {
     case PARAM_VIDEO_MODE:
-        render_setparam(player->hRender, PARAM_VIDEO_MODE, param);
+        render_setparam(player->render, PARAM_VIDEO_MODE, param);
         player_setrect(hplayer, 0,
-            player->rtVideo.left, player->rtVideo.top,
-            player->rtVideo.right - player->rtVideo.left,
-            player->rtVideo.bottom - player->rtVideo.top);
+            player->vdrect.left, player->vdrect.top,
+            player->vdrect.right - player->vdrect.left,
+            player->vdrect.bottom - player->vdrect.top);
         break;
     case PARAM_PLAY_SPEED:
-        render_setparam(player->hRender, PARAM_PLAY_SPEED, param);
+        render_setparam(player->render, PARAM_PLAY_SPEED, param);
         break;
     default:
-        render_setparam(player->hRender, id, param);
+        render_setparam(player->render, id, param);
         break;
     }
 }
@@ -552,7 +552,7 @@ void player_getparam(void *hplayer, DWORD id, void *param)
         else *(int*)param = player->vcodec_context->height;
         break;
     default:
-        render_getparam(player->hRender, id, param);
+        render_getparam(player->render, id, param);
         break;
     }
 }

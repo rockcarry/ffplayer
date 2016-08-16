@@ -2,7 +2,7 @@
 #include "vdev.h"
 
 // º¯ÊýÊµÏÖ
-void vdev_pause(void *ctxt, BOOL pause)
+void vdev_pause(void *ctxt, int pause)
 {
     VDEV_COMMON_CTXT *c = (VDEV_COMMON_CTXT*)ctxt;
     if (pause) {

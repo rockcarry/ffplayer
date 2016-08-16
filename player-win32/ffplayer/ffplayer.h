@@ -203,6 +203,14 @@ typedef void (*PFN_PLAYER_CALLBACK)(__int32 msg, __int64 param);
       完成，而播放进度的显示，建议在窗口中使用定时器机制来查询并
       显示）
 
+PARAM_VDEV_RENDER_TYPE
+用于设置视频渲染方式，目前有 VDEV_RENDER_TYPE_GDI 和 VDEV_RENDER_TYPE_D3D 两种可选
+int mode = 0;
+player_getparam(g_hplayer, PARAM_VDEV_RENDER_TYPE, &mode);
+mode = VDEV_RENDER_TYPE_D3D;
+player_setparam(g_hplayer, PARAM_VDEV_RENDER_TYPE, &mode);
+
+
 所有的参数，都是可以 get 的，但并不是所有的参数都可以 set，因为有些参数是只读的。
  */
 

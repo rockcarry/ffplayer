@@ -108,7 +108,7 @@ void pktqueue_reset(void *ctxt)
     ppq->vhead = ppq->vtail = 0;
 }
 
-BOOL pktqueue_write_request(void *ctxt, AVPacket **pppkt)
+int pktqueue_write_request(void *ctxt, AVPacket **pppkt)
 {
     PKTQUEUE *ppq = (PKTQUEUE*)ctxt;
     if (0 != sem_trywait(&ppq->fsem)) return FALSE;
@@ -144,7 +144,7 @@ void pktqueue_write_post_v(void *ctxt)
     sem_post(&ppq->vsem);
 }
 
-BOOL pktqueue_read_request_a(void *ctxt, AVPacket **pppkt)
+int pktqueue_read_request_a(void *ctxt, AVPacket **pppkt)
 {
     PKTQUEUE *ppq = (PKTQUEUE*)ctxt;
     if (0 != sem_trywait(&ppq->asem)) return FALSE;
@@ -163,7 +163,7 @@ void pktqueue_read_post_a(void *ctxt)
     sem_post(&ppq->fsem);
 }
 
-BOOL pktqueue_read_request_v(void *ctxt, AVPacket **pppkt)
+int pktqueue_read_request_v(void *ctxt, AVPacket **pppkt)
 {
     PKTQUEUE *ppq = (PKTQUEUE*)ctxt;
     if (0 != sem_trywait(&ppq->vsem)) return FALSE;

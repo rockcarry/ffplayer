@@ -203,7 +203,7 @@ void adev_post(void *ctxt, int64_t pts)
     if (++c->tail == c->bufnum) c->tail = 0;
 }
 
-void adev_pause(void *ctxt, BOOL pause)
+void adev_pause(void *ctxt, int pause)
 {
     if (!ctxt) return;
     ADEV_CONTEXT *c = (ADEV_CONTEXT*)ctxt;
