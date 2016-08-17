@@ -18,8 +18,7 @@ features
 2. audio/video synchronized very will
 3. gdi and direct3d rendering on win32 platform
 4. support variable speed playback 1% to 100%, 200% ..
-5. auto slow speed down when could't decoding in time
-6. waveform and spectrum visual effect
+5. waveform and spectrum visual effect
 
 
 rockcarry
