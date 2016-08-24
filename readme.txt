@@ -21,6 +21,15 @@ features
 5. waveform and spectrum visual effect
 
 
+testplayer
+==========
+testplayer is a simple test player for ffplayer
+hot-keys for testplayer:
+ctrl+E - switch visual effect
+ctrl+M - switch between letter box and stretch rect
+ctrl+R - switch between gdi and d3d
+
+
 rockcarry
 2016.1.7
 
