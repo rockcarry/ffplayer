@@ -118,7 +118,7 @@ player_seek     跳转到指定位置
 
 player_setrect  设置显示区域，有两种显示区域，视频显示区和视觉效果显示区
     hplayer     - 指向 player_open 返回的 player 对象
-    type        - 指定区域类型
+    type        - 指定区域类型  0 - video rect, 1 - visual effect rect
     x,y,w,h     - 指定显示区域
 
 player_setparam 设置参数
