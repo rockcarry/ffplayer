@@ -94,6 +94,7 @@ BEGIN_MESSAGE_MAP(CplayerDlg, CDialog)
     ON_WM_SIZE()
     ON_COMMAND(ID_VIDEO_MODE , &CplayerDlg::OnVideoMode )
     ON_COMMAND(ID_EFFECT_MODE, &CplayerDlg::OnEffectMode)
+    ON_COMMAND(ID_RENDER_MODE, &CplayerDlg::OnRenderMode)
 END_MESSAGE_MAP()
 
 
@@ -279,3 +280,12 @@ void CplayerDlg::OnEffectMode()
     mode++; mode %= VISUAL_EFFECT_MAX_NUM;
     player_setparam(g_hplayer, PARAM_VISUAL_EFFECT, &mode);
 }
+
+void CplayerDlg::OnRenderMode()
+{
+    int mode = 0;
+    player_getparam(g_hplayer, PARAM_VDEV_RENDER_TYPE, &mode);
+    mode++; mode %= VDEV_RENDER_TYPE_MAX_NUM;
+    player_setparam(g_hplayer, PARAM_VDEV_RENDER_TYPE, &mode);
+}
+

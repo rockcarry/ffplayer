@@ -145,8 +145,9 @@ END
 
 IDR_ACCELERATOR1 ACCELERATORS 
 BEGIN
-    "M",            ID_VIDEO_MODE,          VIRTKEY, CONTROL, NOINVERT
     "E",            ID_EFFECT_MODE,         VIRTKEY, CONTROL, NOINVERT
+    "M",            ID_VIDEO_MODE,          VIRTKEY, CONTROL, NOINVERT
+    "R",            ID_RENDER_MODE,         VIRTKEY, CONTROL, NOINVERT
 END
 
 #endif    // Chinese (P.R.C.) resources
