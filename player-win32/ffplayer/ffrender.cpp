@@ -240,15 +240,15 @@ void render_video(void *hrender, AVFrame *video)
             render->render_hcur = render->render_hnew;
 
             int swold, shold, swnew, shnew;
-            vdev_getparam(render->vdev, PARAM_VDEV_SURFACE_WIDTH , &swold);
-            vdev_getparam(render->vdev, PARAM_VDEV_SURFACE_HEIGHT, &shold);
+            swold = ((VDEV_COMMON_CTXT*)render->vdev)->sw;
+            shold = ((VDEV_COMMON_CTXT*)render->vdev)->sh;
             vdev_setrect(render->vdev, render->render_xcur, render->render_ycur,
                 render->render_wcur, render->render_hcur);
-            vdev_getparam(render->vdev, PARAM_VDEV_SURFACE_WIDTH , &swnew);
-            vdev_getparam(render->vdev, PARAM_VDEV_SURFACE_HEIGHT, &shnew);
+            swnew = ((VDEV_COMMON_CTXT*)render->vdev)->sw;
+            shnew = ((VDEV_COMMON_CTXT*)render->vdev)->sh;
 
             if (!render->sws_context || swold != swnew || shold != shnew) {
-                int pixfmt; vdev_getparam(render->vdev, PARAM_VDEV_PIXEL_FORMAT, &pixfmt);
+                int pixfmt = ((VDEV_COMMON_CTXT*)render->vdev)->pixfmt;
                 sws_freeContext(render->sws_context);
                 render->sws_context = sws_getContext(
                     render->video_width, render->video_height, render->pixel_fmt,
@@ -360,13 +360,30 @@ void render_setparam(void *hrender, DWORD id, void *param)
                 render->vdev = NULL;
                 //++ re-create vdev
                 HWND hwnd      = vdev->hwnd;
+                int  x         = vdev->x;
+                int  y         = vdev->y;
                 int  w         = vdev->w;
                 int  h         = vdev->h;
                 int  tickframe = vdev->tickframe;
+                int  status    = vdev->status;
+                int64_t *papts = NULL;
                 vdev_destroy(vdev);
-                render->vdev = vdev_create(type, hwnd, 0, w, h, 30);
-                ((VDEV_COMMON_CTXT*)render->vdev)->tickframe = tickframe;
+                vdev = (VDEV_COMMON_CTXT*)vdev_create(type, hwnd, 0, w, h, 30);
+                vdev_setrect (vdev, x, y, w, h   );
+                vdev_getavpts(vdev, &papts, NULL );
+                adev_syncapts(render->adev, papts);
+                vdev->tickframe = tickframe;
+                vdev->status    = status;
+                render->vdev    = vdev;
                 //-- re-create vdev
+
+                //++ re-create sws
+                sws_freeContext(render->sws_context);
+                render->sws_context = sws_getContext(
+                    render->video_width, render->video_height, render->pixel_fmt,
+                    vdev->sw, vdev->sh, (AVPixelFormat)vdev->pixfmt,
+                    SWS_BILINEAR, 0, 0, 0);
+                //-- re-create sws
             }
         }
         break;

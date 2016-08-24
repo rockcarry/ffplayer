@@ -526,6 +526,13 @@ void player_setparam(void *hplayer, DWORD id, void *param)
     case PARAM_PLAY_SPEED:
         render_setparam(player->render, PARAM_PLAY_SPEED, param);
         break;
+    case PARAM_VDEV_RENDER_TYPE:
+        player->player_status |= PAUSE_REQ;
+        player->player_status &=~PAUSE_ACK;
+        while ((player->player_status & PAUSE_ACK) != PAUSE_ACK) usleep(20*1000);
+        render_setparam(player->render, PARAM_VDEV_RENDER_TYPE, param);
+        player->player_status &=~(PAUSE_REQ | PAUSE_ACK);
+        break;
     default:
         render_setparam(player->render, id, param);
         break;

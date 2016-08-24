@@ -23,6 +23,7 @@ enum {
 enum {
     VDEV_RENDER_TYPE_GDI,
     VDEV_RENDER_TYPE_D3D,
+    VDEV_RENDER_TYPE_MAX_NUM,
 };
 
 // render mode
@@ -76,10 +77,7 @@ enum {
 
     //++ for vdev
     PARAM_VDEV_RENDER_TYPE = 0x3000,
-    PARAM_VDEV_PIXEL_FORMAT,
     PARAM_VDEV_FRAME_RATE,
-    PARAM_VDEV_SURFACE_WIDTH,
-    PARAM_VDEV_SURFACE_HEIGHT,
     //-- for vdev
 };
 

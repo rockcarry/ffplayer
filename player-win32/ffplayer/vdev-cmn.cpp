@@ -36,10 +36,6 @@ void vdev_setparam(void *ctxt, DWORD id, void *param)
     VDEV_COMMON_CTXT *c = (VDEV_COMMON_CTXT*)ctxt;
 
     switch (id) {
-    case PARAM_VDEV_PIXEL_FORMAT:
-        // pixel format is read only
-        // do nothing
-        break;
     case PARAM_VDEV_FRAME_RATE:
         c->tickframe = 1000 / (*(int*)param > 1 ? *(int*)param : 1);
         break;
@@ -58,17 +54,8 @@ void vdev_getparam(void *ctxt, DWORD id, void *param)
     VDEV_COMMON_CTXT *c = (VDEV_COMMON_CTXT*)ctxt;
 
     switch (id) {
-    case PARAM_VDEV_PIXEL_FORMAT:
-        *(int*)param = c->pixfmt;
-        break;
     case PARAM_VDEV_FRAME_RATE:
         *(int*)param = 1000 / c->tickframe;
-        break;
-    case PARAM_VDEV_SURFACE_WIDTH:
-        *(int*)param = c->sw;
-        break;
-    case PARAM_VDEV_SURFACE_HEIGHT:
-        *(int*)param = c->sh;
         break;
     case PARAM_AVSYNC_TIME_DIFF:
         *(int*)param = c->tickavdiff;

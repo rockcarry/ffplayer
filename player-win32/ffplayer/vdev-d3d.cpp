@@ -103,7 +103,7 @@ static DWORD WINAPI VideoRenderThreadProc(void *param)
                 if (apts - vpts < c->tickavdiff - 5) c->ticksleep+=2;
             }
             if (c->ticksleep > 0) Sleep(c->ticksleep);
-            log_printf(TEXT("d: %3lld, s: %d\n"), apts-vpts, c->ticksleep);
+            log_printf(TEXT("d3d d: %3lld, s: %d\n"), apts-vpts, c->ticksleep);
             //-- frame rate & av sync control --//
         }
         else Sleep(c->tickframe);
