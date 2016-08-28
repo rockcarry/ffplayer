@@ -13,10 +13,10 @@ sed -i '/check_cflags -Werror=missing-prototypes/d' ffmpeg/configure
 cd ffmpeg
 ./configure \
 --arch=x86 \
---cpu=i586 \
+--cpu=i686 \
 --target-os=mingw32 \
 --enable-cross-compile \
---cross-prefix=i586-mingw32msvc- \
+--cross-prefix=i686-w64-mingw32- \
 --pkg-config=pkg-config \
 --prefix=$PWD/.. \
 --enable-static \
@@ -43,10 +43,6 @@ cd ffmpeg
 --enable-nonfree \
 --enable-d3d11va \
 --enable-dxva2   \
---enable-nvenc   \
---enable-opencl  \
---enable-libmfx  \
---enable-libass  \
 --extra-cflags="-I$PWD/../include" \
 --extra-ldflags="-L$PWD/../lib"
 make -j8 && make install
