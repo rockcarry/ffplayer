@@ -13,12 +13,10 @@ sed -i '/check_cflags -Werror=missing-prototypes/d' ffmpeg/configure
 cd ffmpeg
 ./configure \
 --arch=x86 \
---cpu=i686 \
 --target-os=mingw32 \
 --enable-cross-compile \
 --cross-prefix=i686-w64-mingw32- \
---pkg-config=pkg-config \
---prefix=$PWD/.. \
+--prefix=$PWD/../ffmpeg-win-sdk \
 --enable-static \
 --enable-shared \
 --enable-small \
@@ -33,18 +31,15 @@ cd ffmpeg
 --disable-postproc \
 --disable-encoders \
 --disable-muxers   \
---disable-parsers  \
---disable-bsfs     \
 --disable-devices  \
 --disable-filters  \
 --enable-asm \
 --enable-gpl \
 --enable-version3 \
 --enable-nonfree \
+--enable-dxva2 \
 --enable-d3d11va \
---enable-dxva2   \
---extra-cflags="-I$PWD/../include" \
---extra-ldflags="-L$PWD/../lib"
+--extra-ldflags="-static-libgcc"
 make -j8 && make install
 cd -
 #++ build ffmpeg ++#
