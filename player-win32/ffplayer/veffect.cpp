@@ -1,15 +1,15 @@
-// °üº¬Í·ÎÄ¼ş
+ï»¿// åŒ…å«å¤´æ–‡ä»¶
 #include <math.h>
 #include "ffplayer.h"
 #include "veffect.h"
 #include "fft.h"
 #include "log.h"
 
-// ÄÚ²¿³£Á¿¶¨Òå
+// å†…éƒ¨å¸¸é‡å®šä¹‰
 #define MAX_GRID_COUNT_X  64
 #define MAX_GRID_COUNT_Y  16
 
-// ÄÚ²¿ÀàĞÍ¶¨Òå
+// å†…éƒ¨ç±»å‹å®šä¹‰
 typedef struct {
     HWND     hwnd;
     int      w;
@@ -27,7 +27,7 @@ typedef struct {
     void    *fft;
 } VEFFECT;
 
-// ÄÚ²¿º¯ÊıÊµÏÖ
+// å†…éƒ¨å‡½æ•°å®ç°
 static void resize_veffect_ifneeded(VEFFECT *ve, int w, int h)
 {
     if (!ve->hbmp || ve->w != w || ve->h != h)
@@ -164,7 +164,7 @@ static void draw_spectrum(VEFFECT *ve, int x, int y, int w, int h, float *sample
     DeleteDC(hdc);
 }
 
-// º¯ÊıÊµÏÖ
+// å‡½æ•°å®ç°
 void* veffect_create(void *surface)
 {
     VEFFECT *ve = (VEFFECT*)malloc(sizeof(VEFFECT));
