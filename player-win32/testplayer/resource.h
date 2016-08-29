@@ -6,7 +6,8 @@
 #define IDR_MAINFRAME                   128
 #define IDR_ACCELERATOR1                129
 #define ID_VIDEO_MODE                   32771
-#define ID_EFFECT_MODE                  32773
+#define ID_EFFECT_MODE                  32772
+#define ID_RENDER_MODE                  32773
 
 // Next default values for new objects
 // 
