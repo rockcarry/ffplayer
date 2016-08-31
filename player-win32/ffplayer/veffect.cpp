@@ -6,8 +6,8 @@
 #include "log.h"
 
 // 内部常量定义
-#define MAX_GRID_COUNT_X  64
-#define MAX_GRID_COUNT_Y  16
+#define MAX_GRID_COLS  64
+#define MAX_GRID_ROWS  16
 
 // 内部类型定义
 typedef struct {
@@ -24,6 +24,8 @@ typedef struct {
     int      stride;
     int      data_len;
     float   *data_buf;
+    int      peak_y[MAX_GRID_COLS];
+    int      peak_v[MAX_GRID_COLS];
     void    *fft;
 } VEFFECT;
 
@@ -55,8 +57,8 @@ static void resize_veffect_ifneeded(VEFFECT *ve, int w, int h)
         //++ re-create bitmap for gradient fill
         if (ve->hfill) DeleteObject(ve->hfill);
         bmpinfo.bmiHeader.biSize        =  sizeof(BITMAPINFOHEADER);
-        bmpinfo.bmiHeader.biWidth       =  w / MAX_GRID_COUNT_X;
-        bmpinfo.bmiHeader.biHeight      = -h / MAX_GRID_COUNT_Y * MAX_GRID_COUNT_Y;
+        bmpinfo.bmiHeader.biWidth       =  w / MAX_GRID_COLS;
+        bmpinfo.bmiHeader.biHeight      = -h / MAX_GRID_ROWS * MAX_GRID_ROWS;
         bmpinfo.bmiHeader.biPlanes      =  1;
         bmpinfo.bmiHeader.biBitCount    =  32;
         bmpinfo.bmiHeader.biCompression =  BI_RGB;
@@ -114,7 +116,7 @@ static void draw_spectrum(VEFFECT *ve, int x, int y, int w, int h, float *sample
 {
     int    amplitude;
     int    gridw, gridh;
-    int    d = n / MAX_GRID_COUNT_X;
+    int    d = n / MAX_GRID_COLS;
     float *fsrc = sample;
     int    i, j, tx, ty;
     int    sw, sh, sx, sy;
@@ -127,10 +129,10 @@ static void draw_spectrum(VEFFECT *ve, int x, int y, int w, int h, float *sample
     memset(ve->pbmp, 0, ve->stride * h);
 
     // calucate for grid
-    gridw = w / MAX_GRID_COUNT_X; if (gridw == 0) gridw = 1;
-    gridh = h / MAX_GRID_COUNT_Y; if (gridh == 0) gridh = 1;
-    sw = gridw * MAX_GRID_COUNT_X; sx = x + (w - sw) / 2;
-    sh = gridh * MAX_GRID_COUNT_Y; sy = y + (h - sh) / 2;
+    gridw = w / MAX_GRID_COLS; if (gridw == 0) gridw = 1;
+    gridh = h / MAX_GRID_ROWS; if (gridh == 0) gridh = 1;
+    sw = gridw * MAX_GRID_COLS; sx = x + (w - sw) / 2;
+    sh = gridh * MAX_GRID_ROWS; sy = y + (h - sh) / 2;
 
     hdc = CreateCompatibleDC(ve->hdcsrc);
     SelectObject(hdc       , ve->hfill);
@@ -142,7 +144,8 @@ static void draw_spectrum(VEFFECT *ve, int x, int y, int w, int h, float *sample
     }
 
     // calculate amplitude
-    for (i=0; i<MAX_GRID_COUNT_X; i++) {
+    SelectObject(ve->hdcsrc, ve->hpen0);
+    for (i=0; i<MAX_GRID_COLS; i++) {
         amplitude = 0;
         for (j=0; j<d; j++) {
             amplitude += (int)(*fsrc++ * sh/0x100000);
@@ -153,7 +156,20 @@ static void draw_spectrum(VEFFECT *ve, int x, int y, int w, int h, float *sample
         ty = sy + sh - amplitude;
         BitBlt(ve->hdcsrc, tx, ty, gridw, amplitude,
                hdc, 0, sh - amplitude, SRCCOPY);
+
+        if (ve->peak_y[i] >= ty) {
+            ve->peak_y[i] = ty;
+            ve->peak_v[i] = 0 ;
+        }
+        else {
+            ve->peak_v[i] += 1;
+            ve->peak_y[i] += ve->peak_v[i];
+            if (ve->peak_y[i] > sy + sh) ve->peak_y[i] = sy + sh;
+        }
+        MoveToEx(ve->hdcsrc, tx, ve->peak_y[i], NULL);
+        LineTo  (ve->hdcsrc, tx+gridw, ve->peak_y[i]);
     }
+    SelectObject(ve->hdcsrc, ve->hpen1);
 
     for (tx=sx; tx<=sx+sw; tx+=gridw) {
         MoveToEx(ve->hdcsrc, tx, sy, NULL);
@@ -175,7 +191,9 @@ void* veffect_create(void *surface)
     ve->hdcsrc = CreateCompatibleDC(ve->hdcdst);
     ve->hpen0  = CreatePen(PS_SOLID, 1, RGB(0 , 255, 0 ));
     ve->hpen1  = CreatePen(PS_SOLID, 1, RGB(32, 32 , 64));
-
+    for (int i=0; i<MAX_GRID_COLS; i++) {
+        ve->peak_y[i] = 0x7fffffff;
+    }
     return ve;
 }
 
