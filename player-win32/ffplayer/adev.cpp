@@ -82,7 +82,7 @@ void* adev_create(int type, int bufnum, int buflen)
     int           i;
 
     // allocate adev context
-    ctxt = (ADEV_CONTEXT*)malloc(sizeof(ADEV_CONTEXT));
+    ctxt = (ADEV_CONTEXT*)calloc(1, sizeof(ADEV_CONTEXT));
     if (!ctxt) {
         log_printf(TEXT("failed to allocate adev context !\n"));
         exit(0);
@@ -94,10 +94,10 @@ void* adev_create(int type, int bufnum, int buflen)
     ctxt->buflen   = buflen;
     ctxt->head     = 0;
     ctxt->tail     = 0;
-    ctxt->ppts     = (int64_t*)malloc(bufnum * sizeof(int64_t));
-    ctxt->pWaveHdr = (WAVEHDR*)malloc(bufnum * (sizeof(WAVEHDR) + buflen));
+    ctxt->ppts     = (int64_t*)calloc(bufnum, sizeof(int64_t));
+    ctxt->pWaveHdr = (WAVEHDR*)calloc(bufnum, (sizeof(WAVEHDR) + buflen));
     ctxt->bufsem   = CreateSemaphore(NULL, bufnum, bufnum, NULL);
-    ctxt->curdata  = (SHORT  *)malloc(buflen);
+    ctxt->curdata  = (SHORT  *)calloc(1, buflen);
     if (!ctxt->ppts || !ctxt->pWaveHdr || !ctxt->bufsem || !ctxt->curdata) {
         log_printf(TEXT("failed to allocate waveout buffer and waveout semaphore !\n"));
         exit(0);
@@ -122,8 +122,6 @@ void* adev_create(int type, int bufnum, int buflen)
     }
 
     // init wavebuf
-    memset(ctxt->ppts    , 0, bufnum * sizeof(int64_t));
-    memset(ctxt->pWaveHdr, 0, bufnum * (sizeof(WAVEHDR) + buflen));
     pwavbuf = (BYTE*)(ctxt->pWaveHdr + bufnum);
     for (i=0; i<bufnum; i++) {
         ctxt->pWaveHdr[i].lpData         = (LPSTR)(pwavbuf + i * buflen);

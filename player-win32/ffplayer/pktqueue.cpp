@@ -30,21 +30,20 @@ typedef struct {
 // º¯ÊýÊµÏÖ
 void* pktqueue_create(int size)
 {
-    PKTQUEUE *ppq = (PKTQUEUE*)malloc(sizeof(PKTQUEUE));
+    PKTQUEUE *ppq = (PKTQUEUE*)calloc(1, sizeof(PKTQUEUE));
     if (!ppq) {
         log_printf(TEXT("failed to allocate pktqueue context !\n"));
         exit(0);
     }
 
-    memset(ppq, 0, sizeof(PKTQUEUE));
     ppq->fsize = size ? size : DEF_PKT_QUEUE_SIZE;
     ppq->asize = ppq->vsize = ppq->fsize;
 
     // alloc buffer & semaphore
-    ppq->bpkts = (AVPacket* )malloc(ppq->fsize * sizeof(AVPacket ));
-    ppq->fpkts = (AVPacket**)malloc(ppq->fsize * sizeof(AVPacket*));
-    ppq->apkts = (AVPacket**)malloc(ppq->asize * sizeof(AVPacket*));
-    ppq->vpkts = (AVPacket**)malloc(ppq->vsize * sizeof(AVPacket*));
+    ppq->bpkts = (AVPacket* )calloc(ppq->fsize, sizeof(AVPacket ));
+    ppq->fpkts = (AVPacket**)calloc(ppq->fsize, sizeof(AVPacket*));
+    ppq->apkts = (AVPacket**)calloc(ppq->asize, sizeof(AVPacket*));
+    ppq->vpkts = (AVPacket**)calloc(ppq->vsize, sizeof(AVPacket*));
     sem_init(&ppq->fsem, 0, ppq->fsize);
     sem_init(&ppq->asem, 0, 0         );
     sem_init(&ppq->vsem, 0, 0         );
@@ -56,11 +55,6 @@ void* pktqueue_create(int size)
         log_printf(TEXT("failed to allocate resources for pktqueue !\n"));
         exit(0);
     }
-
-    // clear packets
-    memset(ppq->bpkts, 0, ppq->fsize * sizeof(AVPacket ));
-    memset(ppq->apkts, 0, ppq->asize * sizeof(AVPacket*));
-    memset(ppq->vpkts, 0, ppq->vsize * sizeof(AVPacket*));
 
     // init fpkts
     int i;

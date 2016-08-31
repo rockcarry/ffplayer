@@ -80,13 +80,13 @@ void *fft_init(int n)
     int shift;
     int i;
 
-    FFT_CONTEXT *ctxt = (FFT_CONTEXT*)malloc(sizeof(FFT_CONTEXT));
+    FFT_CONTEXT *ctxt = (FFT_CONTEXT*)calloc(1, sizeof(FFT_CONTEXT));
     if (!ctxt) return NULL;
 
     ctxt->N     = n;
-    ctxt->W     = (float*)malloc(n * sizeof(float) * 1);
-    ctxt->T     = (float*)malloc(n * sizeof(float) * 2);
-    ctxt->order = (int  *)malloc(n * sizeof(int  ) * 1);
+    ctxt->W     = (float*)calloc(n, sizeof(float) * 1);
+    ctxt->T     = (float*)calloc(n, sizeof(float) * 2);
+    ctxt->order = (int  *)calloc(n, sizeof(int  ) * 1);
     if (!ctxt->W || !ctxt->T || !ctxt->order) {
         fft_free(ctxt);
         return NULL;
@@ -133,7 +133,7 @@ static void dft(float *in, float *out, int n)
 {
     int   i, j;
     float tmp[2];
-    float *w = (float*)malloc(n*2*sizeof(float));
+    float *w = (float*)calloc(n, sizeof(float)*2);
     for (i=0; i<n; i++) {
         w[i * 2 + 0] = cos(2 * M_PI * i / n);
         w[i * 2 + 1] =-sin(2 * M_PI * i / n);

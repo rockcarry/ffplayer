@@ -100,14 +100,11 @@ static void* render_veffect_thread(void *param)
 void* render_open(int vdevtype, void *surface, AVRational frate, int pixfmt, int w, int h,
                   int adevtype, int srate, AVSampleFormat sndfmt, int64_t ch_layout)
 {
-    RENDER *render = (RENDER*)malloc(sizeof(RENDER));
+    RENDER *render = (RENDER*)calloc(1, sizeof(RENDER));
     if (!render) {
         log_printf(TEXT("failed to allocate render context !\n"));
         exit(0);
     }
-
-    // clear it first
-    memset(render, 0, sizeof(RENDER));
 
     // init for video
     render->video_width  = w;

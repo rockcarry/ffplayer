@@ -264,8 +264,7 @@ void* player_open(char *file, void *win, int adevtype, int vdevtype)
     av_register_all();
 
     // alloc player context
-    player = (PLAYER*)malloc(sizeof(PLAYER));
-    memset(player, 0, sizeof(PLAYER));
+    player = (PLAYER*)calloc(1, sizeof(PLAYER));
 
     // create packet queue
     player->pktqueue = pktqueue_create(0);

@@ -95,14 +95,13 @@ static DWORD WINAPI VideoRenderThreadProc(void *param)
 // 接口函数实现
 void* vdev_gdi_create(void *surface, int bufnum, int w, int h, int frate)
 {
-    VDEVGDICTXT *ctxt = (VDEVGDICTXT*)malloc(sizeof(VDEVGDICTXT));
+    VDEVGDICTXT *ctxt = (VDEVGDICTXT*)calloc(1, sizeof(VDEVGDICTXT));
     if (!ctxt) {
         log_printf(TEXT("failed to allocate gdi vdev context !\n"));
         exit(0);
     }
 
     // init vdev context
-    memset(ctxt, 0, sizeof(VDEVGDICTXT));
     bufnum          = bufnum ? bufnum : DEF_VDEV_BUF_NUM;
     ctxt->hwnd      = (HWND)surface;
     ctxt->bufnum    = bufnum;
@@ -117,13 +116,11 @@ void* vdev_gdi_create(void *surface, int bufnum, int w, int h, int frate)
     ctxt->vpts      = -1;
 
     // alloc buffer & semaphore
-    ctxt->ppts     = (int64_t*)malloc(bufnum * sizeof(int64_t));
-    ctxt->hbitmaps = (HBITMAP*)malloc(bufnum * sizeof(HBITMAP));
-    ctxt->pbmpbufs = (BYTE**  )malloc(bufnum * sizeof(BYTE*  ));
+    ctxt->ppts     = (int64_t*)calloc(bufnum, sizeof(int64_t));
+    ctxt->hbitmaps = (HBITMAP*)calloc(bufnum, sizeof(HBITMAP));
+    ctxt->pbmpbufs = (BYTE**  )calloc(bufnum, sizeof(BYTE*  ));
 
-    memset(ctxt->ppts    , 0, bufnum * sizeof(int64_t));
-    memset(ctxt->hbitmaps, 0, bufnum * sizeof(HBITMAP));
-
+    // create semaphore
     ctxt->semr     = CreateSemaphore(NULL, 0     , bufnum, NULL);
     ctxt->semw     = CreateSemaphore(NULL, bufnum, bufnum, NULL);
 

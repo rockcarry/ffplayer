@@ -115,14 +115,13 @@ static DWORD WINAPI VideoRenderThreadProc(void *param)
 // 接口函数实现
 void* vdev_d3d_create(void *surface, int bufnum, int w, int h, int frate)
 {
-    VDEVD3DCTXT *ctxt = (VDEVD3DCTXT*)malloc(sizeof(VDEVD3DCTXT));
+    VDEVD3DCTXT *ctxt = (VDEVD3DCTXT*)calloc(1, sizeof(VDEVD3DCTXT));
     if (!ctxt) {
         log_printf(TEXT("failed to allocate d3d vdev context !\n"));
         exit(0);
     }
 
     // init vdev context
-    memset(ctxt, 0, sizeof(VDEVD3DCTXT));
     bufnum          = bufnum ? bufnum : DEF_VDEV_BUF_NUM;
     ctxt->hwnd      = (HWND)surface;
     ctxt->bufnum    = bufnum;
@@ -136,12 +135,10 @@ void* vdev_d3d_create(void *surface, int bufnum, int w, int h, int frate)
     ctxt->vpts      =-1;
 
     // alloc buffer & semaphore
-    ctxt->ppts   = (int64_t*)malloc(bufnum * sizeof(int64_t));
-    ctxt->pSurfs = (LPDIRECT3DSURFACE9*)malloc(bufnum * sizeof(LPDIRECT3DSURFACE9));
+    ctxt->ppts   = (int64_t*)calloc(bufnum, sizeof(int64_t));
+    ctxt->pSurfs = (LPDIRECT3DSURFACE9*)calloc(bufnum, sizeof(LPDIRECT3DSURFACE9));
 
-    memset(ctxt->ppts  , 0, bufnum * sizeof(int64_t));
-    memset(ctxt->pSurfs, 0, bufnum * sizeof(LPDIRECT3DSURFACE9));
-
+    // create semaphore
     ctxt->semr = CreateSemaphore(NULL, 0     , bufnum, NULL);
     ctxt->semw = CreateSemaphore(NULL, bufnum, bufnum, NULL);
 

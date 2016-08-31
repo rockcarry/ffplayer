@@ -167,10 +167,9 @@ static void draw_spectrum(VEFFECT *ve, int x, int y, int w, int h, float *sample
 // 函数实现
 void* veffect_create(void *surface)
 {
-    VEFFECT *ve = (VEFFECT*)malloc(sizeof(VEFFECT));
+    VEFFECT *ve = (VEFFECT*)calloc(1, sizeof(VEFFECT));
     if (!ve) return NULL;
 
-    memset(ve, 0, sizeof(VEFFECT));
     ve->hwnd   = (HWND) surface;
     ve->hdcdst = GetDC((HWND)surface);
     ve->hdcsrc = CreateCompatibleDC(ve->hdcdst);
@@ -208,7 +207,7 @@ void veffect_render(void *ctxt, int x, int y, int w, int h, int type, void *buf,
 
     if (!ve->data_buf) {
         ve->data_len = 1 << (int)(log(len/4.0)/log(2.0));
-        ve->data_buf = (float*)malloc(ve->data_len * sizeof(float) * 2);
+        ve->data_buf = (float*)calloc(ve->data_len, sizeof(float) * 2);
         ve->fft      = fft_init(ve->data_len);
     }
 
