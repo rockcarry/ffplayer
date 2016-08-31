@@ -12,6 +12,7 @@ sed -i '/check_cflags -Werror=missing-prototypes/d' ffmpeg/configure
 
 cd ffmpeg
 ./configure \
+--pkg-config=pkg-config \
 --arch=x86 \
 --target-os=mingw32 \
 --enable-cross-compile \
@@ -39,7 +40,8 @@ cd ffmpeg
 --enable-nonfree \
 --enable-dxva2 \
 --enable-d3d11va \
---extra-ldflags="-static-libgcc"
+--enable-libmfx \
+--extra-ldflags="-static-libgcc -static-libstdc++"
 make -j8 && make install
 cd -
 #++ build ffmpeg ++#
