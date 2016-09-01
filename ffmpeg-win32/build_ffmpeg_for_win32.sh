@@ -40,8 +40,7 @@ cd ffmpeg
 --enable-nonfree \
 --enable-dxva2 \
 --enable-d3d11va \
---enable-libmfx \
---extra-ldflags="-static-libgcc -static-libstdc++"
+--enable-libmfx
 make -j8 && make install
 cd -
 #++ build ffmpeg ++#
