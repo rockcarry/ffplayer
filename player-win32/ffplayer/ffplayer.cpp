@@ -251,6 +251,34 @@ static void* video_decode_thread_proc(void *param)
     return NULL;
 }
 
+static int get_stream_total(PLAYER *player, enum AVMediaType type) {
+    int i, n;
+    for (i=0,n=0; i<(int)player->avformat_context->nb_streams; i++) {
+        if (player->avformat_context->streams[i]->codec->codec_type == type) {
+            n++;
+        }
+    }
+    return n;
+}
+
+static int get_stream_current(PLAYER *player, enum AVMediaType type) {
+    int i, n, c;
+    switch (type) {
+    case AVMEDIA_TYPE_AUDIO   : c = player->astream_index; break;
+    case AVMEDIA_TYPE_VIDEO   : c = player->vstream_index; break;
+    case AVMEDIA_TYPE_SUBTITLE: return -1; // todo...
+    }
+    for (i=0,n=0; i<(int)player->avformat_context->nb_streams; i++) {
+        if (c == i) {
+            break;
+        }
+        if (player->avformat_context->streams[i]->codec->codec_type == type) {
+            n++;
+        }
+    }
+    return n;
+}
+
 // 函数实现
 void* player_open(char *file, void *win, int adevtype, int vdevtype, char *hwaccel)
 {
@@ -568,6 +596,24 @@ void player_getparam(void *hplayer, DWORD id, void *param)
     case PARAM_VIDEO_HEIGHT:
         if (!player->vcodec_context) *(int*)param = 0;
         else *(int*)param = player->vcodec_context->height;
+        break;
+    case PARAM_GET_AUDIO_STREAM_TOTAL:
+        *(int*)param = get_stream_total(player, AVMEDIA_TYPE_AUDIO);
+        break;
+    case PARAM_GET_VIDEO_STREAM_TOTAL:
+        *(int*)param = get_stream_total(player, AVMEDIA_TYPE_VIDEO);
+        break;
+    case PARAM_GET_SUBTITLE_STREAM_TOTAL:
+        *(int*)param = get_stream_total(player, AVMEDIA_TYPE_SUBTITLE);
+        break;
+    case PARAM_GET_AUDIO_STREAM_CUR:
+        *(int*)param = get_stream_current(player, AVMEDIA_TYPE_AUDIO);
+        break;
+    case PARAM_GET_VIDEO_STREAM_CUR:
+        *(int*)param = get_stream_current(player, AVMEDIA_TYPE_VIDEO);
+        break;
+    case PARAM_GET_SUBTITLE_STREAM_CUR:
+        *(int*)param = get_stream_current(player, AVMEDIA_TYPE_SUBTITLE);
         break;
     default:
         render_getparam(player->render, id, param);

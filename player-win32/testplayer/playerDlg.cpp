@@ -81,6 +81,14 @@ void CplayerDlg::PlayerOpenFile(void)
         player_setrect(g_hplayer, 1, 0, 0, m_rtClient.right, m_rtClient.bottom - 2);
         player_play(g_hplayer);
         SetTimer(TIMER_ID_PROGRESS, 100, NULL);
+
+        int n = 0;
+        player_getparam(g_hplayer, PARAM_GET_AUDIO_STREAM_TOTAL   , &n);
+        player_getparam(g_hplayer, PARAM_GET_VIDEO_STREAM_TOTAL   , &n);
+        player_getparam(g_hplayer, PARAM_GET_SUBTITLE_STREAM_TOTAL, &n);
+        player_getparam(g_hplayer, PARAM_GET_AUDIO_STREAM_CUR     , &n);
+        player_getparam(g_hplayer, PARAM_GET_VIDEO_STREAM_CUR     , &n);
+        player_getparam(g_hplayer, PARAM_GET_SUBTITLE_STREAM_CUR  , &n);
     }
 }
 
