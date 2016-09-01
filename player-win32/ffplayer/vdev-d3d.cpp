@@ -1,7 +1,6 @@
 // 包含头文件
 #include <d3d9.h>
 #include "vdev.h"
-#include "log.h"
 
 extern "C" {
 #include "libavformat/avformat.h"
@@ -67,7 +66,7 @@ static DWORD WINAPI VideoRenderThreadProc(void *param)
             d3d_draw_surf(c, c->pSurfs[c->head]);
         }
 
-//      log_printf(TEXT("vpts: %lld\n"), vpts);
+        av_log(NULL, AV_LOG_DEBUG, "vpts: %lld\n", vpts);
         if (++c->head == c->bufnum) c->head = 0;
         ReleaseSemaphore(c->semw, 1, NULL);
 
@@ -82,7 +81,7 @@ static DWORD WINAPI VideoRenderThreadProc(void *param)
                 c->completed_counter = 0;
             }
             else if (!(c->status & VDEV_PAUSE) && ++c->completed_counter == 50) {
-                log_printf(TEXT("play completed !\n"));
+                av_log(NULL, AV_LOG_INFO, "play completed !\n");
                 c->status |= VDEV_COMPLETED;
                 vdev_player_event(c, PLAY_COMPLETED, 0);
 
@@ -103,7 +102,7 @@ static DWORD WINAPI VideoRenderThreadProc(void *param)
                 if (apts - vpts < c->tickavdiff - 5) c->ticksleep+=2;
             }
             if (c->ticksleep > 0) Sleep(c->ticksleep);
-//          log_printf(TEXT("d3d d: %3lld, s: %d\n"), apts-vpts, c->ticksleep);
+            av_log(NULL, AV_LOG_INFO, "d3d d: %3lld, s: %d\n", apts-vpts, c->ticksleep);
             //-- frame rate & av sync control --//
         }
         else Sleep(c->tickframe);
@@ -117,7 +116,7 @@ void* vdev_d3d_create(void *surface, int bufnum, int w, int h, int frate)
 {
     VDEVD3DCTXT *ctxt = (VDEVD3DCTXT*)calloc(1, sizeof(VDEVD3DCTXT));
     if (!ctxt) {
-        log_printf(TEXT("failed to allocate d3d vdev context !\n"));
+        av_log(NULL, AV_LOG_ERROR, "failed to allocate d3d vdev context !\n");
         exit(0);
     }
 
@@ -145,7 +144,7 @@ void* vdev_d3d_create(void *surface, int bufnum, int w, int h, int frate)
     // create d3d
     ctxt->pD3D9 = Direct3DCreate9(D3D_SDK_VERSION);
     if (!ctxt->ppts || !ctxt->pSurfs || !ctxt->semr || !ctxt->semw || !ctxt->pD3D9) {
-        log_printf(TEXT("failed to allocate resources for vdev-d3d !\n"));
+        av_log(NULL, AV_LOG_ERROR, "failed to allocate resources for vdev-d3d !\n");
         exit(0);
     }
 
@@ -170,7 +169,7 @@ void* vdev_d3d_create(void *surface, int bufnum, int w, int h, int frate)
     if (FAILED(ctxt->pD3D9->CreateDevice(D3DADAPTER_DEFAULT, D3DDEVTYPE_HAL, ctxt->hwnd,
                 D3DCREATE_SOFTWARE_VERTEXPROCESSING, &ctxt->d3dpp, &ctxt->pD3DDev)) )
     {
-        log_printf(TEXT("failed to create d3d device !\n"));
+        av_log(NULL, AV_LOG_ERROR, "failed to create d3d device !\n");
         exit(0);
     }
 
@@ -242,7 +241,7 @@ void vdev_d3d_request(void *ctxt, void **buf, int *stride)
         if (FAILED(c->pD3DDev->CreateOffscreenPlainSurface(c->sw, c->sh, (D3DFORMAT)c->d3dfmt,
                     D3DPOOL_DEFAULT, &c->pSurfs[c->tail], NULL)))
         {
-            log_printf(TEXT("failed to create d3d off screen plain surface !\n"));
+            av_log(NULL, AV_LOG_ERROR, "failed to create d3d off screen plain surface !\n");
             exit(0);
         }
     }

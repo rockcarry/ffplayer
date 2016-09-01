@@ -199,10 +199,6 @@
 				>
 			</File>
 			<File
-				RelativePath=".\log.cpp"
-				>
-			</File>
-			<File
 				RelativePath=".\pktqueue.cpp"
 				>
 			</File>
@@ -242,10 +238,6 @@
 			</File>
 			<File
 				RelativePath=".\fft.h"
-				>
-			</File>
-			<File
-				RelativePath=".\log.h"
 				>
 			</File>
 			<File

@@ -4,7 +4,6 @@
 #include "veffect.h"
 #include "adev.h"
 #include "vdev.h"
-#include "log.h"
 
 extern "C" {
 #include "libswresample/swresample.h"
@@ -102,7 +101,7 @@ void* render_open(int vdevtype, void *surface, AVRational frate, int pixfmt, int
 {
     RENDER *render = (RENDER*)calloc(1, sizeof(RENDER));
     if (!render) {
-        log_printf(TEXT("failed to allocate render context !\n"));
+        av_log(NULL, AV_LOG_ERROR, "failed to allocate render context !\n");
         exit(0);
     }
 

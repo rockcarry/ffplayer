@@ -2,7 +2,6 @@
 #include <pthread.h>
 #include <semaphore.h>
 #include "pktqueue.h"
-#include "log.h"
 
 // 内部常量定义
 #define DEF_PKT_QUEUE_SIZE 256
@@ -32,7 +31,7 @@ void* pktqueue_create(int size)
 {
     PKTQUEUE *ppq = (PKTQUEUE*)calloc(1, sizeof(PKTQUEUE));
     if (!ppq) {
-        log_printf(TEXT("failed to allocate pktqueue context !\n"));
+        av_log(NULL, AV_LOG_ERROR, "failed to allocate pktqueue context !\n");
         exit(0);
     }
 
@@ -52,7 +51,7 @@ void* pktqueue_create(int size)
     if (  !ppq->bpkts || !ppq->fpkts || !ppq->apkts || !ppq->vpkts
        || !ppq->fsem  || !ppq->asem  || !ppq->vsem )
     {
-        log_printf(TEXT("failed to allocate resources for pktqueue !\n"));
+        av_log(NULL, AV_LOG_ERROR, "failed to allocate resources for pktqueue !\n");
         exit(0);
     }
 

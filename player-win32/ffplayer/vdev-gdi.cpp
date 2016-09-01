@@ -1,6 +1,5 @@
 // 包含头文件
 #include "vdev.h"
-#include "log.h"
 
 extern "C" {
 #include "libavformat/avformat.h"
@@ -47,7 +46,7 @@ static DWORD WINAPI VideoRenderThreadProc(void *param)
             BitBlt(c->hdcdst, c->x, c->y, c->w, c->h, c->hdcsrc, 0, 0, SRCCOPY);
         }
 
-//      log_printf(TEXT("vpts: %lld\n"), vpts);
+        av_log(NULL, AV_LOG_DEBUG, "vpts: %lld\n", vpts);
         if (++c->head == c->bufnum) c->head = 0;
         ReleaseSemaphore(c->semw, 1, NULL);
 
@@ -62,7 +61,7 @@ static DWORD WINAPI VideoRenderThreadProc(void *param)
                 c->completed_counter = 0;
             }
             else if (++c->completed_counter == 50) {
-                log_printf(TEXT("play completed !\n"));
+                av_log(NULL, AV_LOG_INFO, "play completed !\n");
                 c->status |= VDEV_COMPLETED;
                 vdev_player_event(c, PLAY_COMPLETED, 0);
 
@@ -83,7 +82,7 @@ static DWORD WINAPI VideoRenderThreadProc(void *param)
                 if (apts - vpts < c->tickavdiff - 5) c->ticksleep+=2;
             }
             if (c->ticksleep > 0) Sleep(c->ticksleep);
-//          log_printf(TEXT("gdi d: %3lld, s: %d\n"), apts-vpts, c->ticksleep);
+            av_log(NULL, AV_LOG_INFO, "gdi d: %3lld, s: %d\n", apts-vpts, c->ticksleep);
             //-- frame rate & av sync control --//
         }
         else Sleep(c->tickframe);
@@ -97,7 +96,7 @@ void* vdev_gdi_create(void *surface, int bufnum, int w, int h, int frate)
 {
     VDEVGDICTXT *ctxt = (VDEVGDICTXT*)calloc(1, sizeof(VDEVGDICTXT));
     if (!ctxt) {
-        log_printf(TEXT("failed to allocate gdi vdev context !\n"));
+        av_log(NULL, AV_LOG_ERROR, "failed to allocate gdi vdev context !\n");
         exit(0);
     }
 
@@ -127,7 +126,7 @@ void* vdev_gdi_create(void *surface, int bufnum, int w, int h, int frate)
     ctxt->hdcdst = GetDC(ctxt->hwnd);
     ctxt->hdcsrc = CreateCompatibleDC(ctxt->hdcdst);
     if (!ctxt->ppts || !ctxt->hbitmaps || !ctxt->pbmpbufs || !ctxt->semr || !ctxt->semw || !ctxt->hdcdst || !ctxt->hdcsrc) {
-        log_printf(TEXT("failed to allocate resources for vdev-gdi !\n"));
+        av_log(NULL, AV_LOG_ERROR, "failed to allocate resources for vdev-gdi !\n");
         exit(0);
     }
 

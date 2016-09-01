@@ -3,7 +3,6 @@
 #include "ffplayer.h"
 #include "veffect.h"
 #include "fft.h"
-#include "log.h"
 
 // 内部常量定义
 #define MAX_GRID_COLS  64

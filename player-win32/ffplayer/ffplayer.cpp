@@ -3,7 +3,6 @@
 #include "pktqueue.h"
 #include "ffrender.h"
 #include "ffplayer.h"
-#include "log.h"
 
 extern "C" {
 #include "libavformat/avformat.h"
@@ -55,6 +54,14 @@ typedef struct
 } PLAYER;
 
 // 内部函数实现
+static void ffplayer_log_callback(void* ptr, int level, const char *fmt, va_list vl) {
+    if (level < av_log_get_level()) {
+        char str[1024];
+        vsprintf_s(str, 1024, fmt, vl);
+        OutputDebugStringA(str);
+    }
+}
+
 static void* av_demux_thread_proc(void *param)
 {
     PLAYER   *player = (PLAYER*)param;
@@ -137,7 +144,7 @@ static void* audio_decode_thread_proc(void *param)
 
                 consumed = avcodec_decode_audio(player->acodec_context, aframe, &gotaudio, packet);
                 if (consumed < 0) {
-                    log_printf(TEXT("an error occurred during decoding audio.\n"));
+                    av_log(NULL, AV_LOG_WARNING, "an error occurred during decoding audio.\n");
                     break;
                 }
 
@@ -211,7 +218,7 @@ static void* video_decode_thread_proc(void *param)
 
                 consumed = avcodec_decode_video(player->vcodec_context, vframe, &gotvideo, packet);
                 if (consumed < 0) {
-                    log_printf(TEXT("an error occurred during decoding video.\n"));
+                    av_log(NULL, AV_LOG_WARNING, "an error occurred during decoding video.\n");
                     break;
                 }
 
@@ -257,11 +264,12 @@ void* player_open(char *file, void *win, int adevtype, int vdevtype)
     int            arate    = 0;
     uint32_t       i        = 0;
 
-    // init log
-    log_init(TEXT("DEBUGER"));
-
     // av register all
     av_register_all();
+
+    // setup log
+    av_log_set_level(AV_LOG_WARNING);
+    av_log_set_callback(ffplayer_log_callback);
 
     // alloc player context
     player = (PLAYER*)calloc(1, sizeof(PLAYER));
@@ -311,7 +319,7 @@ void* player_open(char *file, void *win, int adevtype, int vdevtype)
         decoder = avcodec_find_decoder(player->acodec_context->codec_id);
         if (!decoder || avcodec_open(player->acodec_context, decoder, NULL) < 0)
         {
-            log_printf(TEXT("failed to find or open decoder for audio !\n"));
+            av_log(NULL, AV_LOG_WARNING, "failed to find or open decoder for audio !\n");
             player->astream_index = -1;
         }
     }
@@ -322,7 +330,7 @@ void* player_open(char *file, void *win, int adevtype, int vdevtype)
         decoder = avcodec_find_decoder(player->vcodec_context->codec_id);
         if (!decoder || avcodec_open(player->vcodec_context, decoder, NULL) < 0)
         {
-            log_printf(TEXT("failed to find or open decoder for video !\n"));
+            av_log(NULL, AV_LOG_WARNING, "failed to find or open decoder for video !\n");
             player->vstream_index = -1;
         }
     }
@@ -398,9 +406,6 @@ void player_close(void *hplayer)
     if (player->avformat_context) avformat_close_input(&player->avformat_context);
 
     free(player);
-
-    // close log
-    log_done();
 }
 
 void player_play(void *hplayer)

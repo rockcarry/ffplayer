@@ -1,6 +1,5 @@
 // 包含头文件
 #include "adev.h"
-#include "log.h"
 
 #pragma warning(disable:4311)
 #pragma warning(disable:4312)
@@ -45,7 +44,7 @@ static void CALLBACK waveOutProc(HWAVEOUT hwo, UINT uMsg, DWORD dwInstance, DWOR
     case WOM_DONE:
         memcpy(c->curdata, c->pWaveHdr[c->head].lpData, c->buflen);
         if (c->apts) *c->apts = c->ppts[c->head];
-//      log_printf(TEXT("apts = %lld\n"), *c->apts);
+        av_log(NULL, AV_LOG_DEBUG, "apts: %lld\n", *c->apts);
         if (++c->head == c->bufnum) c->head = 0;
         ReleaseSemaphore(c->bufsem, 1, NULL);
         break;
@@ -84,7 +83,7 @@ void* adev_create(int type, int bufnum, int buflen)
     // allocate adev context
     ctxt = (ADEV_CONTEXT*)calloc(1, sizeof(ADEV_CONTEXT));
     if (!ctxt) {
-        log_printf(TEXT("failed to allocate adev context !\n"));
+        av_log(NULL, AV_LOG_ERROR, "failed to allocate adev context !\n");
         exit(0);
     }
 
@@ -99,7 +98,7 @@ void* adev_create(int type, int bufnum, int buflen)
     ctxt->bufsem   = CreateSemaphore(NULL, bufnum, bufnum, NULL);
     ctxt->curdata  = (SHORT  *)calloc(1, buflen);
     if (!ctxt->ppts || !ctxt->pWaveHdr || !ctxt->bufsem || !ctxt->curdata) {
-        log_printf(TEXT("failed to allocate waveout buffer and waveout semaphore !\n"));
+        av_log(NULL, AV_LOG_ERROR, "failed to allocate waveout buffer and waveout semaphore !\n");
         exit(0);
     }
 
