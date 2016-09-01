@@ -85,7 +85,7 @@ enum {
 typedef void (*PFN_PLAYER_CALLBACK)(__int32 msg, __int64 param);
 
 // 函数声明
-void* player_open    (char *file, void *win, int adevtype, int vdevtype);
+void* player_open    (char *file, void *win, int adevtype, int vdevtype, char *hwaccel);
 void  player_close   (void *hplayer);
 void  player_play    (void *hplayer);
 void  player_pause   (void *hplayer);

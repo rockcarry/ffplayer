@@ -199,6 +199,10 @@
 				>
 			</File>
 			<File
+				RelativePath=".\hwaccel.cpp"
+				>
+			</File>
+			<File
 				RelativePath=".\pktqueue.cpp"
 				>
 			</File>
@@ -238,6 +242,10 @@
 			</File>
 			<File
 				RelativePath=".\fft.h"
+				>
+			</File>
+			<File
+				RelativePath=".\hwaccel.h"
 				>
 			</File>
 			<File

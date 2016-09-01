@@ -3,6 +3,7 @@
 #include "pktqueue.h"
 #include "ffrender.h"
 #include "ffplayer.h"
+#include "hwaccel.h"
 
 extern "C" {
 #include "libavformat/avformat.h"
@@ -251,7 +252,7 @@ static void* video_decode_thread_proc(void *param)
 }
 
 // 函数实现
-void* player_open(char *file, void *win, int adevtype, int vdevtype)
+void* player_open(char *file, void *win, int adevtype, int vdevtype, char *hwaccel)
 {
     PLAYER        *player   = NULL;
     AVCodec       *decoder  = NULL;
@@ -328,6 +329,9 @@ void* player_open(char *file, void *win, int adevtype, int vdevtype)
     if (player->vstream_index != -1)
     {
         decoder = avcodec_find_decoder(player->vcodec_context->codec_id);
+        //++ init for hwaccel
+        hwaccel_init(player->vcodec_context, hwaccel);
+        //-- init for hwaccel
         if (!decoder || avcodec_open(player->vcodec_context, decoder, NULL) < 0)
         {
             av_log(NULL, AV_LOG_WARNING, "failed to find or open decoder for video !\n");
@@ -401,7 +405,10 @@ void player_close(void *hplayer)
     pktqueue_destroy(player->pktqueue);
 
     if (player->render          ) render_close (player->render);
-    if (player->vcodec_context  ) avcodec_close(player->vcodec_context);
+    if (player->vcodec_context  ) {
+        avcodec_close(player->vcodec_context);
+        hwaccel_free (player->vcodec_context);
+    }
     if (player->acodec_context  ) avcodec_close(player->acodec_context);
     if (player->avformat_context) avformat_close_input(&player->avformat_context);
 
