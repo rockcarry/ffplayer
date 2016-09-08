@@ -588,6 +588,7 @@ void player_getparam(void *hplayer, DWORD id, void *param)
     case PARAM_MEDIA_DURATION:
         if (!player->avformat_context) *(int64_t*)param = 0;
         else *(int64_t*)param = (player->avformat_context->duration * 1000 / AV_TIME_BASE);
+        if (*(int64_t*)param == 0) *(int64_t*)param = 1;
         break;
     case PARAM_VIDEO_WIDTH:
         if (!player->vcodec_context) *(int*)param = 0;
