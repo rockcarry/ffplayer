@@ -32,11 +32,10 @@ void CplayerDlg::DoDataExchange(CDataExchange* pDX)
     CDialog::DoDataExchange(pDX);
 }
 
-void CplayerDlg::PlayerOpenFile(void)
+void CplayerDlg::PlayerOpenFile(TCHAR *file)
 {
     CFileDialog dlg(TRUE);
-    TCHAR       path[MAX_PATH];
-    char        str [MAX_PATH];
+    char        str[MAX_PATH];
 
     // kill player progress timer
     KillTimer(TIMER_ID_PROGRESS);
@@ -49,15 +48,21 @@ void CplayerDlg::PlayerOpenFile(void)
     }
 
     // open file dialog
-    if (dlg.DoModal() == IDOK)
-    {
-        wcscpy_s(path, dlg.GetPathName());
-        WideCharToMultiByte(CP_ACP, 0, path, -1, str, MAX_PATH, NULL, NULL);
+    if (!file) {
+        TCHAR temp[MAX_PATH];
+        if (dlg.DoModal() == IDOK)
+        {
+            wcscpy_s(temp, dlg.GetPathName());
+            WideCharToMultiByte(CP_ACP, 0, temp, -1, str, MAX_PATH, NULL, NULL);
+        }
+        else
+        {
+            OnOK();
+            return;
+        }
     }
-    else
-    {
-        OnOK();
-        return;
+    else {
+        WideCharToMultiByte(CP_ACP, 0, file, -1, str, MAX_PATH, NULL, NULL);
     }
 
     // player open file
@@ -123,7 +128,10 @@ BOOL CplayerDlg::OnInitDialog()
     // TODO: Add extra initialization here
     MoveWindow(0, 0, 800, 480);
 
+    // get dc
     m_pDrawDC = GetDC();
+
+    // setup init timer
     SetTimer(TIMER_ID_FIRST_DIALOG, 100, NULL);
 
     return TRUE;  // return TRUE  unless you set the focus to a control
@@ -200,7 +208,7 @@ void CplayerDlg::OnTimer(UINT_PTR nIDEvent)
     case TIMER_ID_FIRST_DIALOG:
         // kill timer first
         KillTimer(TIMER_ID_FIRST_DIALOG);
-        PlayerOpenFile();
+        PlayerOpenFile(__argc > 1 ? __wargv[1] : NULL);
         break;
 
     case TIMER_ID_PROGRESS:
@@ -265,7 +273,7 @@ BOOL CplayerDlg::PreTranslateMessage(MSG *pMsg)
         switch (pMsg->wParam)
         {
         case PLAY_COMPLETED:
-            PlayerOpenFile();
+            PlayerOpenFile(NULL);
             break;
         }
         return TRUE;

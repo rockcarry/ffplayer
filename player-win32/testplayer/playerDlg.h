@@ -30,7 +30,7 @@ protected:
     DECLARE_MESSAGE_MAP()
 
 private:
-    void PlayerOpenFile(void);
+    void PlayerOpenFile(TCHAR *file);
 
 private:
     CDC  *m_pDrawDC;
