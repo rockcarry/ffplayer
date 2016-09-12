@@ -71,15 +71,12 @@ enum {
     PARAM_PLAYER_CALLBACK,
 
     // audio/video stream
-    PARAM_GET_AUDIO_STREAM_TOTAL,
-    PARAM_GET_VIDEO_STREAM_TOTAL,
-    PARAM_GET_SUBTITLE_STREAM_TOTAL,
-    PARAM_GET_AUDIO_STREAM_CUR,
-    PARAM_GET_VIDEO_STREAM_CUR,
-    PARAM_GET_SUBTITLE_STREAM_CUR,
-    PARAM_SET_AUDIO_STREAM_CUR,
-    PARAM_SET_VIDEO_STREAM_CUR,
-    PARAM_SET_SUBTITLE_STREAM_CUR,
+    PARAM_AUDIO_STREAM_TOTAL,
+    PARAM_VIDEO_STREAM_TOTAL,
+    PARAM_SUBTITLE_STREAM_TOTAL,
+    PARAM_AUDIO_STREAM_CUR,
+    PARAM_VIDEO_STREAM_CUR,
+    PARAM_SUBTITLE_STREAM_CUR,
     //-- public
 
     //++ for adev
@@ -219,8 +216,26 @@ player_getparam(g_hplayer, PARAM_VDEV_RENDER_TYPE, &mode);
 mode = VDEV_RENDER_TYPE_D3D;
 player_setparam(g_hplayer, PARAM_VDEV_RENDER_TYPE, &mode);
 
+PARAM_AUDIO_STREAM_TOTAL
+PARAM_VIDEO_STREAM_TOTAL
+PARAM_SUBTITLE_STREAM_TOTAL
+以上三个是只读的，分别用于获取 audio, video, subtitle 的流总数
+
+PARAM_AUDIO_STREAM_CUR
+PARAM_VIDEO_STREAM_CUR
+PARAM_SUBTITLE_STREAM_CUR
+以上三个参数，分别用于获取或设置当前播放的 audio, video, subtitle 流编号
 
 所有的参数，都是可以 get 的，但并不是所有的参数都可以 set，因为有些参数是只读的。
+
+
+// 对 avdevice 输入设备的支持
+windows 平台上支持 dshow gdigrab vfwcap 三种输入设备
+打开方式举例：
+player_open("vfwcap", hwnd, 0, 0, NULL); // 将以 vfw 方式打开摄像头进行预览
+player_open("gdigrab://desktop", hwnd, 0, 0, NULL); // 将以 gdigrab 方式打开桌面进行预览
+player_open("dshow://video=Integrated Camera", hwnd, 0, 0, NULL); // 将以 dshow 方式打 Integrated Camera
+
  */
 
 #ifdef __cplusplus

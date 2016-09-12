@@ -88,12 +88,12 @@ void CplayerDlg::PlayerOpenFile(TCHAR *file)
         SetTimer(TIMER_ID_PROGRESS, 100, NULL);
 
         int n = 0;
-        player_getparam(g_hplayer, PARAM_GET_AUDIO_STREAM_TOTAL   , &n);
-        player_getparam(g_hplayer, PARAM_GET_VIDEO_STREAM_TOTAL   , &n);
-        player_getparam(g_hplayer, PARAM_GET_SUBTITLE_STREAM_TOTAL, &n);
-        player_getparam(g_hplayer, PARAM_GET_AUDIO_STREAM_CUR     , &n);
-        player_getparam(g_hplayer, PARAM_GET_VIDEO_STREAM_CUR     , &n);
-        player_getparam(g_hplayer, PARAM_GET_SUBTITLE_STREAM_CUR  , &n);
+        player_getparam(g_hplayer, PARAM_AUDIO_STREAM_TOTAL   , &n);
+        player_getparam(g_hplayer, PARAM_VIDEO_STREAM_TOTAL   , &n);
+        player_getparam(g_hplayer, PARAM_SUBTITLE_STREAM_TOTAL, &n);
+        player_getparam(g_hplayer, PARAM_AUDIO_STREAM_CUR     , &n);
+        player_getparam(g_hplayer, PARAM_VIDEO_STREAM_CUR     , &n);
+        player_getparam(g_hplayer, PARAM_SUBTITLE_STREAM_CUR  , &n);
     }
 }
 

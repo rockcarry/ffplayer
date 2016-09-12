@@ -6,8 +6,9 @@
 #include "hwaccel.h"
 
 extern "C" {
-#include "libavformat/avformat.h"
 #include "libavcodec/avcodec.h"
+#include "libavdevice/avdevice.h"
+#include "libavformat/avformat.h"
 }
 
 // 内部常量定义
@@ -56,7 +57,7 @@ typedef struct
 
 // 内部函数实现
 static void ffplayer_log_callback(void* ptr, int level, const char *fmt, va_list vl) {
-    if (level < av_log_get_level()) {
+    if (level <= av_log_get_level()) {
         char str[1024];
         vsprintf_s(str, 1024, fmt, vl);
         OutputDebugStringA(str);
@@ -293,8 +294,17 @@ void* player_open(char *file, void *win, int adevtype, int vdevtype, char *hwacc
     int            arate    = 0;
     uint32_t       i        = 0;
 
+    //++ for avdevice
+    char          *avdev_dshow   = "dshow";
+    char          *avdev_gdigrab = "gdigrab";
+    char          *avdev_vfwcap  = "vfwcap";
+    char          *url           = file;
+    AVInputFormat *fmt           = NULL;
+    //-- for avdevice
+
     // av register all
     av_register_all();
+    avdevice_register_all();
 
     // setup log
     av_log_set_level(AV_LOG_WARNING);
@@ -306,8 +316,23 @@ void* player_open(char *file, void *win, int adevtype, int vdevtype, char *hwacc
     // create packet queue
     player->pktqueue = pktqueue_create(0);
 
+    //++ for avdevice
+    if (strstr(file, avdev_dshow) == file) {
+        fmt = av_find_input_format(avdev_dshow);
+        url = file + strlen(avdev_dshow) + 3;
+    }
+    else if (strstr(file, avdev_gdigrab) == file) {
+        fmt = av_find_input_format(avdev_gdigrab);
+        url = file + strlen(avdev_gdigrab) + 3;
+    }
+    else if (strstr(file, avdev_vfwcap) == file) {
+        fmt = av_find_input_format(avdev_vfwcap);
+        url = NULL;
+    }
+    //-- for avdevice
+
     // open input file
-    if (avformat_open_input(&player->avformat_context, file, NULL, 0) != 0) {
+    if (avformat_open_input(&player->avformat_context, url, fmt, 0) != 0) {
         goto error_handler;
     }
 
@@ -598,22 +623,22 @@ void player_getparam(void *hplayer, DWORD id, void *param)
         if (!player->vcodec_context) *(int*)param = 0;
         else *(int*)param = player->vcodec_context->height;
         break;
-    case PARAM_GET_AUDIO_STREAM_TOTAL:
+    case PARAM_AUDIO_STREAM_TOTAL:
         *(int*)param = get_stream_total(player, AVMEDIA_TYPE_AUDIO);
         break;
-    case PARAM_GET_VIDEO_STREAM_TOTAL:
+    case PARAM_VIDEO_STREAM_TOTAL:
         *(int*)param = get_stream_total(player, AVMEDIA_TYPE_VIDEO);
         break;
-    case PARAM_GET_SUBTITLE_STREAM_TOTAL:
+    case PARAM_SUBTITLE_STREAM_TOTAL:
         *(int*)param = get_stream_total(player, AVMEDIA_TYPE_SUBTITLE);
         break;
-    case PARAM_GET_AUDIO_STREAM_CUR:
+    case PARAM_AUDIO_STREAM_CUR:
         *(int*)param = get_stream_current(player, AVMEDIA_TYPE_AUDIO);
         break;
-    case PARAM_GET_VIDEO_STREAM_CUR:
+    case PARAM_VIDEO_STREAM_CUR:
         *(int*)param = get_stream_current(player, AVMEDIA_TYPE_VIDEO);
         break;
-    case PARAM_GET_SUBTITLE_STREAM_CUR:
+    case PARAM_SUBTITLE_STREAM_CUR:
         *(int*)param = get_stream_current(player, AVMEDIA_TYPE_SUBTITLE);
         break;
     default:
