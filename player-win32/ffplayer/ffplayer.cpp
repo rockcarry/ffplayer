@@ -366,6 +366,7 @@ static void set_stream_current(PLAYER *player, enum AVMediaType type, int sel) {
     // make player thread paused
     player->player_status |= PAUSE_REQ;
     player->player_status &=~PAUSE_ACK;
+    render_start(player->render);
     while ((player->player_status & PAUSE_ACK) != PAUSE_ACK) usleep(20*1000);
 
     // reinit stream
@@ -658,9 +659,14 @@ void player_setparam(void *hplayer, DWORD id, void *param)
     case PARAM_VDEV_RENDER_TYPE:
         player->player_status |= PAUSE_REQ;
         player->player_status &=~PAUSE_ACK;
+        render_start(player->render);
         while ((player->player_status & PAUSE_ACK) != PAUSE_ACK) usleep(20*1000);
         render_setparam(player->render, PARAM_VDEV_RENDER_TYPE, param);
         player->player_status &=~(PAUSE_REQ | PAUSE_ACK);
+        // pause render if needed
+        if (player->player_status & PS_R_PAUSE) {
+            render_pause(player->render);
+        }
         break;
     case PARAM_AUDIO_STREAM_CUR   : set_stream_current(player, (AVMediaType)AVMEDIA_TYPE_AUDIO   , *(int*)param); break;
     case PARAM_VIDEO_STREAM_CUR   : set_stream_current(player, (AVMediaType)AVMEDIA_TYPE_VIDEO   , *(int*)param); break;
