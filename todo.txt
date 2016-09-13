@@ -1,5 +1,4 @@
 1. comment for code
-2. subtitle
+2. subtitle/lrc
 3. hwaccel
-4. set current audio/video/subtitle stream
 
