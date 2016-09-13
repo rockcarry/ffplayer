@@ -66,7 +66,7 @@ void CplayerDlg::PlayerOpenFile(TCHAR *file)
     }
 
     // player open file
-    g_hplayer = player_open(str, GetSafeHwnd(), ADEV_RENDER_TYPE_WAVEOUT, VDEV_RENDER_TYPE_D3D, "dxva2");
+    g_hplayer = player_open(str, GetSafeHwnd(), ADEV_RENDER_TYPE_WAVEOUT, VDEV_RENDER_TYPE_D3D, HWACCEL_TYPE_DXVA2);
     if (g_hplayer)
     {
         m_bPlayPause = FALSE;
@@ -105,9 +105,10 @@ BEGIN_MESSAGE_MAP(CplayerDlg, CDialog)
     ON_WM_LBUTTONDOWN()
     ON_WM_CTLCOLOR()
     ON_WM_SIZE()
-    ON_COMMAND(ID_VIDEO_MODE , &CplayerDlg::OnVideoMode )
-    ON_COMMAND(ID_EFFECT_MODE, &CplayerDlg::OnEffectMode)
-    ON_COMMAND(ID_RENDER_MODE, &CplayerDlg::OnRenderMode)
+    ON_COMMAND(ID_VIDEO_MODE  , &CplayerDlg::OnVideoMode  )
+    ON_COMMAND(ID_EFFECT_MODE , &CplayerDlg::OnEffectMode )
+    ON_COMMAND(ID_RENDER_MODE , &CplayerDlg::OnRenderMode )
+    ON_COMMAND(ID_AUDIO_STREAM, &CplayerDlg::OnAudioStream)
 END_MESSAGE_MAP()
 
 
@@ -303,5 +304,15 @@ void CplayerDlg::OnRenderMode()
     player_getparam(g_hplayer, PARAM_VDEV_RENDER_TYPE, &mode);
     mode++; mode %= VDEV_RENDER_TYPE_MAX_NUM;
     player_setparam(g_hplayer, PARAM_VDEV_RENDER_TYPE, &mode);
+}
+
+void CplayerDlg::OnAudioStream()
+{
+    int total   = 0;
+    int current = 0;
+    player_getparam(g_hplayer, PARAM_AUDIO_STREAM_TOTAL, &total  );
+    player_getparam(g_hplayer, PARAM_AUDIO_STREAM_CUR  , &current);
+    current++; current %= total;
+    player_setparam(g_hplayer, PARAM_AUDIO_STREAM_CUR  , &current);
 }
 

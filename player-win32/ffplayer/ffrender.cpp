@@ -96,8 +96,8 @@ static void* render_veffect_thread(void *param)
 }
 
 // º¯ÊýÊµÏÖ
-void* render_open(int vdevtype, void *surface, AVRational frate, int pixfmt, int w, int h,
-                  int adevtype, int srate, AVSampleFormat sndfmt, int64_t ch_layout)
+void* render_open(int adevtype, int srate, AVSampleFormat sndfmt, int64_t ch_layout,
+                  int vdevtype, void *surface, AVRational frate, AVPixelFormat pixfmt, int w, int h)
 {
     RENDER *render = (RENDER*)calloc(1, sizeof(RENDER));
     if (!render) {
@@ -110,7 +110,7 @@ void* render_open(int vdevtype, void *surface, AVRational frate, int pixfmt, int
     render->video_height = h;
     render->frame_period = 1000 * frate.den / frate.num;
     render->frame_rate   = frate;
-    render->pixel_fmt    = (AVPixelFormat)pixfmt;
+    render->pixel_fmt    = pixfmt;
 
     // init for audio
     render->sample_rate  = srate;
@@ -235,6 +235,7 @@ void render_video(void *hrender, AVFrame *video)
             render->render_wcur = render->render_wnew;
             render->render_hcur = render->render_hnew;
 
+            // call vdev_setrect, get both old & new surface size of vdev
             int swold, shold, swnew, shnew;
             swold = ((VDEV_COMMON_CTXT*)render->vdev)->sw;
             shold = ((VDEV_COMMON_CTXT*)render->vdev)->sh;
@@ -243,12 +244,12 @@ void render_video(void *hrender, AVFrame *video)
             swnew = ((VDEV_COMMON_CTXT*)render->vdev)->sw;
             shnew = ((VDEV_COMMON_CTXT*)render->vdev)->sh;
 
+            // if surface width or height of vdev changed, we need recreate sws
             if (!render->sws_context || swold != swnew || shold != shnew) {
-                int pixfmt = ((VDEV_COMMON_CTXT*)render->vdev)->pixfmt;
                 sws_freeContext(render->sws_context);
                 render->sws_context = sws_getContext(
                     render->video_width, render->video_height, render->pixel_fmt,
-                    swnew, shnew, (AVPixelFormat)pixfmt,
+                    swnew, shnew, (AVPixelFormat)((VDEV_COMMON_CTXT*)render->vdev)->pixfmt,
                     SWS_BILINEAR, 0, 0, 0);
             }
         }
@@ -381,6 +382,31 @@ void render_setparam(void *hrender, DWORD id, void *param)
                     SWS_BILINEAR, 0, 0, 0);
                 //-- re-create sws
             }
+        }
+        break;
+    case PARAM_RENDER_UPDATE:
+        {
+            // update render context variables
+            RENDER_UPDATE_PARAMS *pru = (RENDER_UPDATE_PARAMS*)param;
+            render->sample_rate = pru->samprate;
+            render->sample_fmt  = pru->sampfmt;
+            render->chan_layout = pru->chlayout;
+            render->frame_rate  = pru->frate;
+            render->pixel_fmt   = pru->pixfmt;
+            render->video_width = pru->width;
+            render->video_height= pru->height;
+
+            // set render_speed_cur to 1, will cause swr recreate
+            render->render_speed_cur = 1;
+
+            //++ re-create sws
+            VDEV_COMMON_CTXT *vdev = (VDEV_COMMON_CTXT*)render->vdev;
+            sws_freeContext(render->sws_context);
+            render->sws_context = sws_getContext(
+                render->video_width, render->video_height, render->pixel_fmt,
+                vdev->sw, vdev->sh, (AVPixelFormat)vdev->pixfmt,
+                SWS_BILINEAR, 0, 0, 0);
+            //-- re-create sws
         }
         break;
     }

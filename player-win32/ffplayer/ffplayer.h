@@ -35,10 +35,17 @@ enum {
 
 // visual effect
 enum {
-    VISUAL_EFFECT_DISABLE ,
+    VISUAL_EFFECT_DISABLE,
     VISUAL_EFFECT_WAVEFORM,
     VISUAL_EFFECT_SPECTRUM,
     VISUAL_EFFECT_MAX_NUM,
+};
+
+// hwaccel type
+enum {
+    HWACCEL_TYPE_NONE,
+    HWACCEL_TYPE_DXVA2,
+    HWACCEL_TYPE_MAX_NUM,
 };
 
 // param
@@ -87,13 +94,17 @@ enum {
     PARAM_VDEV_RENDER_TYPE = 0x3000,
     PARAM_VDEV_FRAME_RATE,
     //-- for vdev
+
+    //++ for render
+    PARAM_RENDER_UPDATE = 0x4000,
+    //-- for render
 };
 
 // player event callback
 typedef void (*PFN_PLAYER_CALLBACK)(__int32 msg, __int64 param);
 
 // 函数声明
-void* player_open    (char *file, void *win, int adevtype, int vdevtype, char *hwaccel);
+void* player_open    (char *file, void *win, int adevtype, int vdevtype, int hwaccel);
 void  player_close   (void *hplayer);
 void  player_play    (void *hplayer);
 void  player_pause   (void *hplayer);

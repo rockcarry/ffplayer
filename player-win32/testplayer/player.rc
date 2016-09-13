@@ -148,6 +148,7 @@ BEGIN
     "E",            ID_EFFECT_MODE,         VIRTKEY, CONTROL, NOINVERT
     "M",            ID_VIDEO_MODE,          VIRTKEY, CONTROL, NOINVERT
     "R",            ID_RENDER_MODE,         VIRTKEY, CONTROL, NOINVERT
+    "A",            ID_AUDIO_STREAM,        VIRTKEY, CONTROL, NOINVERT
 END
 
 #endif    // Chinese (P.R.C.) resources

@@ -38,12 +38,13 @@ private:
     RECT  m_rtClient;
 
 public:
-    afx_msg void OnDestroy();
-    afx_msg void OnTimer(UINT_PTR nIDEvent);
-    afx_msg void OnLButtonDown(UINT nFlags, CPoint point);
+    afx_msg void   OnDestroy();
+    afx_msg void   OnTimer(UINT_PTR nIDEvent);
+    afx_msg void   OnLButtonDown(UINT nFlags, CPoint point);
     afx_msg HBRUSH OnCtlColor(CDC* pDC, CWnd* pWnd, UINT nCtlColor);
-    afx_msg void OnSize(UINT nType, int cx, int cy);
-    afx_msg void OnVideoMode();
-    afx_msg void OnEffectMode();
-    afx_msg void OnRenderMode();
+    afx_msg void   OnSize(UINT nType, int cx, int cy);
+    afx_msg void   OnVideoMode();
+    afx_msg void   OnEffectMode();
+    afx_msg void   OnRenderMode();
+    afx_msg void   OnAudioStream();
 };

@@ -39,6 +39,9 @@ typedef struct
     void            *render;
     RECT             vdrect;
 
+    // hwaccel
+    int              hwaccel;
+
     // thread
     #define PS_D_PAUSE    (1 << 0)  // demux pause
     #define PS_A_PAUSE    (1 << 1)  // audio decoding pause
@@ -47,6 +50,8 @@ typedef struct
     #define PS_A_SEEK     (1 << 4)  // seek audio
     #define PS_V_SEEK     (1 << 5)  // seek video
     #define PS_CLOSE      (1 << 6)  // close player
+    #define PAUSE_REQ ((PS_D_PAUSE|PS_A_PAUSE|PS_V_PAUSE) << 0 )
+    #define PAUSE_ACK ((PS_D_PAUSE|PS_A_PAUSE|PS_V_PAUSE) << 16)
     int              player_status;
     int64_t          seek_dest_pts;
 
@@ -253,46 +258,148 @@ static void* video_decode_thread_proc(void *param)
 }
 
 static int get_stream_total(PLAYER *player, enum AVMediaType type) {
-    int i, n;
-    for (i=0,n=0; i<(int)player->avformat_context->nb_streams; i++) {
+    int total, i;
+    for (i=0,total=0; i<(int)player->avformat_context->nb_streams; i++) {
         if (player->avformat_context->streams[i]->codec->codec_type == type) {
-            n++;
+            total++;
         }
     }
-    return n;
+    return total;
 }
 
 static int get_stream_current(PLAYER *player, enum AVMediaType type) {
-    int i, n, c;
+    int idx, cur, i;
     switch (type) {
-    case AVMEDIA_TYPE_AUDIO   : c = player->astream_index; break;
-    case AVMEDIA_TYPE_VIDEO   : c = player->vstream_index; break;
+    case AVMEDIA_TYPE_AUDIO   : idx = player->astream_index; break;
+    case AVMEDIA_TYPE_VIDEO   : idx = player->vstream_index; break;
     case AVMEDIA_TYPE_SUBTITLE: return -1; // todo...
     }
-    for (i=0,n=0; i<(int)player->avformat_context->nb_streams; i++) {
-        if (c == i) {
+    for (i=0,cur=-1; i<(int)player->avformat_context->nb_streams; i++) {
+        if (player->avformat_context->streams[i]->codec->codec_type == type) {
+            cur++;
+        }
+        if (i == idx) {
             break;
         }
+    }
+    return cur;
+}
+
+static int reinit_stream(PLAYER *player, enum AVMediaType type, int sel) {
+    AVCodecContext *lastctxt = NULL;
+    AVCodec        *decoder  = NULL;
+    int             idx, cur, i;
+
+    for (i=0,idx=-1,cur=-1; i<(int)player->avformat_context->nb_streams; i++) {
         if (player->avformat_context->streams[i]->codec->codec_type == type) {
-            n++;
+            cur++;
+        }
+        if (cur == sel) {
+            idx = i;
+            break;
         }
     }
-    return n;
+    if (idx == -1) return -1;
+
+    switch (type) {
+    case AVMEDIA_TYPE_AUDIO:
+        // get last codec context
+        if (player->acodec_context) {
+            lastctxt = player->acodec_context;
+        }
+
+        // get new acodec_context & astream_timebase
+        player->acodec_context   = player->avformat_context->streams[idx]->codec;
+        player->astream_timebase = av_q2d(player->avformat_context->streams[idx]->time_base) * 1000;
+
+        // reopen codec
+        if (lastctxt) avcodec_close(lastctxt);
+        decoder = avcodec_find_decoder(player->acodec_context->codec_id);
+        if (decoder && avcodec_open(player->acodec_context, decoder, NULL) == 0) {
+            player->astream_index = idx;
+        }
+        else {
+            av_log(NULL, AV_LOG_WARNING, "failed to find or open decoder for audio !\n");
+            player->astream_index = -1;
+        }
+        break;
+
+    case AVMEDIA_TYPE_VIDEO:
+        // get last codec context
+        if (player->vcodec_context) {
+            lastctxt = player->vcodec_context;
+        }
+
+        // get new vcodec_context & vstream_timebase
+        player->vcodec_context   = player->avformat_context->streams[idx]->codec;
+        player->vstream_timebase = av_q2d(player->avformat_context->streams[idx]->time_base) * 1000;
+
+        // reopen codec
+        if (lastctxt) avcodec_close(lastctxt);
+        decoder = avcodec_find_decoder(player->vcodec_context->codec_id);
+        //++ init for hwaccel
+        hwaccel_init(player->vcodec_context, player->hwaccel);
+        //-- init for hwaccel
+        if (decoder && avcodec_open(player->vcodec_context, decoder, NULL) == 0) {
+            player->vstream_index = idx;
+        }
+        else {
+            av_log(NULL, AV_LOG_WARNING, "failed to find or open decoder for video !\n");
+            player->vstream_index = -1;
+        }
+        break;
+
+    case AVMEDIA_TYPE_SUBTITLE:
+        return -1; // todo...
+    }
+
+    return 0;
+}
+
+static void set_stream_current(PLAYER *player, enum AVMediaType type, int sel) {
+    LONGLONG             pos = 0;
+    RENDER_UPDATE_PARAMS params;
+
+    // get current play posistion
+    player_getparam(player, PARAM_MEDIA_POSITION, &pos);
+
+    // make player thread paused
+    player->player_status |= PAUSE_REQ;
+    player->player_status &=~PAUSE_ACK;
+    while ((player->player_status & PAUSE_ACK) != PAUSE_ACK) usleep(20*1000);
+
+    // reinit stream
+    reinit_stream(player, type, sel);
+
+    // update render
+    params.samprate = player->acodec_context->sample_rate;
+    params.sampfmt  = player->acodec_context->sample_fmt;
+    params.chlayout = player->acodec_context->channel_layout;
+    params.frate    = player->avformat_context->streams[player->vstream_index]->r_frame_rate;
+    if (params.frate.num / params.frate.den > 100) {
+        params.frate.num = 21;
+        params.frate.den = 1;
+    }
+    params.pixfmt   = player->vcodec_context->pix_fmt;
+    params.width    = player->vcodec_context->width;
+    params.height   = player->vcodec_context->height;
+    render_setparam(player->render, PARAM_RENDER_UPDATE, &params);
+
+    // seek current pos to update pktqueue
+    player_seek(player, pos);
 }
 
 // 函数实现
-void* player_open(char *file, void *win, int adevtype, int vdevtype, char *hwaccel)
+void* player_open(char *file, void *win, int adevtype, int vdevtype, int hwaccel)
 {
-    PLAYER        *player   = NULL;
-    AVCodec       *decoder  = NULL;
-    AVRational     vrate    = { 21, 1 };
-    int            vformat  = 0;
-    int            width    = 0;
-    int            height   = 0;
-    uint64_t       alayout  = 0;
-    int            aformat  = 0;
-    int            arate    = 0;
-    uint32_t       i        = 0;
+    PLAYER       *player  = NULL;
+    int           arate   = 0;
+    int           aformat = 0;
+    uint64_t      alayout = 0;
+    AVRational    vrate   = { 21, 1 };
+    AVPixelFormat vformat = AV_PIX_FMT_NONE;
+    int           width   = 0;
+    int           height  = 0;
 
     //++ for avdevice
     char          *avdev_dshow   = "dshow";
@@ -331,6 +438,9 @@ void* player_open(char *file, void *win, int adevtype, int vdevtype, char *hwacc
     }
     //-- for avdevice
 
+    // for hwaccel
+    player->hwaccel = hwaccel;
+
     // open input file
     if (avformat_open_input(&player->avformat_context, url, fmt, 0) != 0) {
         goto error_handler;
@@ -341,81 +451,38 @@ void* player_open(char *file, void *win, int adevtype, int vdevtype, char *hwacc
         goto error_handler;
     }
 
-    // get video & audio codec context
-    player->astream_index = -1;
-    player->vstream_index = -1;
-    for (i=0; i<player->avformat_context->nb_streams; i++)
-    {
-        switch (player->avformat_context->streams[i]->codec->codec_type)
-        {
-        case AVMEDIA_TYPE_AUDIO:
-            player->astream_index    = i;
-            player->acodec_context   = player->avformat_context->streams[i]->codec;
-            player->astream_timebase = av_q2d(player->avformat_context->streams[i]->time_base) * 1000;
-            break;
-
-        case AVMEDIA_TYPE_VIDEO:
-            player->vstream_index    = i;
-            player->vcodec_context   = player->avformat_context->streams[i]->codec;
-            player->vstream_timebase = av_q2d(player->avformat_context->streams[i]->time_base) * 1000;
-            vrate = player->avformat_context->streams[i]->r_frame_rate;
-            if (vrate.num / vrate.den > 100) {
-                vrate.num = 21;
-                vrate.den = 1;
-            }
-            break;
-        }
-    }
-
-    // open audio codec
-    if (player->astream_index != -1)
-    {
-        decoder = avcodec_find_decoder(player->acodec_context->codec_id);
-        if (!decoder || avcodec_open(player->acodec_context, decoder, NULL) < 0)
-        {
-            av_log(NULL, AV_LOG_WARNING, "failed to find or open decoder for audio !\n");
-            player->astream_index = -1;
-        }
-    }
-
-    // open video codec
-    if (player->vstream_index != -1)
-    {
-        decoder = avcodec_find_decoder(player->vcodec_context->codec_id);
-        //++ init for hwaccel
-        hwaccel_init(player->vcodec_context, hwaccel);
-        //-- init for hwaccel
-        if (!decoder || avcodec_open(player->vcodec_context, decoder, NULL) < 0)
-        {
-            av_log(NULL, AV_LOG_WARNING, "failed to find or open decoder for video !\n");
-            player->vstream_index = -1;
-        }
-    }
+    // set current audio & video stream
+    player->astream_index = -1; reinit_stream(player, AVMEDIA_TYPE_AUDIO, 0);
+    player->vstream_index = -1; reinit_stream(player, AVMEDIA_TYPE_VIDEO, 0);
 
     // for audio
     if (player->astream_index != -1)
     {
+        arate   = player->acodec_context->sample_rate;
+        aformat = player->acodec_context->sample_fmt;
         alayout = player->acodec_context->channel_layout;
         //++ fix audio channel layout issue
         if (alayout == 0) {
             alayout = av_get_default_channel_layout(player->acodec_context->channels);
         }
         //-- fix audio channel layout issue
-        aformat = player->acodec_context->sample_fmt;
-        arate   = player->acodec_context->sample_rate;
     }
 
     // for video
-    if (player->vstream_index != -1)
-    {
+    if (player->vstream_index != -1) {
+        vrate = player->avformat_context->streams[player->vstream_index]->r_frame_rate;
+        if (vrate.num / vrate.den > 100) {
+            vrate.num = 21;
+            vrate.den = 1;
+        }
         vformat = player->vcodec_context->pix_fmt;
         width   = player->vcodec_context->width;
         height  = player->vcodec_context->height;
     }
 
     // open render
-    player->render = render_open(vdevtype, win, vrate, vformat, width, height,
-        adevtype, arate, (AVSampleFormat)aformat, alayout);
+    player->render = render_open(adevtype, arate, (AVSampleFormat)aformat, alayout,
+                                 vdevtype, win, vrate, vformat, width, height);
     if (player->vstream_index == -1) {
         int effect = VISUAL_EFFECT_WAVEFORM;
         render_setparam(player->render, PARAM_VISUAL_EFFECT, &effect);
@@ -530,8 +597,6 @@ void player_seek(void *hplayer, LONGLONG ms)
     PLAYER *player = (PLAYER*)hplayer;
 
     // pause demuxing and audio & video decoding
-    #define PAUSE_REQ ((PS_D_PAUSE|PS_A_PAUSE|PS_V_PAUSE) << 0 )
-    #define PAUSE_ACK ((PS_D_PAUSE|PS_A_PAUSE|PS_V_PAUSE) << 16)
     player->player_status |= PAUSE_REQ;
     player->player_status &=~PAUSE_ACK;
 
@@ -597,6 +662,9 @@ void player_setparam(void *hplayer, DWORD id, void *param)
         render_setparam(player->render, PARAM_VDEV_RENDER_TYPE, param);
         player->player_status &=~(PAUSE_REQ | PAUSE_ACK);
         break;
+    case PARAM_AUDIO_STREAM_CUR   : set_stream_current(player, (AVMediaType)AVMEDIA_TYPE_AUDIO   , *(int*)param); break;
+    case PARAM_VIDEO_STREAM_CUR   : set_stream_current(player, (AVMediaType)AVMEDIA_TYPE_VIDEO   , *(int*)param); break;
+    case PARAM_SUBTITLE_STREAM_CUR: set_stream_current(player, (AVMediaType)AVMEDIA_TYPE_SUBTITLE, *(int*)param); break;
     default:
         render_setparam(player->render, id, param);
         break;

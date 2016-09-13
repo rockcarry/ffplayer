@@ -9,7 +9,7 @@ extern "C" {
 #include "libavcodec/avcodec.h"
 
 // º¯ÊýÉùÃ÷
-void hwaccel_init(AVCodecContext *ctxt, char *hwaccel);
+void hwaccel_init(AVCodecContext *ctxt, int hwaccel);
 void hwaccel_free(AVCodecContext *ctxt);
 
 #ifdef __cplusplus

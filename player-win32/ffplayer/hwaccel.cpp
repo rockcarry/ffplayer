@@ -2,6 +2,7 @@
 #include <windows.h>
 #include <initguid.h>
 #include <dxva2api.h>
+#include "ffplayer.h"
 #include "hwaccel.h"
 
 extern "C" {
@@ -442,15 +443,17 @@ int dxva2_init(AVCodecContext *s)
 
 
 // º¯ÊýÊµÏÖ
-void hwaccel_init(AVCodecContext *ctxt, char *hwaccel)
+void hwaccel_init(AVCodecContext *ctxt, int hwaccel)
 {
     if (!ctxt || !hwaccel) {
         return;
     }
 
     ctxt->opaque = av_mallocz(sizeof(HWACCEL));
-    if (strcmp(hwaccel, "dxva2") == 0) {
+    switch (hwaccel) {
+    case HWACCEL_TYPE_DXVA2:
         dxva2_init(ctxt);
+        break;
     }
 }
 
