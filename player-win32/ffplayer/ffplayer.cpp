@@ -398,7 +398,7 @@ void* player_open(char *file, void *win, int adevtype, int vdevtype, int hwaccel
     int           aformat = 0;
     uint64_t      alayout = 0;
     AVRational    vrate   = { 21, 1 };
-    AVPixelFormat vformat = AV_PIX_FMT_NONE;
+    AVPixelFormat vformat = AV_PIX_FMT_YUV420P;
     int           width   = 0;
     int           height  = 0;
 
