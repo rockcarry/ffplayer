@@ -62,7 +62,6 @@ typedef struct {
 } VDEV_COMMON_CTXT;
 
 // º¯ÊıÉùÃ÷
-void  vdev_setrect (void *ctxt, int x, int y, int w, int h);
 void  vdev_pause   (void *ctxt, int pause);
 void  vdev_reset   (void *ctxt);
 void  vdev_getavpts(void *ctxt, int64_t **ppapts, int64_t **ppvpts);
