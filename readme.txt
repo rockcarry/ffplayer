@@ -30,6 +30,12 @@ ctrl+M - switch between letter box and stretch rect
 ctrl+R - switch between gdi and d3d
 
 
+contact and discuss
+===================
+email   : rockcarry@163.com
+qq group: 383930765
+
+
 rockcarry
 2016.1.7
 
