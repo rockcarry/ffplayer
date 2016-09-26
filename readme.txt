@@ -20,6 +20,8 @@ features
 4. support variable speed playback 1% to 100%, 200% ..
 5. waveform and spectrum visual effect
 6. support stream selection
+7. support network media stream playback
+8. support dshow, gdigrab and vfwcap (avdevice of ffmpeg)
 
 
 testplayer
