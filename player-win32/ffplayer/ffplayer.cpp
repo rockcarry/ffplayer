@@ -11,11 +11,6 @@ extern "C" {
 #include "libavformat/avformat.h"
 }
 
-// 内部常量定义
-#define avcodec_decode_video avcodec_decode_video2
-#define avcodec_decode_audio avcodec_decode_audio4
-#define avcodec_open         avcodec_open2
-
 // 内部类型定义
 typedef struct
 {
@@ -84,7 +79,7 @@ static void* av_demux_thread_proc(void *param)
         }
         //-- when demux pause --//
 
-        if (!pktqueue_write_request(player->pktqueue, &packet)) { usleep(20*1000); continue; }
+        if (-1 == pktqueue_write_request(player->pktqueue, &packet)) { usleep(20*1000); continue; }
 
         retv = av_read_frame(player->avformat_context, packet);
         //++ play completed ++//
@@ -141,7 +136,7 @@ static void* audio_decode_thread_proc(void *param)
         //++ for seek operation
 
         // read packet
-        if (!pktqueue_read_request_a(player->pktqueue, &packet)) { usleep(20*1000); continue; }
+        if (-1 == pktqueue_read_request_a(player->pktqueue, &packet)) { usleep(20*1000); continue; }
 
         //++ decode audio packet ++//
         if (player->astream_index != -1) {
@@ -149,7 +144,7 @@ static void* audio_decode_thread_proc(void *param)
                 int consumed = 0;
                 int gotaudio = 0;
 
-                consumed = avcodec_decode_audio(player->acodec_context, aframe, &gotaudio, packet);
+                consumed = avcodec_decode_audio4(player->acodec_context, aframe, &gotaudio, packet);
                 if (consumed < 0) {
                     av_log(NULL, AV_LOG_WARNING, "an error occurred during decoding audio.\n");
                     break;
@@ -209,7 +204,7 @@ static void* video_decode_thread_proc(void *param)
         //++ for seek operation
 
         // read packet
-        if (!pktqueue_read_request_v(player->pktqueue, &packet)) {
+        if (-1 == pktqueue_read_request_v(player->pktqueue, &packet)) {
             if ((player->player_status & PS_V_SEEK)) {
                 player->player_status |= (PS_V_SEEK << 16);
             }
@@ -223,7 +218,7 @@ static void* video_decode_thread_proc(void *param)
                 int consumed = 0;
                 int gotvideo = 0;
 
-                consumed = avcodec_decode_video(player->vcodec_context, vframe, &gotvideo, packet);
+                consumed = avcodec_decode_video2(player->vcodec_context, vframe, &gotvideo, packet);
                 if (consumed < 0) {
                     av_log(NULL, AV_LOG_WARNING, "an error occurred during decoding video.\n");
                     break;
@@ -315,7 +310,7 @@ static int reinit_stream(PLAYER *player, enum AVMediaType type, int sel) {
         // reopen codec
         if (lastctxt) avcodec_close(lastctxt);
         decoder = avcodec_find_decoder(player->acodec_context->codec_id);
-        if (decoder && avcodec_open(player->acodec_context, decoder, NULL) == 0) {
+        if (decoder && avcodec_open2(player->acodec_context, decoder, NULL) == 0) {
             player->astream_index = idx;
         }
         else {
@@ -340,7 +335,7 @@ static int reinit_stream(PLAYER *player, enum AVMediaType type, int sel) {
         //++ init for hwaccel
         hwaccel_init(player->vcodec_context, player->hwaccel);
         //-- init for hwaccel
-        if (decoder && avcodec_open(player->vcodec_context, decoder, NULL) == 0) {
+        if (decoder && avcodec_open2(player->vcodec_context, decoder, NULL) == 0) {
             player->vstream_index = idx;
         }
         else {
@@ -637,6 +632,19 @@ void player_seek(void *hplayer, LONGLONG ms)
     if (player->player_status & PS_R_PAUSE) {
         usleep(20*1000); render_pause(player->render);
     }
+}
+
+int player_snapshot(void *hplayer, char *file, int waitt)
+{
+    if (!hplayer) return -1;
+    PLAYER *player = (PLAYER*)hplayer;
+
+    // check video stream exsits
+    if (player->vstream_index == -1) {
+        return -1;
+    }
+
+    return render_snapshot(player->render, file, waitt);
 }
 
 void player_setparam(void *hplayer, DWORD id, void *param)

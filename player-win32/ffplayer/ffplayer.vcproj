@@ -207,6 +207,10 @@
 				>
 			</File>
 			<File
+				RelativePath=".\snapshot.cpp"
+				>
+			</File>
+			<File
 				RelativePath=".\vdev-cmn.cpp"
 				>
 			</File>
@@ -250,6 +254,10 @@
 			</File>
 			<File
 				RelativePath=".\pktqueue.h"
+				>
+			</File>
+			<File
+				RelativePath=".\snapshot.h"
 				>
 			</File>
 			<File

@@ -86,12 +86,12 @@ void pktqueue_reset(void *ctxt)
     PKTQUEUE *ppq    = (PKTQUEUE*)ctxt;
     AVPacket *packet = NULL;
 
-    while (pktqueue_read_request_a(ctxt, &packet)) {
+    while (0 == pktqueue_read_request_a(ctxt, &packet)) {
         av_packet_unref(packet);
         pktqueue_read_post_a(ctxt);
     }
 
-    while (pktqueue_read_request_v(ctxt, &packet)) {
+    while (0 == pktqueue_read_request_v(ctxt, &packet)) {
         av_packet_unref(packet);
         pktqueue_read_post_v(ctxt);
     }
@@ -104,9 +104,9 @@ void pktqueue_reset(void *ctxt)
 int pktqueue_write_request(void *ctxt, AVPacket **pppkt)
 {
     PKTQUEUE *ppq = (PKTQUEUE*)ctxt;
-    if (0 != sem_trywait(&ppq->fsem)) return FALSE;
+    if (0 != sem_trywait(&ppq->fsem)) return -1;
     if (pppkt) *pppkt = ppq->fpkts[ppq->fhead];
-    return TRUE;
+    return 0;
 }
 
 void pktqueue_write_cancel(void *ctxt)
@@ -140,9 +140,9 @@ void pktqueue_write_post_v(void *ctxt)
 int pktqueue_read_request_a(void *ctxt, AVPacket **pppkt)
 {
     PKTQUEUE *ppq = (PKTQUEUE*)ctxt;
-    if (0 != sem_trywait(&ppq->asem)) return FALSE;
+    if (0 != sem_trywait(&ppq->asem)) return -1;
     if (pppkt) *pppkt = ppq->apkts[ppq->ahead];
-    return TRUE;
+    return 0;
 }
 
 void pktqueue_read_post_a(void *ctxt)
@@ -159,9 +159,9 @@ void pktqueue_read_post_a(void *ctxt)
 int pktqueue_read_request_v(void *ctxt, AVPacket **pppkt)
 {
     PKTQUEUE *ppq = (PKTQUEUE*)ctxt;
-    if (0 != sem_trywait(&ppq->vsem)) return FALSE;
+    if (0 != sem_trywait(&ppq->vsem)) return -1;
     if (pppkt) *pppkt = ppq->vpkts[ppq->vhead];
-    return TRUE;
+    return 0;
 }
 
 void pktqueue_read_post_v(void *ctxt)

@@ -105,10 +105,11 @@ BEGIN_MESSAGE_MAP(CplayerDlg, CDialog)
     ON_WM_LBUTTONDOWN()
     ON_WM_CTLCOLOR()
     ON_WM_SIZE()
-    ON_COMMAND(ID_VIDEO_MODE  , &CplayerDlg::OnVideoMode  )
-    ON_COMMAND(ID_EFFECT_MODE , &CplayerDlg::OnEffectMode )
-    ON_COMMAND(ID_RENDER_MODE , &CplayerDlg::OnRenderMode )
-    ON_COMMAND(ID_AUDIO_STREAM, &CplayerDlg::OnAudioStream)
+    ON_COMMAND(ID_VIDEO_MODE   , &CplayerDlg::OnVideoMode   )
+    ON_COMMAND(ID_EFFECT_MODE  , &CplayerDlg::OnEffectMode  )
+    ON_COMMAND(ID_RENDER_MODE  , &CplayerDlg::OnRenderMode  )
+    ON_COMMAND(ID_AUDIO_STREAM , &CplayerDlg::OnAudioStream )
+    ON_COMMAND(ID_TAKE_SNAPSHOT, &CplayerDlg::OnTakeSnapshot)
 END_MESSAGE_MAP()
 
 
@@ -314,5 +315,10 @@ void CplayerDlg::OnAudioStream()
     player_getparam(g_hplayer, PARAM_AUDIO_STREAM_CUR  , &current);
     current++; current %= total;
     player_setparam(g_hplayer, PARAM_AUDIO_STREAM_CUR  , &current);
+}
+
+void CplayerDlg::OnTakeSnapshot()
+{
+    player_snapshot(g_hplayer, "snapshot.jpg", 1000);
 }
 

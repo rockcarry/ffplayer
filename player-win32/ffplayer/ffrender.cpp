@@ -1,6 +1,7 @@
 // 包含头文件
 #include <pthread.h>
 #include "ffrender.h"
+#include "snapshot.h"
 #include "veffect.h"
 #include "adev.h"
 #include "vdev.h"
@@ -63,9 +64,14 @@ typedef struct
     pthread_t      veffect_thread;
 
     // render status
-    #define RENDER_CLOSE (1 << 0)
-    #define RENDER_PAUSE (1 << 1)
+    #define RENDER_CLOSE    (1 << 0)
+    #define RENDER_PAUSE    (1 << 1)
+    #define RENDER_SNAPSHOT (1 << 2)  // take snapshot
     int            render_status;
+
+    // snapshot
+    void          *snapshot;
+    char           snapfile[MAX_PATH];
 } RENDER;
 
 // 内部函数实现
@@ -135,12 +141,18 @@ void* render_open(int adevtype, int srate, AVSampleFormat sndfmt, int64_t ch_lay
     render_setrect (render, 1, rect.left, rect.top, rect.right, rect.bottom);
     render_setspeed(render, 100);
 
+    // init snapshot
+    render->snapshot = snapshot_init();
+
     return render;
 }
 
 void render_close(void *hrender)
 {
     RENDER *render = (RENDER*)hrender;
+
+    // free snapshot
+    snapshot_free(render->snapshot);
 
     // wait visual effect thread exit
     render->render_status = RENDER_CLOSE;
@@ -261,6 +273,13 @@ void render_video(void *hrender, AVFrame *video)
             sws_scale(render->sws_context, video->data, video->linesize, 0, render->video_height, picture.data, picture.linesize);
         }
         vdev_post(render->vdev, video->pts);
+
+        if (render->render_status & RENDER_SNAPSHOT) {
+            HWND hwnd = ((VDEV_COMMON_CTXT*)render->vdev)->hwnd;
+            snapshot_take(render->snapshot, render->snapfile, video);
+            PostMessage(hwnd, MSG_FFPLAYER, RENDER_SNAPSHOT, 0);
+            render->render_status &= ~RENDER_SNAPSHOT;
+        }
     } while (render->render_status & RENDER_PAUSE);
 }
 
@@ -305,6 +324,33 @@ void render_reset(void *hrender)
     adev_reset(render->adev);
     vdev_reset(render->vdev);
     render->render_status = 0;
+}
+
+int render_snapshot(void *hrender, char *file, int waitt)
+{
+    if (!hrender) return -1;
+    RENDER *render = (RENDER*)hrender;
+
+    // if take snapshot in progress
+    if (render->render_status & RENDER_SNAPSHOT) {
+        return -1;
+    }
+
+    // copy snapshot file name
+    strcpy_s(render->snapfile, file);
+
+    // setup render flags to request snapshot
+    render->render_status |= RENDER_SNAPSHOT;
+
+    // wait take snapshot done
+    if (waitt > 0) {
+        int retry = waitt / 10;
+        while ((render->render_status & RENDER_SNAPSHOT) && retry--) {
+            usleep(10 * 1000);
+        }
+    }
+
+    return 0;
 }
 
 void render_setparam(void *hrender, DWORD id, void *param)

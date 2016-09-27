@@ -11,8 +11,9 @@ extern "C" {
 // 常量定义
 // message
 #define MSG_FFPLAYER    (WM_APP + 1)
-#define PLAY_PROGRESS   (('R' << 24) | ('U' << 16) | ('N' << 8))
-#define PLAY_COMPLETED  (('E' << 24) | ('N' << 16) | ('D' << 8))
+#define PLAY_PROGRESS   (('R' << 24) | ('U' << 16) | ('N' << 8) | (' ' << 0))
+#define PLAY_COMPLETED  (('E' << 24) | ('N' << 16) | ('D' << 8) | (' ' << 0))
+#define PLAY_SNAPSHOT   (('S' << 24) | ('N' << 16) | ('A' << 8) | ('P' << 0))
 
 // adev render type
 enum {
@@ -110,6 +111,7 @@ void  player_play    (void *hplayer);
 void  player_pause   (void *hplayer);
 void  player_seek    (void *hplayer, LONGLONG ms);
 void  player_setrect (void *hplayer, int type, int x, int y, int w, int h); // type: 0 - video rect, 1 - visual effect rect
+int   player_snapshot(void *hplayer, char *file, int waitt);
 void  player_setparam(void *hplayer, DWORD id, void *param);
 void  player_getparam(void *hplayer, DWORD id, void *param);
 
