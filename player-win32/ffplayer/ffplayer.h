@@ -142,6 +142,11 @@ player_setrect  设置显示区域，有两种显示区域，视频显示区和�
     type        - 指定区域类型  0 - video rect, 1 - visual effect rect
     x,y,w,h     - 指定显示区域
 
+player_snapshot 视频播放截图
+    hplayer     - 指向 player_open 返回的 player 对象
+    file        - 图片文件名（目前只支持 jpeg 格式）
+    waitt       - 是否带动截图完成 0 - 不等待，>0 等待超时 ms 为单位
+
 player_setparam 设置参数
     hplayer     - 指向 player_open 返回的 player 对象
     id          - 参数 id
