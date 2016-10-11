@@ -34,6 +34,10 @@ cd ffmpeg
 --disable-muxers   \
 --disable-devices  \
 --disable-filters  \
+--enable-encoder=mjpeg \
+--enable-muxer=mjpeg \
+--enable-encoder=apng \
+--enable-muxer=apng \
 --enable-asm \
 --enable-gpl \
 --enable-version3 \
