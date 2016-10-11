@@ -2,9 +2,9 @@
 <VisualStudioProject
 	ProjectType="Visual C++"
 	Version="8.00"
-	Name="ffplayer"
-	ProjectGUID="{2537A15B-F975-416D-8106-22CD6EDFCCDE}"
-	RootNamespace="ffplayer"
+	Name="ffspliter"
+	ProjectGUID="{E1E9BFAC-8EAA-47AB-B176-55E32C1C9487}"
+	RootNamespace="ffspliter"
 	Keyword="Win32Proj"
 	>
 	<Platforms>
@@ -19,7 +19,7 @@
 			Name="Debug|Win32"
 			OutputDirectory="$(SolutionDir)$(ConfigurationName)"
 			IntermediateDirectory="$(ConfigurationName)"
-			ConfigurationType="2"
+			ConfigurationType="1"
 			CharacterSet="1"
 			>
 			<Tool
@@ -40,11 +40,11 @@
 			<Tool
 				Name="VCCLCompilerTool"
 				Optimization="0"
-				AdditionalIncludeDirectories="..\..\dx9sdk\include;..\..\ffmpeg-win32\include;..\..\pthreads-win32\include"
-				PreprocessorDefinitions="WIN32;_DEBUG;_WINDOWS;_USRDLL;FFPLAYER_EXPORTS"
+				AdditionalIncludeDirectories="..\..\ffmpeg-win32\include"
+				PreprocessorDefinitions="WIN32;_DEBUG;_CONSOLE"
 				MinimalRebuild="true"
 				BasicRuntimeChecks="3"
-				RuntimeLibrary="1"
+				RuntimeLibrary="3"
 				UsePrecompiledHeader="0"
 				WarningLevel="3"
 				Detect64BitPortabilityProblems="true"
@@ -61,12 +61,11 @@
 			/>
 			<Tool
 				Name="VCLinkerTool"
-				AdditionalDependencies="pthreadVC2.lib d3d9.lib winmm.lib msimg32.lib avcodec.lib avdevice.lib avformat.lib avutil.lib swscale.lib swresample.lib"
+				AdditionalDependencies="avcodec.lib avformat.lib avutil.lib "
 				LinkIncremental="2"
-				AdditionalLibraryDirectories="..\..\dx9sdk\lib;..\..\ffmpeg-win32\bin;..\..\pthreads-win32\lib"
-				ModuleDefinitionFile="ffplayer.def"
+				AdditionalLibraryDirectories="..\..\ffmpeg-win32\bin"
 				GenerateDebugInformation="true"
-				SubSystem="2"
+				SubSystem="1"
 				TargetMachine="1"
 			/>
 			<Tool
@@ -98,7 +97,7 @@
 			Name="Release|Win32"
 			OutputDirectory="$(SolutionDir)$(ConfigurationName)"
 			IntermediateDirectory="$(ConfigurationName)"
-			ConfigurationType="2"
+			ConfigurationType="1"
 			CharacterSet="1"
 			WholeProgramOptimization="1"
 			>
@@ -119,9 +118,9 @@
 			/>
 			<Tool
 				Name="VCCLCompilerTool"
-				AdditionalIncludeDirectories="..\..\dx9sdk\include;..\..\ffmpeg-win32\include;..\..\pthreads-win32\include"
-				PreprocessorDefinitions="WIN32;NDEBUG;_WINDOWS;_USRDLL;FFPLAYER_EXPORTS"
-				RuntimeLibrary="0"
+				AdditionalIncludeDirectories="..\..\ffmpeg-win32\include"
+				PreprocessorDefinitions="WIN32;NDEBUG;_CONSOLE"
+				RuntimeLibrary="2"
 				UsePrecompiledHeader="0"
 				WarningLevel="3"
 				Detect64BitPortabilityProblems="true"
@@ -138,12 +137,11 @@
 			/>
 			<Tool
 				Name="VCLinkerTool"
-				AdditionalDependencies="pthreadVC2.lib d3d9.lib winmm.lib msimg32.lib avcodec.lib avdevice.lib avformat.lib avutil.lib swscale.lib swresample.lib"
+				AdditionalDependencies="avcodec.lib avformat.lib avutil.lib "
 				LinkIncremental="1"
-				AdditionalLibraryDirectories="..\..\dx9sdk\lib;..\..\ffmpeg-win32\bin;..\..\pthreads-win32\lib"
-				ModuleDefinitionFile="ffplayer.def"
+				AdditionalLibraryDirectories="..\..\ffmpeg-win32\bin"
 				GenerateDebugInformation="true"
-				SubSystem="2"
+				SubSystem="1"
 				OptimizeReferences="1"
 				EnableCOMDATFolding="2"
 				TargetMachine="1"
@@ -183,47 +181,7 @@
 			UniqueIdentifier="{4FC737F1-C7A5-4376-A066-2A32D752A2FF}"
 			>
 			<File
-				RelativePath=".\adev.cpp"
-				>
-			</File>
-			<File
-				RelativePath=".\ffplayer.cpp"
-				>
-			</File>
-			<File
-				RelativePath=".\ffrender.cpp"
-				>
-			</File>
-			<File
-				RelativePath=".\fft.cpp"
-				>
-			</File>
-			<File
-				RelativePath=".\hwaccel.cpp"
-				>
-			</File>
-			<File
-				RelativePath=".\pktqueue.cpp"
-				>
-			</File>
-			<File
-				RelativePath=".\snapshot.cpp"
-				>
-			</File>
-			<File
-				RelativePath=".\vdev-cmn.cpp"
-				>
-			</File>
-			<File
-				RelativePath=".\vdev-d3d.cpp"
-				>
-			</File>
-			<File
-				RelativePath=".\vdev-gdi.cpp"
-				>
-			</File>
-			<File
-				RelativePath=".\veffect.cpp"
+				RelativePath=".\ffspliter.cpp"
 				>
 			</File>
 		</Filter>
@@ -233,43 +191,7 @@
 			UniqueIdentifier="{93995380-89BD-4b04-88EB-625FBE52EBFB}"
 			>
 			<File
-				RelativePath=".\adev.h"
-				>
-			</File>
-			<File
-				RelativePath=".\ffplayer.h"
-				>
-			</File>
-			<File
-				RelativePath=".\ffrender.h"
-				>
-			</File>
-			<File
-				RelativePath=".\fft.h"
-				>
-			</File>
-			<File
-				RelativePath=".\hwaccel.h"
-				>
-			</File>
-			<File
-				RelativePath=".\pktqueue.h"
-				>
-			</File>
-			<File
-				RelativePath=".\snapshot.h"
-				>
-			</File>
-			<File
-				RelativePath=".\stdefine.h"
-				>
-			</File>
-			<File
-				RelativePath=".\vdev.h"
-				>
-			</File>
-			<File
-				RelativePath=".\veffect.h"
+				RelativePath=".\ffspliter.h"
 				>
 			</File>
 		</Filter>
