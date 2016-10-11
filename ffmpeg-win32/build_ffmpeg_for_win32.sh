@@ -31,9 +31,9 @@ cd ffmpeg
 --disable-avfilter \
 --disable-postproc \
 --disable-encoders \
---disable-muxers   \
 --disable-devices  \
 --disable-filters  \
+--enable-muxers    \
 --enable-encoder=mjpeg \
 --enable-muxer=mjpeg \
 --enable-encoder=apng \
