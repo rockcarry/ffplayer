@@ -20,12 +20,12 @@ typedef struct
     // audio
     AVCodecContext  *acodec_context;
     int              astream_index;
-    double           astream_timebase;
+    AVRational       astream_timebase;
 
     // video
     AVCodecContext  *vcodec_context;
     int              vstream_index;
-    double           vstream_timebase;
+    AVRational       vstream_timebase;
 
     // pktqueue
     void            *pktqueue;
@@ -54,6 +54,9 @@ typedef struct
     pthread_t        adecode_thread;
     pthread_t        vdecode_thread;
 } PLAYER;
+
+// 内部常量定义
+static const AVRational TIMEBASE_MS = { 1, 1000 };
 
 // 内部函数实现
 static void ffplayer_log_callback(void* ptr, int level, const char *fmt, va_list vl) {
@@ -151,7 +154,7 @@ static void* audio_decode_thread_proc(void *param)
                 }
 
                 if (gotaudio) {
-                    aframe->pts = (int64_t)(av_frame_get_best_effort_timestamp(aframe) * player->astream_timebase);
+                    aframe->pts = av_rescale_q(av_frame_get_best_effort_timestamp(aframe), player->astream_timebase, TIMEBASE_MS);
                     //++ for seek operation
                     if ((player->player_status & PS_A_SEEK)) {
                         if (player->seek_dest_pts - aframe->pts < 100) {
@@ -225,7 +228,7 @@ static void* video_decode_thread_proc(void *param)
                 }
 
                 if (gotvideo) {
-                    vframe->pts = (int64_t)(av_frame_get_best_effort_timestamp(vframe) * player->vstream_timebase);
+                    vframe->pts = av_rescale_q(av_frame_get_best_effort_timestamp(vframe), player->vstream_timebase, TIMEBASE_MS);
                     //++ for seek operation
                     if ((player->player_status & PS_V_SEEK)) {
                         if (player->seek_dest_pts - vframe->pts < 100) {
@@ -305,7 +308,7 @@ static int reinit_stream(PLAYER *player, enum AVMediaType type, int sel) {
 
         // get new acodec_context & astream_timebase
         player->acodec_context   = player->avformat_context->streams[idx]->codec;
-        player->astream_timebase = av_q2d(player->avformat_context->streams[idx]->time_base) * 1000;
+        player->astream_timebase = player->avformat_context->streams[idx]->time_base;
 
         // reopen codec
         if (lastctxt) avcodec_close(lastctxt);
@@ -327,7 +330,7 @@ static int reinit_stream(PLAYER *player, enum AVMediaType type, int sel) {
 
         // get new vcodec_context & vstream_timebase
         player->vcodec_context   = player->avformat_context->streams[idx]->codec;
-        player->vstream_timebase = av_q2d(player->avformat_context->streams[idx]->time_base) * 1000;
+        player->vstream_timebase = player->avformat_context->streams[idx]->time_base;
 
         // reopen codec
         if (lastctxt) avcodec_close(lastctxt);
