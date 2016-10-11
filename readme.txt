@@ -22,6 +22,7 @@ features
 6. support stream selection
 7. support network media stream playback
 8. support dshow, gdigrab and vfwcap (avdevice of ffmpeg)
+9. take video snapshot, support save into jpeg and png
 
 
 testplayer

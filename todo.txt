@@ -1,5 +1,4 @@
 1. comment for code
 2. subtitle/lrc
 3. hwaccel
-4. video snapshot
-5. video spliter
+4. video spliter
