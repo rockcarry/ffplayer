@@ -70,7 +70,6 @@ typedef struct
     int            render_status;
 
     // snapshot
-    void          *snapshot;
     char           snapfile[MAX_PATH];
 } RENDER;
 
@@ -141,18 +140,12 @@ void* render_open(int adevtype, int srate, AVSampleFormat sndfmt, int64_t ch_lay
     render_setrect (render, 1, rect.left, rect.top, rect.right, rect.bottom);
     render_setspeed(render, 100);
 
-    // init snapshot
-    render->snapshot = snapshot_init();
-
     return render;
 }
 
 void render_close(void *hrender)
 {
     RENDER *render = (RENDER*)hrender;
-
-    // free snapshot
-    snapshot_free(render->snapshot);
 
     // wait visual effect thread exit
     render->render_status = RENDER_CLOSE;
@@ -276,8 +269,8 @@ void render_video(void *hrender, AVFrame *video)
 
         if (render->render_status & RENDER_SNAPSHOT) {
             HWND hwnd = ((VDEV_COMMON_CTXT*)render->vdev)->hwnd;
-            snapshot_take(render->snapshot, render->snapfile, video);
-            PostMessage(hwnd, MSG_FFPLAYER, RENDER_SNAPSHOT, 0);
+            int  ret  = take_snapshot(render->snapfile, video);
+            PostMessage(hwnd, MSG_FFPLAYER, RENDER_SNAPSHOT, ret);
             render->render_status &= ~RENDER_SNAPSHOT;
         }
     } while (render->render_status & RENDER_PAUSE);

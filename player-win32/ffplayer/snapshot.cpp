@@ -6,172 +6,125 @@ extern "C" {
 #include "libswscale/swscale.h"
 }
 
-// 内部类型定义
-typedef struct
-{
-    struct SwsContext *sws_ctx;
-    AVPixelFormat      ifmt;
-    AVPixelFormat      ofmt;
-    int                width;
-    int                height;
-    int                scale;
-    AVFrame            picture;
-} SNAPSHOT_CONTEXT;
-
-// 内部函数实现
-static void alloc_picture(AVFrame *picture, enum AVPixelFormat pix_fmt, int width, int height)
-{
-    int ret;
-
-    picture->format = pix_fmt;
-    picture->width  = width;
-    picture->height = height;
-
-    /* allocate the buffers for the frame data */
-    ret = av_frame_get_buffer(picture, 32);
-    if (ret < 0) {
-        printf("could not allocate frame data.\n");
-        exit(1);
-    }
-}
-
 // 函数实现
-void* snapshot_init(void)
+int take_snapshot(char *file, AVFrame *video)
 {
-    // allocate context for ffencoder
-    SNAPSHOT_CONTEXT *encoder = (SNAPSHOT_CONTEXT*)calloc(1, sizeof(SNAPSHOT_CONTEXT));
-    if (!encoder) {
-        return NULL;
-    }
+    char              *fileext = NULL;
+    enum AVCodecID     codecid = AV_CODEC_ID_NONE;
+    struct SwsContext *sws_ctx = NULL;
+    AVPixelFormat      swsofmt = AV_PIX_FMT_NONE;
+    AVFrame            picture = {};
+    int                ret     = -1;
 
-    // init variables
-    encoder->ofmt  = AV_PIX_FMT_YUV420P;
-    encoder->scale = SWS_FAST_BILINEAR ;
+    AVFormatContext   *fmt_ctxt   = NULL;
+    AVOutputFormat    *out_fmt    = NULL;
+    AVStream          *stream     = NULL;
+    AVCodecContext    *codec_ctxt = NULL;
+    AVCodec           *codec      = NULL;
+    AVPacket           packet     = {};
+    int                retry      = 8;
+    int                got        = 0;
 
-    // init ffmpeg library
+    // init ffmpeg
     av_register_all();
 
-    return encoder;
-}
+    fileext = file + strlen(file) - 3;
+    if (_stricmp(fileext, "png") == 0) {
+        codecid = AV_CODEC_ID_APNG;
+        swsofmt = AV_PIX_FMT_RGB24;
+    }
+    else {
+        codecid = AV_CODEC_ID_MJPEG;
+        swsofmt = AV_PIX_FMT_YUV420P;
+    }
 
-int snapshot_take(void *ctxt, char *file, AVFrame *video)
-{
-    SNAPSHOT_CONTEXT *encoder = (SNAPSHOT_CONTEXT*)ctxt;
+    sws_ctx = sws_getContext(video->width, video->height, (AVPixelFormat)video->format,
+        video->width, video->height, swsofmt, SWS_FAST_BILINEAR, NULL, NULL, NULL);
+    if (!sws_ctx) {
+        av_log(NULL, AV_LOG_ERROR, "could not initialize the conversion context jpg\n");
+        goto done;
+    }
 
-    // check valid
-    if (!ctxt) return -1;
-
-    if (  encoder->ifmt   != video->format
-       || encoder->width  != video->width
-       || encoder->height != video->height ) {
-
-        if (encoder->sws_ctx) {
-            sws_freeContext(encoder->sws_ctx);
-        }
-        encoder->sws_ctx = sws_getContext(video->width, video->height, (AVPixelFormat)video->format,
-            video->width, video->height, encoder->ofmt, encoder->scale, NULL, NULL, NULL);
-        if (!encoder->sws_ctx) {
-            printf("could not initialize the conversion context jpg\n");
-            exit(1);
-        }
-
-        if (video->width != encoder->width || video->height != encoder->height) {
-            // free jpeg picture frame
-            av_frame_unref(&encoder->picture);
-
-            // alloc picture
-            alloc_picture(&encoder->picture, encoder->ofmt, video->width, video->height);
-        }
-
-        encoder->ifmt   = (AVPixelFormat)video->format;
-        encoder->width  = video->width;
-        encoder->height = video->height;
+    // alloc picture
+    picture.format = swsofmt;
+    picture.width  = video->width;
+    picture.height = video->height;
+    if (av_frame_get_buffer(&picture, 32) < 0) {
+        av_log(NULL, AV_LOG_ERROR, "failed to allocate picture !\n", file);
+        goto done;
     }
 
     // scale picture
-    sws_scale(
-        encoder->sws_ctx,
-        video->data,
-        video->linesize,
-        0, encoder->height,
-        encoder->picture.data,
-        encoder->picture.linesize);
+    sws_scale(sws_ctx, video->data, video->linesize, 0, video->height, picture.data, picture.linesize);
 
-    AVFormatContext *fmt_ctxt   = NULL;
-    AVOutputFormat  *out_fmt    = NULL;
-    AVStream        *stream     = NULL;
-    AVCodecContext  *codec_ctxt = NULL;
-    AVCodec         *codec      = NULL;
-    AVPacket         packet     = {};
-    int              got        = 0;
-    int              ret        = 0;
-
+    // do encoding
     fmt_ctxt = avformat_alloc_context();
-    out_fmt  = av_guess_format("mjpeg", NULL, NULL);
+    out_fmt  = av_guess_format(codecid == AV_CODEC_ID_APNG ? "apng" : "mjpeg", NULL, NULL);
     fmt_ctxt->oformat = out_fmt;
+    if (!out_fmt) {
+        av_log(NULL, AV_LOG_ERROR, "failed to guess format !\n");
+        goto done;
+    }
+
     if (avio_open(&fmt_ctxt->pb, file, AVIO_FLAG_READ_WRITE) < 0) {
-        printf("failed to open output file: %s !\n", file);
+        av_log(NULL, AV_LOG_ERROR, "failed to open output file: %s !\n", file);
         goto done;
     }
 
     stream = avformat_new_stream(fmt_ctxt, 0);
     if (!stream) {
-        printf("failed to add stream !\n");
+        av_log(NULL, AV_LOG_ERROR, "failed to create a new stream !\n");
         goto done;
     }
 
     codec_ctxt                = stream->codec;
     codec_ctxt->codec_id      = out_fmt->video_codec;
     codec_ctxt->codec_type    = AVMEDIA_TYPE_VIDEO;
-    codec_ctxt->pix_fmt       = AV_PIX_FMT_YUVJ420P;
-    codec_ctxt->width         = encoder->width;
-    codec_ctxt->height        = encoder->height;
+    codec_ctxt->pix_fmt       = codecid == AV_CODEC_ID_MJPEG ? AV_PIX_FMT_YUVJ420P : swsofmt;
+    codec_ctxt->width         = video->width;
+    codec_ctxt->height        = video->height;
     codec_ctxt->time_base.num = 1;
     codec_ctxt->time_base.den = 25;
 
     codec = avcodec_find_encoder(codec_ctxt->codec_id);
     if (!codec) {
-        printf("failed to find encoder !\n");
+        av_log(NULL, AV_LOG_ERROR, "failed to find encoder !\n");
         goto done;
     }
 
     if (avcodec_open2(codec_ctxt, codec, NULL) < 0) {
-        printf("failed to open encoder !\n");
+        av_log(NULL, AV_LOG_ERROR, "failed to open encoder !\n");
         goto done;
     }
 
-    avcodec_encode_video2(codec_ctxt, &packet, &encoder->picture, &got);
-    if (got) {
-        ret = avformat_write_header(fmt_ctxt, NULL);
-        if (ret < 0) {
-            printf("error occurred when opening output file !\n");
+    while (retry-- && !got) {
+        if (avcodec_encode_video2(codec_ctxt, &packet, &picture, &got) < 0) {
+            av_log(NULL, AV_LOG_ERROR, "failed to do picture encoding !\n");
             goto done;
         }
-        av_write_frame(fmt_ctxt, &packet);
-        av_write_trailer(fmt_ctxt);
+
+        if (got) {
+            ret = avformat_write_header(fmt_ctxt, NULL);
+            if (ret < 0) {
+                av_log(NULL, AV_LOG_ERROR, "error occurred when opening output file !\n");
+                goto done;
+            }
+            av_write_frame(fmt_ctxt, &packet);
+            av_write_trailer(fmt_ctxt);
+        }
     }
 
+    // ok
+    ret = 0;
+
 done:
-    if (codec_ctxt  ) avcodec_close(codec_ctxt);
-    if (fmt_ctxt->pb) avio_close(fmt_ctxt->pb);
-    if (fmt_ctxt    ) avformat_free_context(fmt_ctxt);
+    avcodec_close(codec_ctxt);
+    avio_close(fmt_ctxt->pb);
+    avformat_free_context(fmt_ctxt);
     av_packet_unref(&packet);
+    av_frame_unref(&picture);
+    sws_freeContext(sws_ctx);
 
-    return 0;
-}
-
-void snapshot_free(void *ctxt)
-{
-    SNAPSHOT_CONTEXT *encoder = (SNAPSHOT_CONTEXT*)ctxt;
-    if (!ctxt) return;
-
-    // free jpeg picture frame
-    av_frame_unref(&encoder->picture);
-
-    // free sws context
-    sws_freeContext(encoder->sws_ctx);
-
-    // free snapshot context
-    free(ctxt);
+    return ret;
 }
 
