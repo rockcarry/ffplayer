@@ -71,6 +71,9 @@ typedef struct
 
     // snapshot
     char           snapfile[MAX_PATH];
+
+    // fix play progress issue
+    int64_t        start_pts;
 } RENDER;
 
 // 内部函数实现
@@ -121,6 +124,9 @@ void* render_open(int adevtype, int srate, AVSampleFormat sndfmt, int64_t ch_lay
     render->sample_rate  = srate;
     render->sample_fmt   = sndfmt;
     render->chan_layout  = ch_layout;
+
+    // fix play progress issue
+    render->start_pts    = -1;
 
     // init for visual effect
     render->veffect_context = veffect_create(surface);
@@ -178,7 +184,10 @@ void render_audio(void *hrender, AVFrame *audio)
 {
     RENDER *render  = (RENDER*)hrender;
     int     sampnum = 0;
-    DWORD   apts    = (DWORD)audio->pts;
+    int64_t apts    = audio->pts;
+
+    // fix play progress issue
+    if (render->start_pts == -1) render->start_pts = audio->pts;
 
     if (!render->adev) return;
     do {
@@ -229,6 +238,9 @@ void render_video(void *hrender, AVFrame *video)
     AVFrame  picture = {0};
     BYTE    *bmpbuf;
     int      stride;
+
+    // fix play progress issue
+    if (render->start_pts == -1) render->start_pts = video->pts;
 
     do {
         if (  render->render_xcur != render->render_xnew
@@ -460,7 +472,8 @@ void render_getparam(void *hrender, DWORD id, void *param)
         {
             int64_t *papts, *pvpts;
             vdev_getavpts(render->vdev, &papts, &pvpts);
-            *(int64_t*)param = *papts > *pvpts ? *papts : *pvpts;
+            *(int64_t*)param  = *papts > *pvpts ? *papts : *pvpts;
+            *(int64_t*)param -= render->start_pts; // fix play progress issue
         }
         break;
     case PARAM_VIDEO_MODE:
@@ -483,6 +496,9 @@ void render_getparam(void *hrender, DWORD id, void *param)
         break;
     case PARAM_VDEV_RENDER_TYPE:
         *(int*)param = ((VDEV_COMMON_CTXT*)render->vdev)->type;
+        break;
+    case PARAM_RENDER_START_PTS:
+        *(int64_t*)param = render->start_pts;
         break;
     }
 }

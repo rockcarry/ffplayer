@@ -593,7 +593,12 @@ void player_setrect(void *hplayer, int type, int x, int y, int w, int h)
 void player_seek(void *hplayer, LONGLONG ms)
 {
     if (!hplayer) return;
-    PLAYER *player = (PLAYER*)hplayer;
+    PLAYER *player   = (PLAYER*)hplayer;
+    int64_t startpts = 0;
+
+    // get start pts
+    render_getparam(player->render, PARAM_RENDER_START_PTS, &startpts);
+    ms += startpts;
 
     // pause demuxing and audio & video decoding
     player->player_status |= PAUSE_REQ;
@@ -696,7 +701,7 @@ void player_getparam(void *hplayer, DWORD id, void *param)
     switch (id)
     {
     case PARAM_MEDIA_DURATION:
-        if (!player->avformat_context) *(int64_t*)param = 0;
+        if (!player->avformat_context) *(int64_t*)param = 1;
         else *(int64_t*)param = (player->avformat_context->duration * 1000 / AV_TIME_BASE);
         if (*(int64_t*)param == 0) *(int64_t*)param = 1;
         break;

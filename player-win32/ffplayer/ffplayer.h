@@ -97,7 +97,8 @@ enum {
     //-- for vdev
 
     //++ for render
-    PARAM_RENDER_UPDATE = 0x4000,
+    PARAM_RENDER_UPDATE    = 0x4000,
+    PARAM_RENDER_START_PTS,
     //-- for render
 };
 
