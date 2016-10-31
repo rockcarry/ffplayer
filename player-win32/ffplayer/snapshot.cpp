@@ -7,7 +7,7 @@ extern "C" {
 }
 
 // º¯ÊýÊµÏÖ
-int take_snapshot(char *file, AVFrame *video)
+int take_snapshot(char *file, int w, int h, AVFrame *video)
 {
     char              *fileext = NULL;
     enum AVCodecID     codecid = AV_CODEC_ID_NONE;
@@ -38,23 +38,22 @@ int take_snapshot(char *file, AVFrame *video)
         swsofmt = AV_PIX_FMT_YUV420P;
     }
 
-    sws_ctx = sws_getContext(video->width, video->height, (AVPixelFormat)video->format,
-        video->width, video->height, swsofmt, SWS_FAST_BILINEAR, NULL, NULL, NULL);
-    if (!sws_ctx) {
-        av_log(NULL, AV_LOG_ERROR, "could not initialize the conversion context jpg\n");
-        goto done;
-    }
-
     // alloc picture
     picture.format = swsofmt;
-    picture.width  = video->width;
-    picture.height = video->height;
+    picture.width  = w > 0 ? w : video->width;
+    picture.height = h > 0 ? h : video->height;
     if (av_frame_get_buffer(&picture, 32) < 0) {
         av_log(NULL, AV_LOG_ERROR, "failed to allocate picture !\n", file);
         goto done;
     }
 
     // scale picture
+    sws_ctx = sws_getContext(video->width, video->height, (AVPixelFormat)video->format,
+        picture.width, picture.height, swsofmt, SWS_FAST_BILINEAR, NULL, NULL, NULL);
+    if (!sws_ctx) {
+        av_log(NULL, AV_LOG_ERROR, "could not initialize the conversion context jpg\n");
+        goto done;
+    }
     sws_scale(sws_ctx, video->data, video->linesize, 0, video->height, picture.data, picture.linesize);
 
     // do encoding
@@ -81,8 +80,8 @@ int take_snapshot(char *file, AVFrame *video)
     codec_ctxt->codec_id      = out_fmt->video_codec;
     codec_ctxt->codec_type    = AVMEDIA_TYPE_VIDEO;
     codec_ctxt->pix_fmt       = codecid == AV_CODEC_ID_MJPEG ? AV_PIX_FMT_YUVJ420P : swsofmt;
-    codec_ctxt->width         = video->width;
-    codec_ctxt->height        = video->height;
+    codec_ctxt->width         = picture.width;
+    codec_ctxt->height        = picture.height;
     codec_ctxt->time_base.num = 1;
     codec_ctxt->time_base.den = 25;
 

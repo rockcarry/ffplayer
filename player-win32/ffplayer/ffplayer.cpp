@@ -642,7 +642,7 @@ void player_seek(void *hplayer, LONGLONG ms)
     }
 }
 
-int player_snapshot(void *hplayer, char *file, int waitt)
+int player_snapshot(void *hplayer, char *file, int w, int h, int waitt)
 {
     if (!hplayer) return -1;
     PLAYER *player = (PLAYER*)hplayer;
@@ -652,7 +652,7 @@ int player_snapshot(void *hplayer, char *file, int waitt)
         return -1;
     }
 
-    return render_snapshot(player->render, file, waitt);
+    return render_snapshot(player->render, file, w, h, waitt);
 }
 
 void player_setparam(void *hplayer, DWORD id, void *param)

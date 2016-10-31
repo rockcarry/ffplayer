@@ -319,6 +319,6 @@ void CplayerDlg::OnAudioStream()
 
 void CplayerDlg::OnTakeSnapshot()
 {
-    player_snapshot(g_hplayer, "snapshot.jpg", 1000);
+    player_snapshot(g_hplayer, "snapshot.jpg", 0, 0, 1000);
 }
 

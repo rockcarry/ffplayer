@@ -39,7 +39,7 @@ void render_setrect (void *hrender, int type, int x, int y, int w, int h);
 void render_start   (void *hrender);
 void render_pause   (void *hrender);
 void render_reset   (void *hrender);
-int  render_snapshot(void *hplayer, char *file, int waitt);
+int  render_snapshot(void *hplayer, char *file, int w, int h, int waitt);
 void render_setparam(void *hrender, DWORD id, void *param);
 void render_getparam(void *hrender, DWORD id, void *param);
 

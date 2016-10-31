@@ -71,6 +71,8 @@ typedef struct
 
     // snapshot
     char           snapfile[MAX_PATH];
+    int            snapwidth;
+    int            snapheight;
 
     // fix play progress issue
     int64_t        start_pts;
@@ -281,7 +283,7 @@ void render_video(void *hrender, AVFrame *video)
 
         if (render->render_status & RENDER_SNAPSHOT) {
             HWND hwnd = ((VDEV_COMMON_CTXT*)render->vdev)->hwnd;
-            int  ret  = take_snapshot(render->snapfile, video);
+            int  ret  = take_snapshot(render->snapfile, render->snapwidth, render->snapheight, video);
             PostMessage(hwnd, MSG_FFPLAYER, RENDER_SNAPSHOT, ret);
             render->render_status &= ~RENDER_SNAPSHOT;
         }
@@ -331,7 +333,7 @@ void render_reset(void *hrender)
     render->render_status = 0;
 }
 
-int render_snapshot(void *hrender, char *file, int waitt)
+int render_snapshot(void *hrender, char *file, int w, int h, int waitt)
 {
     if (!hrender) return -1;
     RENDER *render = (RENDER*)hrender;
@@ -343,6 +345,8 @@ int render_snapshot(void *hrender, char *file, int waitt)
 
     // copy snapshot file name
     strcpy_s(render->snapfile, file);
+    render->snapwidth  = w;
+    render->snapheight = h;
 
     // setup render flags to request snapshot
     render->render_status |= RENDER_SNAPSHOT;

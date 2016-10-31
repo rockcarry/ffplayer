@@ -112,7 +112,7 @@ void  player_play    (void *hplayer);
 void  player_pause   (void *hplayer);
 void  player_seek    (void *hplayer, LONGLONG ms);
 void  player_setrect (void *hplayer, int type, int x, int y, int w, int h); // type: 0 - video rect, 1 - visual effect rect
-int   player_snapshot(void *hplayer, char *file, int waitt);
+int   player_snapshot(void *hplayer, char *file, int w, int h, int waitt);
 void  player_setparam(void *hplayer, DWORD id, void *param);
 void  player_getparam(void *hplayer, DWORD id, void *param);
 
@@ -145,6 +145,7 @@ player_setrect  设置显示区域，有两种显示区域，视频显示区和�
 
 player_snapshot 视频播放截图
     hplayer     - 指向 player_open 返回的 player 对象
+    w, h        - 指定图片宽高，如果 <= 0 则默认使用视频宽高
     file        - 图片文件名（目前只支持 jpeg 格式）
     waitt       - 是否带动截图完成 0 - 不等待，>0 等待超时 ms 为单位
 

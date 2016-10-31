@@ -9,7 +9,7 @@ extern "C" {
 #include "libavutil/frame.h"
 
 // º¯ÊıÉùÃ÷
-int take_snapshot(char *file, AVFrame *video);
+int take_snapshot(char *file, int w, int h, AVFrame *video);
 
 #ifdef __cplusplus
 }
