@@ -124,8 +124,6 @@ void  player_getparam(void *hplayer, DWORD id, void *param);
 player_open     创建一个 player 对象
     file        - 文件路径（可以是网络流媒体的 URL）
     win         - Win32 的窗口句柄
-    adevtype    - 音频回放的设备类型，目前仅支持 ADEV_RENDER_TYPE_WAVEOUT
-    vdevtype    - 视频回放的设备类型，目前支持 VDEV_RENDER_TYPE_GDI 和 VDEV_RENDER_TYPE_D3D
     返回值      - void* 指针类型，指向 player 对象
 
 player_close    关闭播放器
@@ -201,6 +199,15 @@ player_setparam(g_hplayer, PARAM_PLAY_SPEED, &speed);
 参数 speed 为百分比速度，150 表示以 150% 进行播放
 速度没有上限和下限，设置为 0 没有意义，内部会处理为 1%
 播放速度的实际上限，由处理器的处理能力决定，超过处理器能力，播放会出现卡顿现象
+
+PARAM_DECODE_THREAD_COUNT
+用于设置视频解码线程数，可榨干 cpu 资源
+int count = 6;
+player_setparam(g_hplayer, PARAM_DECODE_THREAD_COUNT, &count);
+设置为 0 为将自动获取设备的 CPU 核心个数来计算和设置解码线程个数
+设置为 1 为单线解码，设置为 >= 2 的值为多线程解码
+并不是设置后一定就能运用上多线程解码，还要看对应的 decoder 是否支持多线程解码
+一般情况下设置为 4 - 10 左右的值就能充分榨取 cpu 资源，保证播放的流畅性了
 
 PARAM_VISUAL_EFFECT
 用于指定视觉效果的类型，ffplayer 支持视觉效果，主要是对音频进行视觉效果的呈现
