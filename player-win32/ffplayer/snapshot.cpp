@@ -35,7 +35,7 @@ int take_snapshot(char *file, int w, int h, AVFrame *video)
     }
     else {
         codecid = AV_CODEC_ID_MJPEG;
-        swsofmt = AV_PIX_FMT_YUV420P;
+        swsofmt = AV_PIX_FMT_YUVJ420P;
     }
 
     // alloc picture
@@ -79,7 +79,7 @@ int take_snapshot(char *file, int w, int h, AVFrame *video)
     codec_ctxt                = stream->codec;
     codec_ctxt->codec_id      = out_fmt->video_codec;
     codec_ctxt->codec_type    = AVMEDIA_TYPE_VIDEO;
-    codec_ctxt->pix_fmt       = codecid == AV_CODEC_ID_MJPEG ? AV_PIX_FMT_YUVJ420P : swsofmt;
+    codec_ctxt->pix_fmt       = swsofmt;
     codec_ctxt->width         = picture.width;
     codec_ctxt->height        = picture.height;
     codec_ctxt->time_base.num = 1;
