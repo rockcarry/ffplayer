@@ -29,6 +29,7 @@ testplayer
 ==========
 testplayer is a simple test player for ffplayer
 hot-keys for testplayer:
+ctrl+O - open file
 ctrl+E - switch visual effect
 ctrl+M - switch between letter box and stretch rect
 ctrl+R - switch between gdi and d3d

@@ -1,4 +1,3 @@
-1. comment for code
-2. subtitle/lrc
-3. hwaccel
+1. subtitle/lrc
+2. hwaccel
 
