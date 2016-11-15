@@ -66,34 +66,35 @@ void CplayerDlg::PlayerOpenFile(TCHAR *file)
     }
 
     // player open file
-    g_hplayer = player_open(str, GetSafeHwnd(), ADEV_RENDER_TYPE_WAVEOUT, VDEV_RENDER_TYPE_D3D, HWACCEL_TYPE_DXVA2);
+    g_hplayer = player_open(str, GetSafeHwnd());
     if (g_hplayer)
     {
-        m_bPlayPause = FALSE;
-
-        /*
-        int speed = 150;
-        player_setparam(g_hplayer, PARAM_PLAY_SPEED, &speed);
-        */
+        int param = 0;
+        //++ set player params
+//      param = 6;                    player_setparam(g_hplayer, PARAM_DECODE_THREAD_COUNT, &param);
+        param = VDEV_RENDER_TYPE_D3D; player_setparam(g_hplayer, PARAM_VDEV_RENDER_TYPE   , &param);
+//      param = 150;                  player_setparam(g_hplayer, PARAM_PLAY_SPEED         , &param);
 
         // software volume scale -30dB to 12dB
         // range for volume is [-182, 73]
         // -255 - mute, +255 - max volume, 0 - 0dB
-        int volume = -0;
-        player_setparam(g_hplayer, PARAM_AUDIO_VOLUME, &volume);
+        param = -0;                   player_setparam(g_hplayer, PARAM_AUDIO_VOLUME       , &param);
+        //-- set player params
+
+        //++ get player params
+        player_getparam(g_hplayer, PARAM_AUDIO_STREAM_TOTAL   , &param);
+        player_getparam(g_hplayer, PARAM_VIDEO_STREAM_TOTAL   , &param);
+        player_getparam(g_hplayer, PARAM_SUBTITLE_STREAM_TOTAL, &param);
+        player_getparam(g_hplayer, PARAM_AUDIO_STREAM_CUR     , &param);
+        player_getparam(g_hplayer, PARAM_VIDEO_STREAM_CUR     , &param);
+        player_getparam(g_hplayer, PARAM_SUBTITLE_STREAM_CUR  , &param);
+        //-- get player params
 
         player_setrect(g_hplayer, 0, 0, 0, m_rtClient.right, m_rtClient.bottom - 2);
         player_setrect(g_hplayer, 1, 0, 0, m_rtClient.right, m_rtClient.bottom - 2);
         player_play(g_hplayer);
+        m_bPlayPause = FALSE;
         SetTimer(TIMER_ID_PROGRESS, 100, NULL);
-
-        int n = 0;
-        player_getparam(g_hplayer, PARAM_AUDIO_STREAM_TOTAL   , &n);
-        player_getparam(g_hplayer, PARAM_VIDEO_STREAM_TOTAL   , &n);
-        player_getparam(g_hplayer, PARAM_SUBTITLE_STREAM_TOTAL, &n);
-        player_getparam(g_hplayer, PARAM_AUDIO_STREAM_CUR     , &n);
-        player_getparam(g_hplayer, PARAM_VIDEO_STREAM_CUR     , &n);
-        player_getparam(g_hplayer, PARAM_SUBTITLE_STREAM_CUR  , &n);
     }
 }
 

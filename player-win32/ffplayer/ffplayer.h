@@ -69,6 +69,9 @@ enum {
     // playback speed control
     PARAM_PLAY_SPEED,
 
+    // video decode thread count
+    PARAM_DECODE_THREAD_COUNT,
+
     // visual effect mode
     PARAM_VISUAL_EFFECT,
 
@@ -106,7 +109,7 @@ enum {
 typedef void (*PFN_PLAYER_CALLBACK)(__int32 msg, __int64 param);
 
 // 函数声明
-void* player_open    (char *file, void *win, int adevtype, int vdevtype, int hwaccel);
+void* player_open    (char *file, void *win);
 void  player_close   (void *hplayer);
 void  player_play    (void *hplayer);
 void  player_pause   (void *hplayer);

@@ -3,7 +3,6 @@
 #include "pktqueue.h"
 #include "ffrender.h"
 #include "ffplayer.h"
-#include "hwaccel.h"
 
 extern "C" {
 #include "libavcodec/avcodec.h"
@@ -33,9 +32,6 @@ typedef struct
     // render
     void            *render;
     RECT             vdrect;
-
-    // hwaccel
-    int              hwaccel;
 
     // thread
     #define PS_D_PAUSE    (1 << 0)  // demux pause
@@ -335,9 +331,6 @@ static int reinit_stream(PLAYER *player, enum AVMediaType type, int sel) {
         // reopen codec
         if (lastctxt) avcodec_close(lastctxt);
         decoder = avcodec_find_decoder(player->vcodec_context->codec_id);
-        //++ init for hwaccel
-        hwaccel_init(player->vcodec_context, player->hwaccel);
-        //-- init for hwaccel
         if (decoder && avcodec_open2(player->vcodec_context, decoder, NULL) == 0) {
             player->vstream_index = idx;
         }
@@ -354,6 +347,24 @@ static int reinit_stream(PLAYER *player, enum AVMediaType type, int sel) {
     return 0;
 }
 
+static void make_player_thread_pause(PLAYER *player, int pause) {
+    if (pause) {
+        // make player thread paused
+        player->player_status |= PAUSE_REQ;
+        player->player_status &=~PAUSE_ACK;
+        render_start(player->render);
+        while ((player->player_status & PAUSE_ACK) != PAUSE_ACK) usleep(20*1000);
+    }
+    else {
+        // make player thread run
+        player->player_status &=~(PAUSE_REQ | PAUSE_ACK);
+        // pause render if needed
+        if (player->player_status & PS_R_PAUSE) {
+            render_pause(player->render);
+        }
+    }
+}
+
 static void set_stream_current(PLAYER *player, enum AVMediaType type, int sel) {
     LONGLONG             pos = 0;
     RENDER_UPDATE_PARAMS params;
@@ -361,11 +372,8 @@ static void set_stream_current(PLAYER *player, enum AVMediaType type, int sel) {
     // get current play posistion
     player_getparam(player, PARAM_MEDIA_POSITION, &pos);
 
-    // make player thread paused
-    player->player_status |= PAUSE_REQ;
-    player->player_status &=~PAUSE_ACK;
-    render_start(player->render);
-    while ((player->player_status & PAUSE_ACK) != PAUSE_ACK) usleep(20*1000);
+    // pause player threads
+    make_player_thread_pause(player, 1);
 
     // reinit stream
     reinit_stream(player, type, sel);
@@ -386,10 +394,13 @@ static void set_stream_current(PLAYER *player, enum AVMediaType type, int sel) {
 
     // seek current pos to update pktqueue
     player_seek(player, pos);
+
+    // resume player threads
+    make_player_thread_pause(player, 0);
 }
 
 // 函数实现
-void* player_open(char *file, void *win, int adevtype, int vdevtype, int hwaccel)
+void* player_open(char *file, void *win)
 {
     PLAYER       *player  = NULL;
     int           arate   = 0;
@@ -437,9 +448,6 @@ void* player_open(char *file, void *win, int adevtype, int vdevtype, int hwaccel
     }
     //-- for avdevice
 
-    // for hwaccel
-    player->hwaccel = hwaccel;
-
     // open input file
     if (avformat_open_input(&player->avformat_context, url, fmt, 0) != 0) {
         goto error_handler;
@@ -480,8 +488,8 @@ void* player_open(char *file, void *win, int adevtype, int vdevtype, int hwaccel
     }
 
     // open render
-    player->render = render_open(adevtype, arate, (AVSampleFormat)aformat, alayout,
-                                 vdevtype, win, vrate, vformat, width, height);
+    player->render = render_open(ADEV_RENDER_TYPE_WAVEOUT, arate, (AVSampleFormat)aformat, alayout,
+                                 VDEV_RENDER_TYPE_GDI, win, vrate, vformat, width, height);
     if (player->vstream_index == -1) {
         int effect = VISUAL_EFFECT_WAVEFORM;
         render_setparam(player->render, PARAM_VISUAL_EFFECT, &effect);
@@ -526,7 +534,6 @@ void player_close(void *hplayer)
     if (player->render          ) render_close (player->render);
     if (player->vcodec_context  ) {
         avcodec_close(player->vcodec_context);
-        hwaccel_free (player->vcodec_context);
     }
     if (player->acodec_context  ) avcodec_close(player->acodec_context);
     if (player->avformat_context) avformat_close_input(&player->avformat_context);
@@ -600,13 +607,8 @@ void player_seek(void *hplayer, LONGLONG ms)
     render_getparam(player->render, PARAM_RENDER_START_PTS, &startpts);
     ms += startpts;
 
-    // pause demuxing and audio & video decoding
-    player->player_status |= PAUSE_REQ;
-    player->player_status &=~PAUSE_ACK;
-
-    // wait for demuxing, audio & video decoding threads paused
-    render_start(player->render);
-    while ((player->player_status & PAUSE_ACK) != PAUSE_ACK) usleep(20*1000);
+    // pause demuxing & decoding threads
+    make_player_thread_pause(player, 1);
 
     // seek frame
     av_seek_frame(player->avformat_context, -1, ms / 1000 * AV_TIME_BASE, AVSEEK_FLAG_BACKWARD);
@@ -627,8 +629,8 @@ void player_seek(void *hplayer, LONGLONG ms)
     if (player->astream_index != -1) { SEEK_REQ |= PS_A_SEEK; SEEK_ACK |= PS_A_SEEK << 16; }
     if (player->vstream_index != -1) { SEEK_REQ |= PS_V_SEEK; SEEK_ACK |= PS_V_SEEK << 16; }
     player->seek_dest_pts  = ms;
-    player->player_status |=  SEEK_REQ;
-    player->player_status &= ~(SEEK_ACK | PAUSE_REQ | PAUSE_ACK);
+    player->player_status |= SEEK_REQ;
+    player->player_status &=~(SEEK_ACK | PAUSE_REQ | PAUSE_ACK);
     while ( !(player->player_status & (PS_D_PAUSE << 16))
           && (player->player_status & SEEK_ACK) != SEEK_ACK
           && --timeout) {
@@ -636,10 +638,8 @@ void player_seek(void *hplayer, LONGLONG ms)
     }
     player->player_status &= ~(SEEK_REQ | SEEK_ACK);
 
-    // pause render if needed
-    if (player->player_status & PS_R_PAUSE) {
-        usleep(20*1000); render_pause(player->render);
-    }
+    // resume demuxing & decoding threads
+    make_player_thread_pause(player, 0);
 }
 
 int player_snapshot(void *hplayer, char *file, int w, int h, int waitt)
@@ -669,20 +669,16 @@ void player_setparam(void *hplayer, DWORD id, void *param)
             player->vdrect.right - player->vdrect.left,
             player->vdrect.bottom - player->vdrect.top);
         break;
-    case PARAM_PLAY_SPEED:
-        render_setparam(player->render, PARAM_PLAY_SPEED, param);
+    case PARAM_DECODE_THREAD_COUNT:
+        make_player_thread_pause(player, 1);
+        player->vcodec_context->thread_count = *(int*)param;
+        reinit_stream(player, AVMEDIA_TYPE_VIDEO, player->vstream_index);
+        make_player_thread_pause(player, 0);
         break;
     case PARAM_VDEV_RENDER_TYPE:
-        player->player_status |= PAUSE_REQ;
-        player->player_status &=~PAUSE_ACK;
-        render_start(player->render);
-        while ((player->player_status & PAUSE_ACK) != PAUSE_ACK) usleep(20*1000);
+        make_player_thread_pause(player, 1);
         render_setparam(player->render, PARAM_VDEV_RENDER_TYPE, param);
-        player->player_status &=~(PAUSE_REQ | PAUSE_ACK);
-        // pause render if needed
-        if (player->player_status & PS_R_PAUSE) {
-            render_pause(player->render);
-        }
+        make_player_thread_pause(player, 0);
         break;
     case PARAM_AUDIO_STREAM_CUR   : set_stream_current(player, (AVMediaType)AVMEDIA_TYPE_AUDIO   , *(int*)param); break;
     case PARAM_VIDEO_STREAM_CUR   : set_stream_current(player, (AVMediaType)AVMEDIA_TYPE_VIDEO   , *(int*)param); break;
@@ -700,6 +696,10 @@ void player_getparam(void *hplayer, DWORD id, void *param)
 
     switch (id)
     {
+    case PARAM_DECODE_THREAD_COUNT:
+        if (!player->vcodec_context) *(int*)param = 0;
+        else *(int*)param = player->vcodec_context->thread_count;
+        break;
     case PARAM_MEDIA_DURATION:
         if (!player->avformat_context) *(int64_t*)param = 1;
         else *(int64_t*)param = (player->avformat_context->duration * 1000 / AV_TIME_BASE);
