@@ -106,6 +106,7 @@ BEGIN_MESSAGE_MAP(CplayerDlg, CDialog)
     ON_WM_LBUTTONDOWN()
     ON_WM_CTLCOLOR()
     ON_WM_SIZE()
+    ON_COMMAND(ID_OPEN_FILE    , &CplayerDlg::OnOpenFile    )
     ON_COMMAND(ID_VIDEO_MODE   , &CplayerDlg::OnVideoMode   )
     ON_COMMAND(ID_EFFECT_MODE  , &CplayerDlg::OnEffectMode  )
     ON_COMMAND(ID_RENDER_MODE  , &CplayerDlg::OnRenderMode  )
@@ -284,6 +285,11 @@ BOOL CplayerDlg::PreTranslateMessage(MSG *pMsg)
     else return CDialog::PreTranslateMessage(pMsg);
 }
 
+void CplayerDlg::OnOpenFile()
+{
+    PlayerOpenFile(NULL);
+}
+
 void CplayerDlg::OnVideoMode()
 {
     int mode = 0;
@@ -322,4 +328,6 @@ void CplayerDlg::OnTakeSnapshot()
 {
     player_snapshot(g_hplayer, "snapshot.jpg", 0, 0, 1000);
 }
+
+
 

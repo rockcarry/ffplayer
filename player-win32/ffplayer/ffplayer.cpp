@@ -83,7 +83,9 @@ static void* av_demux_thread_proc(void *param)
         retv = av_read_frame(player->avformat_context, packet);
         //++ play completed ++//
         if (retv < 0) {
-            player->player_status |= PS_D_PAUSE; continue;
+            player->player_status |= PS_D_PAUSE;
+            pktqueue_write_cancel(player->pktqueue);
+            break;
         }
         //-- play completed --//
 
@@ -396,7 +398,8 @@ static void set_stream_current(PLAYER *player, enum AVMediaType type, int sel) {
     player_seek(player, pos);
 
     // resume player threads
-    make_player_thread_pause(player, 0);
+//  make_player_thread_pause(player, 0); // no need to call this function
+                                         // player_seek already resume all player threads
 }
 
 // 函数实现
@@ -514,7 +517,7 @@ void player_close(void *hplayer)
     if (!hplayer) return;
     PLAYER *player = (PLAYER*)hplayer;
 
-    player->player_status = PS_CLOSE;
+    player->player_status |= PS_CLOSE;
     if (player->render) {
         render_start(player->render);
     }

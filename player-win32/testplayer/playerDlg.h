@@ -43,6 +43,7 @@ public:
     afx_msg void   OnLButtonDown(UINT nFlags, CPoint point);
     afx_msg HBRUSH OnCtlColor(CDC* pDC, CWnd* pWnd, UINT nCtlColor);
     afx_msg void   OnSize(UINT nType, int cx, int cy);
+    afx_msg void   OnOpenFile();
     afx_msg void   OnVideoMode();
     afx_msg void   OnEffectMode();
     afx_msg void   OnRenderMode();
