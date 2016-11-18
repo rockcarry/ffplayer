@@ -59,9 +59,9 @@ static DWORD WINAPI VideoRenderThreadProc(void *param)
         int64_t apts = c->apts;
         int64_t vpts = c->vpts = c->ppts[c->head];
 #if CLEAR_VDEV_WHEN_COMPLETED
-        if (vpts != -1 && !(c->status & VDEV_COMPLETED)) {
+        if (!(vpts >> 63) && !(c->status & VDEV_COMPLETED)) {
 #else
-        if (vpts != -1) {
+        if (!(vpts >> 63) {
 #endif
             d3d_draw_surf(c, c->pSurfs[c->head]);
         }
