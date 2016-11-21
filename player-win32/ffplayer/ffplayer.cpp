@@ -452,7 +452,9 @@ void* player_open(char *file, void *win)
     //-- for avdevice
 
     // open input file
-    if (avformat_open_input(&player->avformat_context, url, fmt, 0) != 0) {
+    AVDictionary *options = NULL;
+//  av_dict_set(&options, "rtsp_transport", "tcp", 0);
+    if (avformat_open_input(&player->avformat_context, url, fmt, &options) != 0) {
         goto error_handler;
     }
 
