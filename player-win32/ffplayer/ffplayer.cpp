@@ -459,7 +459,6 @@ void* player_open(char *file, void *win)
     }
 
     // find stream info
-    player->avformat_context->flags |= AVFMT_FLAG_NOBUFFER; // add this flag to reduce delay
     if (avformat_find_stream_info(player->avformat_context, NULL) < 0) {
         goto error_handler;
     }
