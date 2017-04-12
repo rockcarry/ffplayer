@@ -85,7 +85,7 @@ static void* av_demux_thread_proc(void *param)
         if (retv < 0) {
             player->player_status |= PS_D_PAUSE;
             pktqueue_write_cancel(player->pktqueue);
-            break;
+            usleep(20*1000); continue;
         }
         //-- play completed --//
 
