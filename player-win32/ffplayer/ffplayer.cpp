@@ -78,13 +78,14 @@ static void* av_demux_thread_proc(void *param)
         }
         //-- when demux pause --//
 
-        if (-1 == pktqueue_write_request(player->pktqueue, &packet)) { usleep(20*1000); continue; }
+        packet = pktqueue_write_request(player->pktqueue);
+        if (packet == NULL) { usleep(20*1000); continue; }
 
         retv = av_read_frame(player->avformat_context, packet);
         //++ play completed ++//
         if (retv < 0) {
             player->player_status |= PS_D_PAUSE;
-            pktqueue_write_cancel(player->pktqueue);
+            pktqueue_write_post_i(player->pktqueue, packet);
             usleep(20*1000); continue;
         }
         //-- play completed --//
@@ -92,20 +93,20 @@ static void* av_demux_thread_proc(void *param)
         // audio
         if (packet->stream_index == player->astream_index)
         {
-            pktqueue_write_post_a(player->pktqueue);
+            pktqueue_write_post_a(player->pktqueue, packet);
         }
 
         // video
         if (packet->stream_index == player->vstream_index)
         {
-            pktqueue_write_post_v(player->pktqueue);
+            pktqueue_write_post_v(player->pktqueue, packet);
         }
 
         if (  packet->stream_index != player->astream_index
            && packet->stream_index != player->vstream_index )
         {
             av_packet_unref(packet); // free packet
-            pktqueue_write_cancel(player->pktqueue);
+            pktqueue_write_post_i(player->pktqueue, packet);
         }
     }
 
@@ -137,7 +138,8 @@ static void* audio_decode_thread_proc(void *param)
         //++ for seek operation
 
         // read packet
-        if (-1 == pktqueue_read_request_a(player->pktqueue, &packet)) { usleep(20*1000); continue; }
+        packet = pktqueue_read_request_a(player->pktqueue);
+        if (packet == NULL) { usleep(20*1000); continue; }
 
         //++ decode audio packet ++//
         if (player->astream_index != -1) {
@@ -172,7 +174,7 @@ static void* audio_decode_thread_proc(void *param)
         // free packet
         av_packet_unref(packet);
 
-        pktqueue_read_post_a(player->pktqueue);
+        pktqueue_read_done_a(player->pktqueue, packet);
     }
 
     av_frame_free(&aframe);
@@ -205,7 +207,8 @@ static void* video_decode_thread_proc(void *param)
         //++ for seek operation
 
         // read packet
-        if (-1 == pktqueue_read_request_v(player->pktqueue, &packet)) {
+        packet = pktqueue_read_request_v(player->pktqueue);
+        if (packet == NULL) {
             if ((player->player_status & PS_V_SEEK)) {
                 player->player_status |= (PS_V_SEEK << 16);
             }
@@ -246,7 +249,7 @@ static void* video_decode_thread_proc(void *param)
         // free packet
         av_packet_unref(packet);
 
-        pktqueue_read_post_v(player->pktqueue);
+        pktqueue_read_done_v(player->pktqueue, packet);
     }
 
     av_frame_free(&vframe);

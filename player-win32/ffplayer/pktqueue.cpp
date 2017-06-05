@@ -86,14 +86,14 @@ void pktqueue_reset(void *ctxt)
     PKTQUEUE *ppq    = (PKTQUEUE*)ctxt;
     AVPacket *packet = NULL;
 
-    while (0 == pktqueue_read_request_a(ctxt, &packet)) {
+    while (packet = pktqueue_read_request_a(ctxt)) {
         av_packet_unref(packet);
-        pktqueue_read_post_a(ctxt);
+        pktqueue_read_done_a(ctxt, packet);
     }
 
-    while (0 == pktqueue_read_request_v(ctxt, &packet)) {
+    while (packet = pktqueue_read_request_v(ctxt)) {
         av_packet_unref(packet);
-        pktqueue_read_post_v(ctxt);
+        pktqueue_read_done_v(ctxt, packet);
     }
 
     ppq->fhead = ppq->ftail = 0;
@@ -101,77 +101,73 @@ void pktqueue_reset(void *ctxt)
     ppq->vhead = ppq->vtail = 0;
 }
 
-int pktqueue_write_request(void *ctxt, AVPacket **pppkt)
+AVPacket* pktqueue_write_request(void *ctxt)
 {
     PKTQUEUE *ppq = (PKTQUEUE*)ctxt;
-    if (0 != sem_trywait(&ppq->fsem)) return -1;
-    if (pppkt) *pppkt = ppq->fpkts[ppq->fhead];
-    return 0;
+    AVPacket *pkt = NULL;
+    if (0 != sem_trywait(&ppq->fsem)) return NULL;
+    pkt = ppq->fpkts[ppq->fhead++];
+    if (ppq->fhead == ppq->fsize) ppq->fhead = 0;
+    return pkt;
 }
 
-void pktqueue_write_cancel(void *ctxt)
+void pktqueue_write_post_a(void *ctxt, AVPacket *pkt)
 {
     PKTQUEUE *ppq = (PKTQUEUE*)ctxt;
-    sem_post(&ppq->fsem);
-}
-
-void pktqueue_write_post_a(void *ctxt)
-{
-    PKTQUEUE *ppq = (PKTQUEUE*)ctxt;
-    ppq->apkts[ppq->atail] = ppq->fpkts[ppq->fhead];
-
-    if (++ppq->fhead == ppq->fsize) ppq->fhead = 0;
-    if (++ppq->atail == ppq->asize) ppq->atail = 0;
-
+    ppq->apkts[ppq->atail++] = pkt;
+    if (ppq->atail == ppq->asize) ppq->atail = 0;
     sem_post(&ppq->asem);
 }
 
-void pktqueue_write_post_v(void *ctxt)
+void pktqueue_write_post_v(void *ctxt, AVPacket *pkt)
 {
     PKTQUEUE *ppq = (PKTQUEUE*)ctxt;
-    ppq->vpkts[ppq->vtail] = ppq->fpkts[ppq->fhead];
-
-    if (++ppq->fhead == ppq->fsize) ppq->fhead = 0;
-    if (++ppq->vtail == ppq->vsize) ppq->vtail = 0;
-
+    ppq->vpkts[ppq->vtail++] = pkt;
+    if (ppq->vtail == ppq->vsize) ppq->vtail = 0;
     sem_post(&ppq->vsem);
 }
 
-int pktqueue_read_request_a(void *ctxt, AVPacket **pppkt)
+void pktqueue_write_post_i(void *ctxt, AVPacket *pkt)
 {
     PKTQUEUE *ppq = (PKTQUEUE*)ctxt;
-    if (0 != sem_trywait(&ppq->asem)) return -1;
-    if (pppkt) *pppkt = ppq->apkts[ppq->ahead];
-    return 0;
-}
-
-void pktqueue_read_post_a(void *ctxt)
-{
-    PKTQUEUE *ppq = (PKTQUEUE*)ctxt;
-    ppq->fpkts[ppq->ftail] = ppq->apkts[ppq->ahead];
-
-    if (++ppq->ahead == ppq->asize) ppq->ahead = 0;
-    if (++ppq->ftail == ppq->fsize) ppq->ftail = 0;
-
+    ppq->fpkts[ppq->ftail++] = pkt;
+    if (ppq->ftail == ppq->fsize) ppq->ftail = 0;
     sem_post(&ppq->fsem);
 }
 
-int pktqueue_read_request_v(void *ctxt, AVPacket **pppkt)
+AVPacket* pktqueue_read_request_a(void *ctxt)
 {
     PKTQUEUE *ppq = (PKTQUEUE*)ctxt;
-    if (0 != sem_trywait(&ppq->vsem)) return -1;
-    if (pppkt) *pppkt = ppq->vpkts[ppq->vhead];
-    return 0;
+    AVPacket *pkt = NULL;
+    if (0 != sem_trywait(&ppq->asem)) return NULL;
+    pkt = ppq->apkts[ppq->ahead++];
+    if (ppq->ahead == ppq->asize) ppq->ahead = 0;
+    return pkt;
 }
 
-void pktqueue_read_post_v(void *ctxt)
+void pktqueue_read_done_a(void *ctxt, AVPacket *pkt)
 {
     PKTQUEUE *ppq = (PKTQUEUE*)ctxt;
-    ppq->fpkts[ppq->ftail] = ppq->vpkts[ppq->vhead];
+    ppq->fpkts[ppq->ftail++] = pkt;
+    if (ppq->ftail == ppq->fsize) ppq->ftail = 0;
+    sem_post(&ppq->fsem);
+}
 
-    if (++ppq->vhead == ppq->vsize) ppq->vhead = 0;
-    if (++ppq->ftail == ppq->fsize) ppq->ftail = 0;
+AVPacket* pktqueue_read_request_v(void *ctxt)
+{
+    PKTQUEUE *ppq = (PKTQUEUE*)ctxt;
+    AVPacket *pkt = NULL;
+    if (0 != sem_trywait(&ppq->vsem)) return NULL;
+    pkt = ppq->vpkts[ppq->vhead++];
+    if (ppq->vhead == ppq->vsize) ppq->vhead = 0;
+    return pkt;
+}
 
+void pktqueue_read_done_v(void *ctxt, AVPacket *pkt)
+{
+    PKTQUEUE *ppq = (PKTQUEUE*)ctxt;
+    ppq->fpkts[ppq->ftail++] = pkt;
+    if (ppq->ftail == ppq->fsize) ppq->ftail = 0;
     sem_post(&ppq->fsem);
 }
 
