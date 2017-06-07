@@ -25,6 +25,7 @@ typedef struct
     AVCodecContext  *vcodec_context;
     int              vstream_index;
     AVRational       vstream_timebase;
+    int              vframe_counter;
 
     // pktqueue
     void            *pktqueue;
@@ -224,7 +225,10 @@ static void* video_decode_thread_proc(void *param)
                     }
                 }
                 //-- for seek operation
-                else render_video(player->render, vframe);
+                else {
+                    render_video(player->render, vframe);
+                    player->vframe_counter++;
+                }
             }
 
             packet->data += consumed;
@@ -613,9 +617,11 @@ void player_seek(void *hplayer, LONGLONG ms)
     //++ seek to dest pts
     int SEEK_REQ = 0;
     int SEEK_ACK = 0;
-    int timeout  = 100;
+    int timeout  = 300;
     if (player->astream_index != -1) { SEEK_REQ |= PS_A_SEEK; SEEK_ACK |= PS_A_PAUSE; }
     if (player->vstream_index != -1) { SEEK_REQ |= PS_V_SEEK; SEEK_ACK |= PS_V_PAUSE; }
+    if (player->vframe_counter<=  1) { SEEK_REQ &=~PS_V_SEEK; SEEK_ACK &=~PS_V_PAUSE; } // some mp3 have video steam and only have one video frame
+    player->vframe_counter =  0;
     player->seek_dest_pts  =  ms;
     player->player_status |=  SEEK_REQ;
     player->player_status &= ~PAUSE_REQ;
