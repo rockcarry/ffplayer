@@ -92,19 +92,19 @@ static DWORD WINAPI VideoRenderThreadProc(void *param)
             //-- play completed --//
 
             //++ frame rate & av sync control ++//
-            DWORD tickcur  = GetTickCount();
-            int   tickdiff = tickcur - c->ticklast;
+            DWORD   tickcur  = GetTickCount();
+            int     tickdiff = tickcur - c->ticklast;
+            int64_t avdiff   = apts - vpts - c->tickavdiff;
             c->ticklast = tickcur;
             if (tickdiff - c->tickframe >  2) c->ticksleep--;
             if (tickdiff - c->tickframe < -2) c->ticksleep++;
             if (apts != -1 && vpts != -1) {
-                int64_t avdiff = apts - vpts - c->tickavdiff;
                 if (avdiff > 5) c->ticksleep-=2;
                 if (avdiff <-5) c->ticksleep+=2;
             }
             if (c->ticksleep < 0) c->ticksleep = 0;
             if (c->ticksleep > 0) Sleep(c->ticksleep);
-            av_log(NULL, AV_LOG_INFO, "d3d d: %3lld, s: %d\n", apts-vpts, c->ticksleep);
+            av_log(NULL, AV_LOG_INFO, "d3d d: %3lld, s: %d\n", avdiff, c->ticksleep);
             //-- frame rate & av sync control --//
         }
         else Sleep(c->tickframe);
