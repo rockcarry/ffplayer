@@ -140,15 +140,16 @@ static void* audio_decode_thread_proc(void *param)
 
         // read packet
         packet = pktqueue_read_request_a(player->pktqueue);
-        if (packet == NULL) { usleep(20*1000); continue; }
+        if (packet == NULL) {
+//          render_audio(player->render, aframe);
+            usleep(20*1000); continue;
+        }
 
         //++ for seek operation
         if (player->player_status & PS_A_SEEK) {
             int64_t pts = av_rescale_q(packet->pts, player->astream_timebase, TIMEBASE_MS);
-            if (pts > player->seek_dest_pts - 10) {
+            if (pts > player->seek_dest_pts - 1000) {
                 player->player_status |= (PS_A_SEEK << 16);
-            } else {
-//              if (!(packet->flags & AV_PKT_FLAG_KEY)) packet->size = 0;
             }
         }
         //-- for seek operation
@@ -219,10 +220,8 @@ static void* video_decode_thread_proc(void *param)
         //++ for seek operation
         if (player->player_status & PS_V_SEEK) {
             int64_t pts = av_rescale_q(packet->pts, player->vstream_timebase, TIMEBASE_MS);
-            if (pts > player->seek_dest_pts - 10) {
+            if (pts > player->seek_dest_pts - 1000) {
                 player->player_status |= (PS_V_SEEK << 16);
-            } else {
-//              if (!(packet->flags & AV_PKT_FLAG_KEY)) packet->size = 0;
             }
         }
         //-- for seek operation
@@ -629,7 +628,7 @@ void player_seek(void *hplayer, LONGLONG ms)
     //++ seek to dest pts
     int SEEK_REQ = 0;
     int SEEK_ACK = 0;
-    int timeout  = 100;
+    int timeout  = 300;
     if (player->astream_index != -1) { SEEK_REQ |= PS_A_SEEK; SEEK_ACK |= PS_A_SEEK << 16; }
     if (player->vstream_index != -1) { SEEK_REQ |= PS_V_SEEK; SEEK_ACK |= PS_V_SEEK << 16; }
     player->seek_dest_pts  =  ms;
