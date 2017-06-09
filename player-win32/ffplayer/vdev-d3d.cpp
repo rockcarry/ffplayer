@@ -7,7 +7,7 @@ extern "C" {
 }
 
 // 预编译开关
-#define ENABLE_WAIT_D3D_VSYNC  TRUE
+#define ENABLE_WAIT_D3D_VSYNC  FALSE
 
 // 内部常量定义
 #define DEF_VDEV_BUF_NUM  3
