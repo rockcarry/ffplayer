@@ -121,6 +121,9 @@ void* render_open(int adevtype, int srate, AVSampleFormat sndfmt, int64_t ch_lay
     render->frame_period = 1000 * frate.den / frate.num;
     render->frame_rate   = frate;
     render->pixel_fmt    = pixfmt;
+    if (render->pixel_fmt == AV_PIX_FMT_NONE) {
+        render->pixel_fmt = AV_PIX_FMT_YUV420P;
+    }
 
     // init for audio
     render->sample_rate  = srate;
@@ -450,6 +453,9 @@ void render_setparam(void *hrender, DWORD id, void *param)
             render->pixel_fmt   = pru->pixfmt;
             render->video_width = pru->width;
             render->video_height= pru->height;
+            if (render->pixel_fmt == AV_PIX_FMT_NONE) {
+                render->pixel_fmt = AV_PIX_FMT_YUV420P;
+            }
 
             // set render_speed_cur to 1, will cause swr recreate
             render->render_speed_cur = 1;
