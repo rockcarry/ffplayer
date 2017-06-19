@@ -36,6 +36,12 @@ ctrl+R - switch between gdi and d3d
 ctrl+A - switch audio stream
 
 
+want to learn more?
+==================
+want to learn more about ffplayer, please visit our wiki.
+https://github.com/rockcarry/ffplayer/wiki
+
+
 contact and discuss
 ===================
 email   : rockcarry@163.com
