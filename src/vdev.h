@@ -78,6 +78,14 @@ void  vdev_d3d_post   (void *ctxt, int64_t pts);
 void  vdev_d3d_setrect(void *ctxt, int x, int y, int w, int h);
 #endif
 
+#ifdef ANDROID
+void* vdev_android_create (void *surface, int bufnum, int w, int h, int frate);
+void  vdev_android_destroy(void *ctxt);
+void  vdev_android_request(void *ctxt, void **buf, int *stride);
+void  vdev_android_post   (void *ctxt, int64_t pts);
+void  vdev_android_setrect(void *ctxt, int x, int y, int w, int h);
+#endif
+
 // º¯ÊıÉùÃ÷
 void  vdev_pause   (void *ctxt, int pause);
 void  vdev_reset   (void *ctxt);

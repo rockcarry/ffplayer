@@ -11,8 +11,9 @@ LOCAL_SRC_FILES := \
     ../../src/ffplayer.cpp \
     ../../src/ffrender.cpp \
     ../../src/pktqueue.cpp \
-    ../../src/adev-android.cpp \
-    ../../src/vdev-android.cpp
+    ../../src/vdev-cmn.cpp \
+    ../../src/vdev-android.cpp \
+    ../../src/adev-android.cpp
 
 LOCAL_C_INCLUDES += \
     $(LOCAL_PATH)/../ffmpeg-android/include \

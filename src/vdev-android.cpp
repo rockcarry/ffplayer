@@ -5,38 +5,37 @@ extern "C" {
 #include "libavformat/avformat.h"
 }
 
+// 内部常量定义
+#define DEF_WIN_PIX_FMT         HAL_PIXEL_FORMAT_YCrCb_420_SP // HAL_PIXEL_FORMAT_RGBX_8888 or HAL_PIXEL_FORMAT_YCrCb_420_SP
+#define CAMDEV_GRALLOC_USAGE    GRALLOC_USAGE_SW_READ_NEVER \
+                                    | GRALLOC_USAGE_SW_WRITE_NEVER \
+                                    | GRALLOC_USAGE_HW_TEXTURE
+
 // 内部类型定义
 typedef struct
 {
-    int reserved;
+    // common members
+    VDEV_COMMON_MEMBERS
 } VDEVGDICTXT;
 
 // 接口函数实现
-void vdev_pause   (void *ctxt, int pause) {}
-void vdev_reset   (void *ctxt) {}
-void vdev_getavpts(void *ctxt, int64_t **ppapts, int64_t **ppvpts) {}
-void vdev_setparam(void *ctxt, int id, void *param) {}
-void vdev_getparam(void *ctxt, int id, void *param) {}
-void vdev_player_event(void *ctxt, int32_t msg, int64_t param) {}
-void vdev_refresh_background(void *ctxt) {}
-
-void* vdev_create(int type, void *surface, int bufnum, int w, int h, int frate)
+void* vdev_android_create(void *surface, int bufnum, int w, int h, int frate)
 {    return NULL;
 }
 
-void vdev_destroy(void *ctxt)
+void vdev_android_destroy(void *ctxt)
 {
 }
 
-void vdev_request(void *ctxt, void **buffer, int *stride)
+void vdev_android_request(void *ctxt, void **buffer, int *stride)
 {
 }
 
-void vdev_post(void *ctxt, int64_t pts)
+void vdev_android_post(void *ctxt, int64_t pts)
 {
 }
 
-void vdev_setrect(void *ctxt, int x, int y, int w, int h)
+void vdev_android_setrect(void *ctxt, int x, int y, int w, int h)
 {
 }
 
