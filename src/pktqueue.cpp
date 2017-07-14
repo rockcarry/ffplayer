@@ -85,12 +85,12 @@ void pktqueue_reset(void *ctxt)
     PKTQUEUE *ppq    = (PKTQUEUE*)ctxt;
     AVPacket *packet = NULL;
 
-    while (packet = pktqueue_read_request_a(ctxt)) {
+    while (NULL != (packet = pktqueue_read_request_a(ctxt))) {
         av_packet_unref(packet);
         pktqueue_read_done_a(ctxt, packet);
     }
 
-    while (packet = pktqueue_read_request_v(ctxt)) {
+    while (NULL != (packet = pktqueue_read_request_v(ctxt))) {
         av_packet_unref(packet);
         pktqueue_read_done_v(ctxt, packet);
     }
