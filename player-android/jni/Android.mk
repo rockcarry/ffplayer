@@ -15,8 +15,8 @@ LOCAL_SRC_FILES := \
     ../../src/vdev-android.cpp
 
 LOCAL_C_INCLUDES += \
-    $(LOCAL_PATH)/../ffmpeg-android/include/ \
-    $(LOCAL_PATH)/../../src/ \
+    $(LOCAL_PATH)/../ffmpeg-android/include \
+    $(LOCAL_PATH)/../../src
 
 LOCAL_CFLAGS += \
     -O3 -mthumb -pipe -fpic -fasm \
