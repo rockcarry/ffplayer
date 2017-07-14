@@ -9,21 +9,6 @@
 extern "C" {
 #endif
 
-#undef com_rockcarry_ffplayer_player_RENDER_LETTERBOX
-#define com_rockcarry_ffplayer_player_RENDER_LETTERBOX 0L
-#undef com_rockcarry_ffplayer_player_RENDER_STRETCHED
-#define com_rockcarry_ffplayer_player_RENDER_STRETCHED 1L
-#undef com_rockcarry_ffplayer_player_PARAM_VIDEO_WIDTH
-#define com_rockcarry_ffplayer_player_PARAM_VIDEO_WIDTH 0L
-#undef com_rockcarry_ffplayer_player_PARAM_VIDEO_HEIGHT
-#define com_rockcarry_ffplayer_player_PARAM_VIDEO_HEIGHT 1L
-#undef com_rockcarry_ffplayer_player_PARAM_VIDEO_DURATION
-#define com_rockcarry_ffplayer_player_PARAM_VIDEO_DURATION 2L
-#undef com_rockcarry_ffplayer_player_PARAM_VIDEO_POSITION
-#define com_rockcarry_ffplayer_player_PARAM_VIDEO_POSITION 3L
-#undef com_rockcarry_ffplayer_player_PARAM_RENDER_MODE
-#define com_rockcarry_ffplayer_player_PARAM_RENDER_MODE 4L
-
 /*
  * Class:     com_rockcarry_ffplayer_player
  * Method:    nativeOpen
