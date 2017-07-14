@@ -4,9 +4,7 @@
 #include "stdafx.h"
 #include "player.h"
 #include "playerDlg.h"
-extern "C" {
-#include "../ffplayer/ffplayer.h"
-}
+#include "ffplayer.h"
 
 #ifdef _DEBUG
 #define new DEBUG_NEW

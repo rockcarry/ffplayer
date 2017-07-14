@@ -1,0 +1,9 @@
+how to build ffmpeg lib for win32
+
+1. you can download ffmpeg win32 binary from ffmpeg offical websit. (sugguested)
+
+2. or, you can build it from source code:
+   a) you need install a i586-mingw32msvc-gcc toolchain.
+   b) run build_ffmpeg_for_win32.sh to build the ffmpeg for win32
+      ./build_ffmpeg_for_win32.sh
+

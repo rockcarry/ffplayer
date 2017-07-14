@@ -1,0 +1,10 @@
+how to build ffmpeg lib for android
+
+1. you need a ndk toolchain named arm-linux-androideabi-4.7.1-full-linux-x86.tar.bz2.
+   you can get it from internet or contact me.
+
+2. run build_ffmpeg_for_android.sh to build the ffmpeg for android
+   ./build_ffmpeg_for_android.sh
+
+
+

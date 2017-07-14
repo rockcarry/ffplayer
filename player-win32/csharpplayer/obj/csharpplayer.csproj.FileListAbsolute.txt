@@ -1,0 +1,16 @@
+Z:\ext1\a33-dvr\android4.4\ffplayer\player-win32\csharpplayer\bin\Debug\csharpplayer.exe
+Z:\ext1\a33-dvr\android4.4\ffplayer\player-win32\csharpplayer\bin\Debug\csharpplayer.pdb
+Z:\ext1\a33-dvr\android4.4\ffplayer\player-win32\csharpplayer\obj\Debug\ResolveAssemblyReference.cache
+Z:\ext1\a33-dvr\android4.4\ffplayer\player-win32\csharpplayer\obj\Debug\csharpplayer.PlayerForm.resources
+Z:\ext1\a33-dvr\android4.4\ffplayer\player-win32\csharpplayer\obj\Debug\csharpplayer.Properties.Resources.resources
+Z:\ext1\a33-dvr\android4.4\ffplayer\player-win32\csharpplayer\obj\Debug\csharpplayer.csproj.GenerateResource.Cache
+Z:\ext1\a33-dvr\android4.4\ffplayer\player-win32\csharpplayer\obj\Debug\csharpplayer.exe
+Z:\ext1\a33-dvr\android4.4\ffplayer\player-win32\csharpplayer\obj\Debug\csharpplayer.pdb
+Z:\ext1\a33-dvr\android4.4\ffplayer\player-win32\csharpplayer\bin\Release\csharpplayer.exe
+Z:\ext1\a33-dvr\android4.4\ffplayer\player-win32\csharpplayer\bin\Release\csharpplayer.pdb
+Z:\ext1\a33-dvr\android4.4\ffplayer\player-win32\csharpplayer\obj\Release\ResolveAssemblyReference.cache
+Z:\ext1\a33-dvr\android4.4\ffplayer\player-win32\csharpplayer\obj\Release\csharpplayer.PlayerForm.resources
+Z:\ext1\a33-dvr\android4.4\ffplayer\player-win32\csharpplayer\obj\Release\csharpplayer.Properties.Resources.resources
+Z:\ext1\a33-dvr\android4.4\ffplayer\player-win32\csharpplayer\obj\Release\csharpplayer.csproj.GenerateResource.Cache
+Z:\ext1\a33-dvr\android4.4\ffplayer\player-win32\csharpplayer\obj\Release\csharpplayer.exe
+Z:\ext1\a33-dvr\android4.4\ffplayer\player-win32\csharpplayer\obj\Release\csharpplayer.pdb

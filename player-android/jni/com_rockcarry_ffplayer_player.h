@@ -4,9 +4,11 @@
 
 #ifndef _Included_com_rockcarry_ffplayer_player
 #define _Included_com_rockcarry_ffplayer_player
+
 #ifdef __cplusplus
 extern "C" {
 #endif
+
 #undef com_rockcarry_ffplayer_player_RENDER_LETTERBOX
 #define com_rockcarry_ffplayer_player_RENDER_LETTERBOX 0L
 #undef com_rockcarry_ffplayer_player_RENDER_STRETCHED
@@ -21,6 +23,7 @@ extern "C" {
 #define com_rockcarry_ffplayer_player_PARAM_VIDEO_POSITION 3L
 #undef com_rockcarry_ffplayer_player_PARAM_RENDER_MODE
 #define com_rockcarry_ffplayer_player_PARAM_RENDER_MODE 4L
+
 /*
  * Class:     com_rockcarry_ffplayer_player
  * Method:    nativeOpen
@@ -80,4 +83,5 @@ JNIEXPORT jint JNICALL Java_com_rockcarry_ffplayer_player_nativeGetParam
 #ifdef __cplusplus
 }
 #endif
+
 #endif

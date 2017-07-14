@@ -16,6 +16,6 @@
 
 LOCAL_PATH := $(call my-dir)
 
-# Use the following include to make gallery test apk.
+# use the following include to make apk.
 include $(call all-makefiles-under, $(LOCAL_PATH))
 

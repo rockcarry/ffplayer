@@ -1,0 +1,14 @@
+prefix=/home/xujb/ext1/a33-dvr/android4.4/ffplayer/player-android/ffmpeg-android/ffmpeg/..
+exec_prefix=${prefix}
+libdir=${prefix}/lib
+includedir=${prefix}/include
+
+Name: libavcodec
+Description: FFmpeg codec library
+Version: 57.48.101
+Requires: 
+Requires.private: libswresample >= 2.1.100, libavutil >= 55.28.100
+Conflicts:
+Libs: -L${libdir}  -lavcodec 
+Libs.private: -lm -lz
+Cflags: -I${includedir}

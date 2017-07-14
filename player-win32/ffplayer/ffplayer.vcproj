@@ -40,7 +40,7 @@
 			<Tool
 				Name="VCCLCompilerTool"
 				Optimization="0"
-				AdditionalIncludeDirectories="..\..\dx9sdk\include;..\..\ffmpeg-win32\include;..\..\pthreads-win32\include"
+				AdditionalIncludeDirectories="..\ffmpeg-win32\include;..\pthreads-win32\include;..\dx9sdk\include"
 				PreprocessorDefinitions="WIN32;_DEBUG;_WINDOWS;_USRDLL;FFPLAYER_EXPORTS"
 				MinimalRebuild="true"
 				BasicRuntimeChecks="3"
@@ -63,7 +63,7 @@
 				Name="VCLinkerTool"
 				AdditionalDependencies="pthreadVC2.lib d3d9.lib winmm.lib msimg32.lib avcodec.lib avdevice.lib avformat.lib avutil.lib swscale.lib swresample.lib"
 				LinkIncremental="2"
-				AdditionalLibraryDirectories="..\..\dx9sdk\lib;..\..\ffmpeg-win32\bin;..\..\pthreads-win32\lib"
+				AdditionalLibraryDirectories="..\ffmpeg-win32\bin;..\pthreads-win32\lib;..\dx9sdk\lib"
 				ModuleDefinitionFile="ffplayer.def"
 				GenerateDebugInformation="true"
 				SubSystem="2"
@@ -119,7 +119,7 @@
 			/>
 			<Tool
 				Name="VCCLCompilerTool"
-				AdditionalIncludeDirectories="..\..\dx9sdk\include;..\..\ffmpeg-win32\include;..\..\pthreads-win32\include"
+				AdditionalIncludeDirectories="..\ffmpeg-win32\include;..\pthreads-win32\include;..\dx9sdk\include"
 				PreprocessorDefinitions="WIN32;NDEBUG;_WINDOWS;_USRDLL;FFPLAYER_EXPORTS"
 				RuntimeLibrary="0"
 				UsePrecompiledHeader="0"
@@ -140,7 +140,7 @@
 				Name="VCLinkerTool"
 				AdditionalDependencies="pthreadVC2.lib d3d9.lib winmm.lib msimg32.lib avcodec.lib avdevice.lib avformat.lib avutil.lib swscale.lib swresample.lib"
 				LinkIncremental="1"
-				AdditionalLibraryDirectories="..\..\dx9sdk\lib;..\..\ffmpeg-win32\bin;..\..\pthreads-win32\lib"
+				AdditionalLibraryDirectories="..\ffmpeg-win32\bin;..\pthreads-win32\lib;..\dx9sdk\lib"
 				ModuleDefinitionFile="ffplayer.def"
 				GenerateDebugInformation="true"
 				SubSystem="2"
@@ -183,47 +183,43 @@
 			UniqueIdentifier="{4FC737F1-C7A5-4376-A066-2A32D752A2FF}"
 			>
 			<File
-				RelativePath=".\adev.cpp"
+				RelativePath="..\..\src\adev-win.cpp"
 				>
 			</File>
 			<File
-				RelativePath=".\ffplayer.cpp"
+				RelativePath="..\..\src\ffplayer.cpp"
 				>
 			</File>
 			<File
-				RelativePath=".\ffrender.cpp"
+				RelativePath="..\..\src\ffrender.cpp"
 				>
 			</File>
 			<File
-				RelativePath=".\fft.cpp"
+				RelativePath="..\..\src\fft.cpp"
 				>
 			</File>
 			<File
-				RelativePath=".\hwaccel.cpp"
+				RelativePath="..\..\src\pktqueue.cpp"
 				>
 			</File>
 			<File
-				RelativePath=".\pktqueue.cpp"
+				RelativePath="..\..\src\snapshot.cpp"
 				>
 			</File>
 			<File
-				RelativePath=".\snapshot.cpp"
+				RelativePath="..\..\src\vdev-cmn.cpp"
 				>
 			</File>
 			<File
-				RelativePath=".\vdev-cmn.cpp"
+				RelativePath="..\..\src\vdev-d3d.cpp"
 				>
 			</File>
 			<File
-				RelativePath=".\vdev-d3d.cpp"
+				RelativePath="..\..\src\vdev-gdi.cpp"
 				>
 			</File>
 			<File
-				RelativePath=".\vdev-gdi.cpp"
-				>
-			</File>
-			<File
-				RelativePath=".\veffect.cpp"
+				RelativePath="..\..\src\veffect.cpp"
 				>
 			</File>
 		</Filter>
@@ -233,43 +229,39 @@
 			UniqueIdentifier="{93995380-89BD-4b04-88EB-625FBE52EBFB}"
 			>
 			<File
-				RelativePath=".\adev.h"
+				RelativePath="..\..\src\adev.h"
 				>
 			</File>
 			<File
-				RelativePath=".\ffplayer.h"
+				RelativePath="..\..\src\ffplayer.h"
 				>
 			</File>
 			<File
-				RelativePath=".\ffrender.h"
+				RelativePath="..\..\src\ffrender.h"
 				>
 			</File>
 			<File
-				RelativePath=".\fft.h"
+				RelativePath="..\..\src\fft.h"
 				>
 			</File>
 			<File
-				RelativePath=".\hwaccel.h"
+				RelativePath="..\..\src\pktqueue.h"
 				>
 			</File>
 			<File
-				RelativePath=".\pktqueue.h"
+				RelativePath="..\..\src\snapshot.h"
 				>
 			</File>
 			<File
-				RelativePath=".\snapshot.h"
+				RelativePath="..\..\src\stdefine.h"
 				>
 			</File>
 			<File
-				RelativePath=".\stdefine.h"
+				RelativePath="..\..\src\vdev.h"
 				>
 			</File>
 			<File
-				RelativePath=".\vdev.h"
-				>
-			</File>
-			<File
-				RelativePath=".\veffect.h"
+				RelativePath="..\..\src\veffect.h"
 				>
 			</File>
 		</Filter>

@@ -1,0 +1,14 @@
+prefix=/home/xujb/ext1/a33-dvr/android4.4/ffplayer/player-android/ffmpeg-android/ffmpeg/..
+exec_prefix=${prefix}
+libdir=${prefix}/lib
+includedir=${prefix}/include
+
+Name: libswresample
+Description: FFmpeg audio resampling library
+Version: 2.1.100
+Requires: 
+Requires.private: libavutil >= 55.28.100
+Conflicts:
+Libs: -L${libdir}  -lswresample 
+Libs.private: -lm
+Cflags: -I${includedir}
