@@ -2,6 +2,7 @@
 #ifndef __STDEFINE_H__
 #define __STDEFINE_H__
 
+
 #ifdef WIN32
 // headers
 #include <windows.h>
@@ -14,6 +15,7 @@
 #define CONFIG_ENABLE_VEFFECT   1
 #define CONFIG_ENABLE_SNAPSHOT  1
 #endif
+
 
 #ifdef ANDROID
 // headers
@@ -34,6 +36,7 @@ typedef struct {
 #define CONFIG_ENABLE_VEFFECT   0
 #define CONFIG_ENABLE_SNAPSHOT  0
 #endif
+
 
 #endif
 
