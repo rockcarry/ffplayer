@@ -50,6 +50,10 @@ typedef struct
     pthread_t        avdemux_thread;
     pthread_t        adecode_thread;
     pthread_t        vdecode_thread;
+
+#ifdef ANDROID
+    sp<ANativeWindow> awin;
+#endif
 } PLAYER;
 
 // 内部常量定义
@@ -405,7 +409,12 @@ static void set_stream_current(PLAYER *player, enum AVMediaType type, int sel) {
 }
 
 // 函数实现
+#ifdef WIN32
 void* player_open(char *file, void *win)
+#endif
+#ifdef ANDROID
+void* player_open(char *file, sp<ANativeWindow> win)
+#endif
 {
     PLAYER       *player  = NULL;
     int           arate   = 0;
@@ -433,7 +442,7 @@ void* player_open(char *file, void *win)
     av_log_set_callback(ffplayer_log_callback);
 
     // alloc player context
-    player = (PLAYER*)calloc(1, sizeof(PLAYER));
+    player = new PLAYER();
 
     // create packet queue
     player->pktqueue = pktqueue_create(0);
@@ -494,9 +503,19 @@ void* player_open(char *file, void *win)
         height  = player->vcodec_context->height;
     }
 
+#ifdef WIN32
     // open render
     player->render = render_open(ADEV_RENDER_TYPE_WAVEOUT, arate, (AVSampleFormat)aformat, alayout,
                                  VDEV_RENDER_TYPE_GDI, win, vrate, vformat, width, height);
+#endif
+
+#ifdef ANDROID
+    player->awin   = win;
+    // open render
+    player->render = render_open(ADEV_RENDER_TYPE_WAVEOUT, arate, (AVSampleFormat)aformat, alayout,
+                                 VDEV_RENDER_TYPE_GDI, win.get(), vrate, vformat, width, height);
+#endif
+
     if (player->vstream_index == -1) {
         int effect = VISUAL_EFFECT_WAVEFORM;
         render_setparam(player->render, PARAM_VISUAL_EFFECT, &effect);
@@ -543,7 +562,7 @@ void player_close(void *hplayer)
     if (player->vcodec_context  ) avcodec_close(player->vcodec_context);
     if (player->avformat_context) avformat_close_input(&player->avformat_context);
 
-    free(player);
+    delete player;
 }
 
 void player_play(void *hplayer)

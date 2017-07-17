@@ -29,6 +29,7 @@ public final class player
     private int m_hPlayer = 0;
     public boolean open(String url, Object surface, int w, int h) {
         m_hPlayer = nativeOpen(url, surface, w, h);
+        nativeInitCallback(m_hPlayer);
         return (m_hPlayer != 0);
     }
 
@@ -39,11 +40,27 @@ public final class player
     public void setParam(int id, int value) { nativeSetParam(m_hPlayer, id, value); }
     public int  getParam(int id)            { return nativeGetParam(m_hPlayer, id); }
 
+    public interface playerEventCallback {
+        public void onPlayerEvent(int event, long param);
+    }
+
+    //++ for player event callback
+    private playerEventCallback mPlayerEventCB = null;
+
+    private void internalPlayerEventCallback(int event, long param) {
+        if (mPlayerEventCB != null) {
+            mPlayerEventCB.onPlayerEvent(event, param);
+        }
+    }
+
+    private native void nativeInitCallback(int hplayer);
+    //-- for player event callback
+
     private static native int  nativeOpen (String url, Object surface, int w, int h);
     private static native void nativeClose(int hplayer);
     private static native void nativePlay (int hplayer);
     private static native void nativePause(int hplayer);
-    private static native void nativeSeek (int hplayer, int sec);
+    private static native void nativeSeek (int hplayer, long ms);
     private static native void nativeSetParam(int hplayer, int id, int value);
     private static native int  nativeGetParam(int hplayer, int id);
 

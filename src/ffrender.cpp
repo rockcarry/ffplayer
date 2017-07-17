@@ -126,6 +126,8 @@ void* render_open(int adevtype, int srate, AVSampleFormat sndfmt, int64_t ch_lay
     // init for video
     render->video_width  = w;
     render->video_height = h;
+    render->render_wnew  = w;
+    render->render_hnew  = h;
     render->frame_period = 1000 * frate.den / frate.num;
     render->frame_rate   = frate;
     render->pixel_fmt    = pixfmt;
@@ -294,9 +296,13 @@ void render_video(void *hrender, AVFrame *video)
         }
 
         vdev_request(render->vdev, (void**)&bmpbuf, &stride);
-        if (video->pts != -1) {
+        if (bmpbuf && video->pts != -1) {
             picture.data[0]     = bmpbuf;
             picture.linesize[0] = stride;
+            if (((VDEV_COMMON_CTXT*)render->vdev)->pixfmt == AV_PIX_FMT_NV21) {
+                picture.data[1]     = bmpbuf + ((VDEV_COMMON_CTXT*)render->vdev)->sw * ((VDEV_COMMON_CTXT*)render->vdev)->sh;
+                picture.linesize[1] = stride;
+            }
             sws_scale(render->sws_context, video->data, video->linesize, 0, render->video_height, picture.data, picture.linesize);
         }
         vdev_post(render->vdev, video->pts);

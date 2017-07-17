@@ -11,6 +11,14 @@ extern "C" {
 
 /*
  * Class:     com_rockcarry_ffplayer_player
+ * Method:    nativeInitCallback
+ * Signature: (I)V
+ */
+JNIEXPORT void JNICALL Java_com_rockcarry_ffplayer_player_nativeInitCallback
+  (JNIEnv *, jobject, jint);
+
+/*
+ * Class:     com_rockcarry_ffplayer_player
  * Method:    nativeOpen
  * Signature: (Ljava/lang/String;Ljava/lang/Object;II)I
  */
@@ -44,10 +52,10 @@ JNIEXPORT void JNICALL Java_com_rockcarry_ffplayer_player_nativePause
 /*
  * Class:     com_rockcarry_ffplayer_player
  * Method:    nativeSeek
- * Signature: (II)V
+ * Signature: (IJ)V
  */
 JNIEXPORT void JNICALL Java_com_rockcarry_ffplayer_player_nativeSeek
-  (JNIEnv *, jclass, jint, jint);
+  (JNIEnv *, jclass, jint, jlong);
 
 /*
  * Class:     com_rockcarry_ffplayer_player

@@ -38,7 +38,7 @@ LOCAL_LDFLAGS += \
     $(LOCAL_PATH)/../ffmpeg-android/lib/libswscale.a \
     $(LOCAL_PATH)/../ffmpeg-android/lib/libavutil.a
 
-LOCAL_SHARED_LIBRARIES := libcutils libutils libui libgui libandroid_runtime libz
+LOCAL_SHARED_LIBRARIES := libcutils libutils libui libgui libandroid_runtime libz libmedia
 
 include $(BUILD_SHARED_LIBRARY)
 

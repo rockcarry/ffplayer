@@ -19,6 +19,7 @@
 
 #ifdef ANDROID
 // headers
+#undef  LOG_TAG
 #define LOG_TAG "ffplayer"
 #include <limits.h>
 #include <utils/Log.h>

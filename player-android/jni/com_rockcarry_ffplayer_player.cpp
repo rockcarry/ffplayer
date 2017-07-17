@@ -1,5 +1,17 @@
 // 包含头文件
 #include "com_rockcarry_ffplayer_player.h"
+#include "ffplayer.h"
+
+/*
+ * Class:     com_rockcarry_ffplayer_player
+ * Method:    nativeInitCallback
+ * Signature: (I)V
+ */
+JNIEXPORT void JNICALL Java_com_rockcarry_ffplayer_player_nativeInitCallback
+  (JNIEnv *env, jobject obj, jint hplayer)
+{
+    // todo..
+}
 
 /*
  * Class:     com_rockcarry_ffplayer_player
@@ -7,9 +19,15 @@
  * Signature: (Ljava/lang/String;Ljava/lang/Object;II)I
  */
 JNIEXPORT jint JNICALL Java_com_rockcarry_ffplayer_player_nativeOpen
-  (JNIEnv *env, jclass clazz, jstring url, jobject surface, jint w, jint h)
+  (JNIEnv *env, jclass clazz, jstring url, jobject jsurface, jint w, jint h)
 {
-    return 0;
+    const char *str = env->GetStringUTFChars(url, NULL);
+    sp<ANativeWindow> win;
+    if (jsurface) {
+        win = android_view_Surface_getNativeWindow(env, jsurface).get();
+    }
+    jint hplayer = (jint)player_open((char*)str, win);
+    return hplayer;
 }
 
 /*
@@ -20,6 +38,7 @@ JNIEXPORT jint JNICALL Java_com_rockcarry_ffplayer_player_nativeOpen
 JNIEXPORT void JNICALL Java_com_rockcarry_ffplayer_player_nativeClose
   (JNIEnv *env, jclass clazz, jint hplayer)
 {
+    player_close((void*)hplayer);
 }
 
 /*
@@ -30,6 +49,7 @@ JNIEXPORT void JNICALL Java_com_rockcarry_ffplayer_player_nativeClose
 JNIEXPORT void JNICALL Java_com_rockcarry_ffplayer_player_nativePlay
   (JNIEnv *env, jclass clazz, jint hplayer)
 {
+    player_play((void*)hplayer);
 }
 
 /*
@@ -38,18 +58,20 @@ JNIEXPORT void JNICALL Java_com_rockcarry_ffplayer_player_nativePlay
  * Signature: (I)V
  */
 JNIEXPORT void JNICALL Java_com_rockcarry_ffplayer_player_nativePause
-  (JNIEnv *env, jclass clazz, jint player)
+  (JNIEnv *env, jclass clazz, jint hplayer)
 {
+    player_pause((void*)hplayer);
 }
 
 /*
  * Class:     com_rockcarry_ffplayer_player
  * Method:    nativeSeek
- * Signature: (II)V
+ * Signature: (IJ)V
  */
 JNIEXPORT void JNICALL Java_com_rockcarry_ffplayer_player_nativeSeek
-  (JNIEnv *env, jclass clazz, jint player, jint ms)
+  (JNIEnv *env, jclass clazz, jint hplayer, jlong ms)
 {
+    player_seek((void*)hplayer, ms);
 }
 
 /*
@@ -58,8 +80,9 @@ JNIEXPORT void JNICALL Java_com_rockcarry_ffplayer_player_nativeSeek
  * Signature: (III)V
  */
 JNIEXPORT void JNICALL Java_com_rockcarry_ffplayer_player_nativeSetParam
-  (JNIEnv *env, jclass clazz, jint player, jint id, jint value)
+  (JNIEnv *env, jclass clazz, jint hplayer, jint id, jint value)
 {
+    player_setparam((void*)hplayer, id, &value);
 }
 
 /*
@@ -68,7 +91,9 @@ JNIEXPORT void JNICALL Java_com_rockcarry_ffplayer_player_nativeSetParam
  * Signature: (II)I
  */
 JNIEXPORT jint JNICALL Java_com_rockcarry_ffplayer_player_nativeGetParam
-  (JNIEnv *env, jclass clazz, jint player, jint id)
+  (JNIEnv *env, jclass clazz, jint hplayer, jint id)
 {
-    return 0;
+    int value = 0;
+    player_getparam((void*)hplayer, id, &value);
+    return value;
 }

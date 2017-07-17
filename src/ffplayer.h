@@ -272,8 +272,14 @@ player_open("dshow://video=Integrated Camera", hwnd, 0, 0, NULL); // 将以 dsho
 }
 #endif
 
+#ifdef ANDROID
+#include <gui/Surface.h>
+#include <android_runtime/android_view_Surface.h>
+using namespace android;
+void* player_open(char *file, sp<ANativeWindow> win);
 #endif
 
+#endif
 
 
 

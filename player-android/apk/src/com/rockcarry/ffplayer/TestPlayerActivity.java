@@ -6,7 +6,7 @@ import android.view.SurfaceHolder;
 import android.view.SurfaceHolder.Callback;
 import android.view.SurfaceView;
 
-public class ffPlayerTestActivity extends Activity {
+public class TestPlayerActivity extends Activity {
     private player      mplayer = null;
     private SurfaceView mview   = null;
 
@@ -22,9 +22,7 @@ public class ffPlayerTestActivity extends Activity {
         holder.addCallback(
             new Callback() {
                 @Override
-                public void surfaceChanged(SurfaceHolder holder, int format, int width,
-                        int height) {
-                    // TODO Auto-generated method stub
+                public void surfaceChanged(SurfaceHolder holder, int format, int width, int height) {
                 }
 
                 @Override
@@ -39,6 +37,21 @@ public class ffPlayerTestActivity extends Activity {
                 }
             }
         );
+    }
+
+    @Override
+    public void onDestroy() {
+        super.onDestroy();
+    }
+
+    @Override
+    public void onResume() {
+        super.onResume();
+    }
+
+    @Override
+    public void onPause() {
+        super.onPause();
     }
 }
 
