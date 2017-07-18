@@ -5,73 +5,95 @@
 #ifndef _Included_com_rockcarry_ffplayer_player
 #define _Included_com_rockcarry_ffplayer_player
 
+
+extern JavaVM* g_jvm;
+JNIEXPORT jint JNICALL JNI_OnLoad(JavaVM*, void*);
+JNIEXPORT JNIEnv* get_jni_env(void);
+
+
 #ifdef __cplusplus
 extern "C" {
 #endif
 
 /*
  * Class:     com_rockcarry_ffplayer_player
- * Method:    nativeInitCallback
- * Signature: (I)V
+ * Method:    nativeInitJniObject
+ * Signature: (J)V
  */
-JNIEXPORT void JNICALL Java_com_rockcarry_ffplayer_player_nativeInitCallback
-  (JNIEnv *, jobject, jint);
+JNIEXPORT void JNICALL Java_com_rockcarry_ffplayer_player_nativeInitJniObject
+  (JNIEnv *, jobject, jlong);
 
 /*
  * Class:     com_rockcarry_ffplayer_player
  * Method:    nativeOpen
- * Signature: (Ljava/lang/String;Ljava/lang/Object;II)I
+ * Signature: (Ljava/lang/String;Ljava/lang/Object;II)J
  */
-JNIEXPORT jint JNICALL Java_com_rockcarry_ffplayer_player_nativeOpen
+JNIEXPORT jlong JNICALL Java_com_rockcarry_ffplayer_player_nativeOpen
   (JNIEnv *, jclass, jstring, jobject, jint, jint);
 
 /*
  * Class:     com_rockcarry_ffplayer_player
  * Method:    nativeClose
- * Signature: (I)V
+ * Signature: (J)V
  */
 JNIEXPORT void JNICALL Java_com_rockcarry_ffplayer_player_nativeClose
-  (JNIEnv *, jclass, jint);
+  (JNIEnv *, jclass, jlong);
 
 /*
  * Class:     com_rockcarry_ffplayer_player
  * Method:    nativePlay
- * Signature: (I)V
+ * Signature: (J)V
  */
 JNIEXPORT void JNICALL Java_com_rockcarry_ffplayer_player_nativePlay
-  (JNIEnv *, jclass, jint);
+  (JNIEnv *, jclass, jlong);
 
 /*
  * Class:     com_rockcarry_ffplayer_player
  * Method:    nativePause
- * Signature: (I)V
+ * Signature: (J)V
  */
 JNIEXPORT void JNICALL Java_com_rockcarry_ffplayer_player_nativePause
-  (JNIEnv *, jclass, jint);
+  (JNIEnv *, jclass, jlong);
 
 /*
  * Class:     com_rockcarry_ffplayer_player
  * Method:    nativeSeek
- * Signature: (IJ)V
+ * Signature: (JJ)V
  */
 JNIEXPORT void JNICALL Java_com_rockcarry_ffplayer_player_nativeSeek
-  (JNIEnv *, jclass, jint, jlong);
+  (JNIEnv *, jclass, jlong, jlong);
 
 /*
  * Class:     com_rockcarry_ffplayer_player
  * Method:    nativeSetParam
- * Signature: (III)V
+ * Signature: (JII)V
  */
 JNIEXPORT void JNICALL Java_com_rockcarry_ffplayer_player_nativeSetParam
-  (JNIEnv *, jclass, jint, jint, jint);
+  (JNIEnv *, jclass, jlong, jint, jint);
 
 /*
  * Class:     com_rockcarry_ffplayer_player
  * Method:    nativeGetParam
- * Signature: (II)I
+ * Signature: (JI)I
  */
 JNIEXPORT jint JNICALL Java_com_rockcarry_ffplayer_player_nativeGetParam
-  (JNIEnv *, jclass, jint, jint);
+  (JNIEnv *, jclass, jlong, jint);
+
+/*
+ * Class:     com_rockcarry_ffplayer_player
+ * Method:    nativeSetDisplayWindow
+ * Signature: (JLjava/lang/Object;)V
+ */
+JNIEXPORT void JNICALL Java_com_rockcarry_ffplayer_player_nativeSetDisplayWindow
+  (JNIEnv *, jclass, jlong, jobject);
+
+/*
+ * Class:     com_rockcarry_ffplayer_player
+ * Method:    nativeSetDisplayTarget
+ * Signature: (JLjava/lang/Object;)V
+ */
+JNIEXPORT void JNICALL Java_com_rockcarry_ffplayer_player_nativeSetDisplayTarget
+  (JNIEnv *, jclass, jlong, jobject);
 
 #ifdef __cplusplus
 }

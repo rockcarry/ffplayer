@@ -1,11 +1,14 @@
 // 包含头文件
+#include <jni.h>
 #include <pthread.h>
 #include <semaphore.h>
-#include <media/AudioRecord.h>
-#include <media/AudioTrack.h>
 #include "adev.h"
 
 using namespace android;
+
+// for jni
+extern    JavaVM* g_jvm;
+JNIEXPORT JNIEnv* get_jni_env(void);
 
 // 内部常量定义
 #define DEF_ADEV_BUF_NUM  8
@@ -17,31 +20,42 @@ using namespace android;
 // 内部类型定义
 typedef struct
 {
-    sp<AudioTrack> audiotrack;
-
-    int64_t  *ppts;
-    AUDIOBUF *pWaveHdr;
-    int       bufnum;
-    int       buflen;
-    int       head;
-    int       tail;
-    sem_t     semr;
-    sem_t     semw;
+    int64_t   *ppts;
+    AUDIOBUF  *pWaveHdr;
+    uint8_t   *pWaveBuf;
+    int        bufnum;
+    int        buflen;
+    int        head;
+    int        tail;
+    sem_t      semr;
+    sem_t      semw;
     #define ADEV_CLOSE (1 << 0)
     #define ADEV_PAUSE (1 << 1)
-    int       status;
-    pthread_t thread;
-    int64_t  *apts;
+    int        status;
+    pthread_t  thread;
+    int64_t   *apts;
 
     // software volume
-    int      vol_scaler[256];
-    int      vol_zerodb;
-    int      vol_curvol;
+    int        vol_scaler[256];
+    int        vol_zerodb;
+    int        vol_curvol;
+
+    // for jni
+    jobject    jobj_player;
+    jmethodID  jmid_at_init;
+    jmethodID  jmid_at_close;
+    jmethodID  jmid_at_start;
+    jmethodID  jmid_at_pause;
+    jmethodID  jmid_at_write;
+    jmethodID  jmid_at_flush;
+    jbyteArray audio_buffer;
 } ADEV_CONTEXT;
 
 static void* audio_render_thread_proc(void *param)
 {
+    JNIEnv     *env = get_jni_env();
     ADEV_CONTEXT *c = (ADEV_CONTEXT*)param;
+
     while (!(c->status & ADEV_CLOSE))
     {
         if (c->status & ADEV_PAUSE) {
@@ -50,12 +64,14 @@ static void* audio_render_thread_proc(void *param)
         }
 
         sem_wait(&c->semr);
-        c->audiotrack->write(c->pWaveHdr[c->head].data, c->pWaveHdr[c->head].size);
+        env->CallVoidMethod(c->jobj_player, c->jmid_at_write, c->audio_buffer, c->head * c->buflen, c->pWaveHdr[c->head].size);
         if (c->apts) *c->apts = c->ppts[c->head];
         if (++c->head == c->bufnum) c->head = 0;
         sem_post(&c->semw);
     }
 
+    // need call DetachCurrentThread
+    g_jvm->DetachCurrentThread();
     return NULL;
 }
 
@@ -82,12 +98,12 @@ static int init_software_volmue_scaler(int *scaler, int mindb, int maxdb)
 // 接口函数实现
 void* adev_create(int type, int bufnum, int buflen)
 {
+    JNIEnv       *env  = get_jni_env();
     ADEV_CONTEXT *ctxt = NULL;
-    uint8_t      *pwavbuf;
     int           i;
 
     // allocate adev context
-    ctxt = new ADEV_CONTEXT();
+    ctxt = (ADEV_CONTEXT*)calloc(1, sizeof(ADEV_CONTEXT));
     if (!ctxt) {
         av_log(NULL, AV_LOG_ERROR, "failed to allocate adev context !\n");
         exit(0);
@@ -100,23 +116,19 @@ void* adev_create(int type, int bufnum, int buflen)
     ctxt->head     = 0;
     ctxt->tail     = 0;
     ctxt->ppts     = (int64_t *)calloc(bufnum, sizeof(int64_t));
-    ctxt->pWaveHdr = (AUDIOBUF*)calloc(bufnum, (sizeof(AUDIOBUF) + buflen));
+    ctxt->pWaveHdr = (AUDIOBUF*)calloc(bufnum, sizeof(AUDIOBUF));
+
+    // new buffer
+    jbyteArray local_audio_buffer = env->NewByteArray(bufnum * buflen);
+    ctxt->audio_buffer = (jbyteArray)env->NewGlobalRef(local_audio_buffer);
+    ctxt->pWaveBuf     = (uint8_t*)env->GetByteArrayElements(ctxt->audio_buffer, 0);
+    env->DeleteLocalRef(local_audio_buffer);
 
     // init wavebuf
-    pwavbuf = (uint8_t*)(ctxt->pWaveHdr + bufnum);
     for (i=0; i<bufnum; i++) {
-        ctxt->pWaveHdr[i].data = (int16_t*)(pwavbuf + i * buflen);
+        ctxt->pWaveHdr[i].data = (int16_t*)(ctxt->pWaveBuf + i * buflen);
         ctxt->pWaveHdr[i].size = buflen;
     }
-
-    // create AudioTrack
-    ctxt->audiotrack = new AudioTrack(
-        AUDIO_STREAM_DEFAULT,
-        44100,
-        AUDIO_FORMAT_PCM_16_BIT,
-        AUDIO_CHANNEL_OUT_STEREO,
-        ctxt->buflen);
-    ctxt->audiotrack->start();
 
     // init software volume scaler
     ctxt->vol_zerodb = init_software_volmue_scaler(ctxt->vol_scaler, SW_VOLUME_MINDB, SW_VOLUME_MAXDB);
@@ -126,14 +138,12 @@ void* adev_create(int type, int bufnum, int buflen)
     sem_init(&ctxt->semr, 0, 0     );
     sem_init(&ctxt->semw, 0, bufnum);
 
-    // create audio rendering thread
-    pthread_create(&ctxt->thread, NULL, audio_render_thread_proc, ctxt);
-
     return ctxt;
 }
 
 void adev_destroy(void *ctxt)
 {
+    JNIEnv *env = get_jni_env();
     if (!ctxt) return;
     ADEV_CONTEXT *c = (ADEV_CONTEXT*)ctxt;
 
@@ -143,7 +153,7 @@ void adev_destroy(void *ctxt)
     pthread_join(c->thread, NULL);
 
     // stop audiotrack
-    c->audiotrack->stop();
+    env->CallVoidMethod(c->jobj_player, c->jmid_at_close);
 
     // close semaphore
     sem_destroy(&c->semr);
@@ -153,8 +163,13 @@ void adev_destroy(void *ctxt)
     free(c->ppts);
     free(c->pWaveHdr);
 
-    // destroy audiotrack
-    delete c;
+    // for jni
+    env->ReleaseByteArrayElements(c->audio_buffer, (jbyte*)c->pWaveBuf, 0);
+    env->DeleteGlobalRef(c->jobj_player );
+    env->DeleteGlobalRef(c->audio_buffer);
+
+    // free adev
+    free(c);
 }
 
 void adev_request(void *ctxt, AUDIOBUF **ppab)
@@ -198,20 +213,22 @@ void adev_post(void *ctxt, int64_t pts)
 
 void adev_pause(void *ctxt, int pause)
 {
+    JNIEnv *env = get_jni_env();
     if (!ctxt) return;
     ADEV_CONTEXT *c = (ADEV_CONTEXT*)ctxt;
     if (pause) {
         c->status |=  ADEV_PAUSE;
-        c->audiotrack->pause();
+        env->CallVoidMethod(c->jobj_player, c->jmid_at_pause);
     }
     else {
         c->status &= ~ADEV_PAUSE;
-        c->audiotrack->start();
+        env->CallVoidMethod(c->jobj_player, c->jmid_at_start);
     }
 }
 
 void adev_reset(void *ctxt)
 {
+    JNIEnv *env = get_jni_env();
     if (!ctxt) return;
     ADEV_CONTEXT *c = (ADEV_CONTEXT*)ctxt;
     while (0 != sem_trywait(&c->semr)) {
@@ -220,7 +237,7 @@ void adev_reset(void *ctxt)
     c->head   = 0;
     c->tail   = 0;
     c->status = 0;
-    c->audiotrack->flush();
+    env->CallVoidMethod(c->jobj_player, c->jmid_at_flush);
 }
 
 void adev_syncapts(void *ctxt, int64_t *apts)
@@ -269,5 +286,26 @@ void adev_getparam(void *ctxt, int id, void *param)
         *(int*)param = c->vol_curvol - c->vol_zerodb;
         break;
     }
+}
+
+void adev_setjniobj(void *ctxt, JNIEnv *env, jobject obj)
+{
+    if (!ctxt) return;
+    ADEV_CONTEXT  *c = (ADEV_CONTEXT*)ctxt;
+    jclass       cls = env->GetObjectClass(obj);
+
+    c->jobj_player   = env->NewGlobalRef(obj);
+    c->jmid_at_init  = env->GetMethodID(cls, "audioTrackInit" , "(I)V");
+    c->jmid_at_close = env->GetMethodID(cls, "audioTrackClose", "()V");
+    c->jmid_at_start = env->GetMethodID(cls, "audioTrackStart", "()V");
+    c->jmid_at_pause = env->GetMethodID(cls, "audioTrackPause", "()V");
+    c->jmid_at_write = env->GetMethodID(cls, "audioTrackWrite", "([BII)V");
+    c->jmid_at_flush = env->GetMethodID(cls, "audioTrackFlush", "()V");
+
+    env->CallVoidMethod(c->jobj_player, c->jmid_at_init, c->buflen * 2); // init
+    env->CallVoidMethod(c->jobj_player, c->jmid_at_start); // start
+
+    // create audio rendering thread
+    pthread_create(&c->thread, NULL, audio_render_thread_proc, c);
 }
 

@@ -1,5 +1,9 @@
 package com.rockcarry.ffplayer;
 
+import android.media.AudioFormat;
+import android.media.AudioManager;
+import android.media.AudioTrack;
+
 public final class player
 {
     public static final int VIDEO_MODE_LETTERBOX        = 0;
@@ -26,20 +30,21 @@ public final class player
     public static final int PARAM_VIDEO_STREAM_CUR      = 0x1000 +15;
     public static final int PARAM_SUBTITLE_STREAM_CUR   = 0x1000 +16;
 
-    private int m_hPlayer = 0;
+    private long m_hPlayer = 0;
     public boolean open(String url, Object surface, int w, int h) {
         m_hPlayer = nativeOpen(url, surface, w, h);
-        nativeInitCallback(m_hPlayer);
+        nativeInitJniObject(m_hPlayer);
         return (m_hPlayer != 0);
     }
 
-    public void close()                     { nativeClose(m_hPlayer);      }
-    public void play ()                     { nativePlay (m_hPlayer);      }
-    public void pause()                     { nativePause(m_hPlayer);      }
-    public void seek (int sec)              { nativeSeek (m_hPlayer, sec); }
+    public void close()                     { nativeClose(m_hPlayer);     }
+    public void play ()                     { nativePlay (m_hPlayer);     }
+    public void pause()                     { nativePause(m_hPlayer);     }
+    public void seek (long ms)              { nativeSeek (m_hPlayer, ms); }
     public void setParam(int id, int value) { nativeSetParam(m_hPlayer, id, value); }
     public int  getParam(int id)            { return nativeGetParam(m_hPlayer, id); }
 
+    public void setPlayerEventCallback(playerEventCallback cb) { mPlayerEventCB = cb; }
     public interface playerEventCallback {
         public void onPlayerEvent(int event, long param);
     }
@@ -53,18 +58,63 @@ public final class player
         }
     }
 
-    private native void nativeInitCallback(int hplayer);
+    private native void nativeInitJniObject(long hplayer);
     //-- for player event callback
 
-    private static native int  nativeOpen (String url, Object surface, int w, int h);
-    private static native void nativeClose(int hplayer);
-    private static native void nativePlay (int hplayer);
-    private static native void nativePause(int hplayer);
-    private static native void nativeSeek (int hplayer, long ms);
-    private static native void nativeSetParam(int hplayer, int id, int value);
-    private static native int  nativeGetParam(int hplayer, int id);
+    //++ for audio playback
+    private AudioTrack mAudioTrack = null;
+    private void audioTrackInit (int buflen) {
+        if (mAudioTrack == null) {
+            mAudioTrack = new AudioTrack(AudioManager.STREAM_MUSIC, 44100, AudioFormat.CHANNEL_CONFIGURATION_STEREO,
+                                         AudioFormat.ENCODING_PCM_16BIT, buflen, AudioTrack.MODE_STREAM);
+        }
+    }
+
+    private void audioTrackClose() {
+        if (mAudioTrack != null) {
+            mAudioTrack.stop();
+            mAudioTrack.release();
+            mAudioTrack = null;
+        }
+    }
+
+    private void audioTrackStart() {
+        if (mAudioTrack != null) {
+            mAudioTrack.play();
+        }
+    }
+
+    private void audioTrackPause() {
+        if (mAudioTrack != null) {
+            mAudioTrack.pause();
+        }
+    }
+
+    private void audioTrackWrite(byte[] data, int offset, int size) {
+        if (mAudioTrack != null) {
+            mAudioTrack.write(data, offset, size);
+        }
+    }
+
+    private void audioTrackFlush() {
+        if (mAudioTrack != null) {
+            mAudioTrack.flush();
+        }
+    }
+    //-- for audio playback
+
+    private static native long nativeOpen (String url, Object surface, int w, int h);
+    private static native void nativeClose(long hplayer);
+    private static native void nativePlay (long hplayer);
+    private static native void nativePause(long hplayer);
+    private static native void nativeSeek (long hplayer, long ms);
+    private static native void nativeSetParam(long hplayer, int id, int value);
+    private static native int  nativeGetParam(long hplayer, int id);
+    private static native void nativeSetDisplayWindow(long hplayer, Object win);
+    private static native void nativeSetDisplayTarget(long hplayer, Object win);
 
     static {
         System.loadLibrary("ffplayer_jni");
     }
 };
+

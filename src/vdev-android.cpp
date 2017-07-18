@@ -1,11 +1,15 @@
 // 包含头文件
+#include <jni.h>
+#include <ui/GraphicBufferMapper.h>
 #include "vdev.h"
 
 extern "C" {
 #include "libavformat/avformat.h"
 }
 
-#include <ui/GraphicBufferMapper.h>
+// for jni
+extern    JavaVM* g_jvm;
+JNIEXPORT JNIEnv* get_jni_env(void);
 
 // 内部常量定义
 #define DEF_VDEV_BUF_NUM        3
@@ -19,7 +23,13 @@ typedef struct
 {
     // common members
     VDEV_COMMON_MEMBERS
+
+    // android natvie window buffer
     ANativeWindowBuffer **bufs;
+
+    // for jni
+    jobject    jobj_player;
+    jmethodID  jmid_callback;
 } VDEVCTXT;
 
 // 内部函数实现
@@ -46,6 +56,7 @@ inline int android_pixfmt_to_ffmpeg_pixfmt(int srcfmt)
 static void* video_render_thread_proc(void *param)
 {
     VDEVCTXT *c = (VDEVCTXT*)param;
+    JNIEnv *env = get_jni_env();
 
     while (!(c->status & VDEV_CLOSE))
     {
@@ -75,7 +86,7 @@ static void* video_render_thread_proc(void *param)
 
         if (!(c->status & (VDEV_PAUSE|VDEV_COMPLETED))) {
             // send play progress event
-            vdev_player_event(c, PLAY_PROGRESS, c->vpts > c->apts ? c->vpts : c->apts);
+            env->CallVoidMethod(c->jobj_player, c->jmid_callback, PLAY_PROGRESS, c->vpts > c->apts ? c->vpts : c->apts);
 
             //++ play completed ++//
             if (c->completed_apts != c->apts || c->completed_vpts != c->vpts) {
@@ -86,7 +97,7 @@ static void* video_render_thread_proc(void *param)
             else if (++c->completed_counter == 50) {
                 av_log(NULL, AV_LOG_INFO, "play completed !\n");
                 c->status |= VDEV_COMPLETED;
-                vdev_player_event(c, PLAY_COMPLETED, 0);
+                env->CallVoidMethod(c->jobj_player, c->jmid_callback, PLAY_COMPLETED, 0);
 
 #if CLEAR_VDEV_WHEN_COMPLETED
                 // todo...
@@ -112,6 +123,9 @@ static void* video_render_thread_proc(void *param)
         }
         else usleep(c->tickframe * 1000);
     }
+
+    // need call DetachCurrentThread
+    g_jvm->DetachCurrentThread();
 
     return NULL;
 }
@@ -177,6 +191,9 @@ void vdev_android_destroy(void *ctxt)
     // todo...
 #endif
 
+    // for jni
+    get_jni_env()->DeleteGlobalRef(c->jobj_player);
+
     // free memory
     free(c->ppts);
     free(c->bufs);
@@ -230,4 +247,12 @@ void vdev_android_setrect(void *ctxt, int x, int y, int w, int h)
     c->refresh_flag  = 1;
 }
 
+void vdev_setjniobj(void *ctxt, JNIEnv *env, jobject obj)
+{
+    if (!ctxt) return;
+    VDEVCTXT *c = (VDEVCTXT*)ctxt;
+    jclass  cls = env->GetObjectClass(obj);
+    c->jobj_player   = env->NewGlobalRef(obj);
+    c->jmid_callback = env->GetMethodID(cls, "internalPlayerEventCallback", "(IJ)V");
+}
 

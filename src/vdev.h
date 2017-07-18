@@ -105,6 +105,10 @@ void  vdev_setrect (void *ctxt, int x, int y, int w, int h);
 }
 #endif
 
+#ifdef ANDROID
+void vdev_setjniobj(void *ctxt, JNIEnv *env, jobject obj);
+#endif
+
 #endif
 
 
