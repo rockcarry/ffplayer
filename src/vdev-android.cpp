@@ -155,7 +155,7 @@ void* vdev_android_create(void *win, int bufnum, int w, int h, int frate)
 
     native_window_set_usage             ((ANativeWindow*)win, VDEV_GRALLOC_USAGE);
     native_window_set_scaling_mode      ((ANativeWindow*)win, NATIVE_WINDOW_SCALING_MODE_SCALE_TO_WINDOW);
-    native_window_set_buffer_count      ((ANativeWindow*)win, bufnum);
+    native_window_set_buffer_count      ((ANativeWindow*)win, bufnum + 1);
     native_window_set_buffers_format    ((ANativeWindow*)win, DEF_WIN_PIX_FMT);
     native_window_set_buffers_dimensions((ANativeWindow*)win, w, h);
 
