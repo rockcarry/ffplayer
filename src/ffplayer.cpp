@@ -50,10 +50,6 @@ typedef struct
     pthread_t        avdemux_thread;
     pthread_t        adecode_thread;
     pthread_t        vdecode_thread;
-
-#ifdef ANDROID
-    sp<ANativeWindow> awin;
-#endif
 } PLAYER;
 
 // 内部常量定义
@@ -409,12 +405,7 @@ static void set_stream_current(PLAYER *player, enum AVMediaType type, int sel) {
 }
 
 // 函数实现
-#ifdef WIN32
 void* player_open(char *file, void *win)
-#endif
-#ifdef ANDROID
-void* player_open(char *file, sp<ANativeWindow> win)
-#endif
 {
     PLAYER       *player  = NULL;
     int           arate   = 0;
@@ -442,7 +433,7 @@ void* player_open(char *file, sp<ANativeWindow> win)
     av_log_set_callback(ffplayer_log_callback);
 
     // alloc player context
-    player = new PLAYER();
+    player = (PLAYER*)calloc(1, sizeof(PLAYER));
 
     // create packet queue
     player->pktqueue = pktqueue_create(0);
@@ -503,18 +494,9 @@ void* player_open(char *file, sp<ANativeWindow> win)
         height  = player->vcodec_context->height;
     }
 
-#ifdef WIN32
     // open render
     player->render = render_open(ADEV_RENDER_TYPE_WAVEOUT, arate, (AVSampleFormat)aformat, alayout,
                                  VDEV_RENDER_TYPE_GDI, win, vrate, vformat, width, height);
-#endif
-
-#ifdef ANDROID
-    player->awin   = win;
-    // open render
-    player->render = render_open(ADEV_RENDER_TYPE_WAVEOUT, arate, (AVSampleFormat)aformat, alayout,
-                                 VDEV_RENDER_TYPE_GDI, win.get(), vrate, vformat, width, height);
-#endif
 
     if (player->vstream_index == -1) {
         int effect = VISUAL_EFFECT_WAVEFORM;
@@ -562,7 +544,7 @@ void player_close(void *hplayer)
     if (player->vcodec_context  ) avcodec_close(player->vcodec_context);
     if (player->avformat_context) avformat_close_input(&player->avformat_context);
 
-    delete player;
+    free(player);
 }
 
 void player_play(void *hplayer)
@@ -749,6 +731,9 @@ void player_getparam(void *hplayer, int id, void *param)
         break;
     case PARAM_SUBTITLE_STREAM_CUR:
         *(int*)param = get_stream_current(player, AVMEDIA_TYPE_SUBTITLE);
+        break;
+    case PARAM_RENDER_GET_CONTEXT:
+        *(void**)param = player->render;
         break;
     default:
         render_getparam(player->render, id, param);

@@ -231,7 +231,7 @@ void adev_reset(void *ctxt)
     JNIEnv *env = get_jni_env();
     if (!ctxt) return;
     ADEV_CONTEXT *c = (ADEV_CONTEXT*)ctxt;
-    while (0 != sem_trywait(&c->semr)) {
+    while (0 == sem_trywait(&c->semr)) {
         sem_post(&c->semw);
     }
     c->head   = 0;

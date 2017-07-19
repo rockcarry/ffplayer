@@ -31,8 +31,8 @@ public final class player
     public static final int PARAM_SUBTITLE_STREAM_CUR   = 0x1000 +16;
 
     private long m_hPlayer = 0;
-    public boolean open(String url, Object surface, int w, int h) {
-        m_hPlayer = nativeOpen(url, surface, w, h);
+    public boolean open(String url) {
+        m_hPlayer = nativeOpen(url, null, 0, 0);
         nativeInitJniObject(m_hPlayer);
         return (m_hPlayer != 0);
     }
@@ -43,6 +43,8 @@ public final class player
     public void seek (long ms)              { nativeSeek (m_hPlayer, ms); }
     public void setParam(int id, int value) { nativeSetParam(m_hPlayer, id, value); }
     public int  getParam(int id)            { return nativeGetParam(m_hPlayer, id); }
+    public void setDisplayWindow (Object window ) { nativeSetDisplayWindow(m_hPlayer, window ); }
+    public void setDisplayTexture(Object texture) { nativeSetDisplayWindow(m_hPlayer, texture); }
 
     public void setPlayerEventCallback(playerEventCallback cb) { mPlayerEventCB = cb; }
     public interface playerEventCallback {

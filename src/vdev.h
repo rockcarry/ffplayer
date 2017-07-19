@@ -106,7 +106,12 @@ void  vdev_setrect (void *ctxt, int x, int y, int w, int h);
 #endif
 
 #ifdef ANDROID
+#include <jni.h>
+#include <gui/Surface.h>
+#include <ui/GraphicBufferMapper.h>
+using namespace android;
 void vdev_setjniobj(void *ctxt, JNIEnv *env, jobject obj);
+void vdev_setwindow(void *ctxt, const sp<IGraphicBufferProducer>& gbp);
 #endif
 
 #endif

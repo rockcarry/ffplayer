@@ -543,6 +543,11 @@ void render_getparam(void *hrender, int id, void *param)
         break;
     case PARAM_RENDER_START_PTS:
         *(int64_t*)param = render->start_pts;
+    case PARAM_ADEV_GET_CONTEXT:
+        *(void**)param = render->adev;
+        break;
+    case PARAM_VDEV_GET_CONTEXT:
+        *(void**)param = render->vdev;
         break;
     }
 }

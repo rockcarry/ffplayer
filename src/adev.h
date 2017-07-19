@@ -33,6 +33,7 @@ void  adev_getparam(void *ctxt, int id, void *param);
 #endif
 
 #ifdef ANDROID
+#include <jni.h>
 void adev_setjniobj(void *ctxt, JNIEnv *env, jobject obj);
 #endif
 

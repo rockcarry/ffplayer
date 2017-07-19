@@ -91,16 +91,19 @@ enum {
     //-- public
 
     //++ for adev
-    PARAM_ADEV_RENDER_TYPE = 0x2000,
+    PARAM_ADEV_GET_CONTEXT = 0x2000,
+    PARAM_ADEV_RENDER_TYPE,
     //-- for adev
 
     //++ for vdev
-    PARAM_VDEV_RENDER_TYPE = 0x3000,
+    PARAM_VDEV_GET_CONTEXT = 0x3000,
+    PARAM_VDEV_RENDER_TYPE,
     PARAM_VDEV_FRAME_RATE,
     //-- for vdev
 
     //++ for render
-    PARAM_RENDER_UPDATE    = 0x4000,
+    PARAM_RENDER_GET_CONTEXT = 0x4000,
+    PARAM_RENDER_UPDATE,
     PARAM_RENDER_START_PTS,
     //-- for render
 };
@@ -270,13 +273,6 @@ player_open("dshow://video=Integrated Camera", hwnd, 0, 0, NULL); // 将以 dsho
 
 #ifdef __cplusplus
 }
-#endif
-
-#ifdef ANDROID
-#include <gui/Surface.h>
-#include <android_runtime/android_view_Surface.h>
-using namespace android;
-void* player_open(char *file, sp<ANativeWindow> win);
 #endif
 
 #endif

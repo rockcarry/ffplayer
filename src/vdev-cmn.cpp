@@ -16,7 +16,7 @@ void vdev_pause(void *ctxt, int pause)
 void vdev_reset(void *ctxt)
 {
     VDEV_COMMON_CTXT *c = (VDEV_COMMON_CTXT*)ctxt;
-    while (0 != sem_trywait(&c->semr)) {
+    while (0 == sem_trywait(&c->semr)) {
         sem_post(&c->semw);
     }
     c->head   = c->tail =  0;

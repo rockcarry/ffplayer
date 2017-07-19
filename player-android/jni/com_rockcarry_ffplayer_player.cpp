@@ -1,8 +1,13 @@
 // 包含头文件
+#include <gui/Surface.h>
+#include <android_runtime/android_view_Surface.h>
+#include <android_runtime/android_graphics_SurfaceTexture.h>
 #include "com_rockcarry_ffplayer_player.h"
 #include "ffplayer.h"
 #include "adev.h"
 #include "vdev.h"
+
+using namespace android;
 
 JavaVM* g_jvm = NULL;
 JNIEXPORT jint JNICALL JNI_OnLoad(JavaVM* vm, void* reserved)
@@ -69,11 +74,7 @@ JNIEXPORT jlong JNICALL Java_com_rockcarry_ffplayer_player_nativeOpen
   (JNIEnv *env, jclass clazz, jstring url, jobject jsurface, jint w, jint h)
 {
     const char *str = env->GetStringUTFChars(url, NULL);
-    sp<ANativeWindow> win;
-    if (jsurface) {
-        win = android_view_Surface_getNativeWindow(env, jsurface).get();
-    }
-    jint hplayer = (jint)player_open((char*)str, win);
+    jint hplayer = (jint)player_open((char*)str, NULL);
     return hplayer;
 }
 
@@ -151,8 +152,19 @@ JNIEXPORT jint JNICALL Java_com_rockcarry_ffplayer_player_nativeGetParam
  * Signature: (JLjava/lang/Object;)V
  */
 JNIEXPORT void JNICALL Java_com_rockcarry_ffplayer_player_nativeSetDisplayWindow
-  (JNIEnv *env, jclass clazz, jlong hplayer, jobject win)
+  (JNIEnv *env, jclass clazz, jlong hplayer, jobject jsurface)
 {
+    void *vdev = NULL;
+    player_getparam((void*)hplayer, PARAM_VDEV_GET_CONTEXT, &vdev);
+    sp<IGraphicBufferProducer> gbp;
+    sp<Surface> surface;
+    if (jsurface) {
+        surface = android_view_Surface_getSurface(env, jsurface);
+        if (surface != NULL) {
+            gbp = surface->getIGraphicBufferProducer();
+        }
+    }
+    vdev_setwindow(vdev, gbp);
 }
 
 /*
@@ -161,10 +173,19 @@ JNIEXPORT void JNICALL Java_com_rockcarry_ffplayer_player_nativeSetDisplayWindow
  * Signature: (JLjava/lang/Object;)V
  */
 JNIEXPORT void JNICALL Java_com_rockcarry_ffplayer_player_nativeSetDisplayTarget
-  (JNIEnv *env, jclass clazz, jlong hplayer, jobject win)
+  (JNIEnv *env, jclass clazz, jlong hplayer, jobject jtexture)
 {
+    void *vdev = NULL;
+    player_getparam((void*)hplayer, PARAM_VDEV_GET_CONTEXT, &vdev);
+    sp<IGraphicBufferProducer> gbp = NULL;
+    if (jtexture != NULL) {
+        gbp = SurfaceTexture_getProducer(env, jtexture);
+        if (gbp == NULL) {
+            ALOGW("SurfaceTexture already released in setPreviewTexture !");
+            return;
+        }
+    }
+    vdev_setwindow(vdev, gbp);
 }
-
-
 
 
