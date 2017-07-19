@@ -31,7 +31,7 @@ extern "C" {
     int       sw;  /* surface width        */ \
     int       sh;  /* surface height       */ \
                                               \
-    void     *pwnd;                           \
+    void     *hwnd;                           \
     int64_t  *ppts;                           \
     int64_t   apts;                           \
     int64_t   vpts;                           \

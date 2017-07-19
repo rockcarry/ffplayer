@@ -152,7 +152,7 @@ void* vdev_android_create(void *win, int bufnum, int w, int h, int frate)
 
     // init vdev context
     bufnum          = bufnum ? bufnum : DEF_VDEV_BUF_NUM;
-    ctxt->pwnd      = win;
+    ctxt->hwnd      = win;
     ctxt->bufnum    = bufnum;
     ctxt->pixfmt    = android_pixfmt_to_ffmpeg_pixfmt(DEF_WIN_PIX_FMT);
     ctxt->w         = w;

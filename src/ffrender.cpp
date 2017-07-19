@@ -309,7 +309,7 @@ void render_video(void *hrender, AVFrame *video)
 
 #if CONFIG_ENABLE_SNAPSHOT
         if (render->render_status & RENDER_SNAPSHOT) {
-            HWND hwnd = (HWND)((VDEV_COMMON_CTXT*)render->vdev)->pwnd;
+            HWND hwnd = (HWND)((VDEV_COMMON_CTXT*)render->vdev)->hwnd;
             int  ret  = take_snapshot(render->snapfile, render->snapwidth, render->snapheight, video);
             PostMessage(hwnd, MSG_FFPLAYER, RENDER_SNAPSHOT, ret);
             render->render_status &= ~RENDER_SNAPSHOT;
@@ -445,7 +445,7 @@ void render_setparam(void *hrender, int id, void *param)
             if (type != vdev->type) {
                 render->vdev = NULL;
                 //++ re-create vdev
-                HWND hwnd      = (HWND)vdev->pwnd;
+                HWND hwnd      = (HWND)vdev->hwnd;
                 int  x         = vdev->x;
                 int  y         = vdev->y;
                 int  w         = vdev->w;

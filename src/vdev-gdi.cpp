@@ -65,7 +65,7 @@ static void* video_render_thread_proc(void *param)
                 vdev_player_event(c, PLAY_COMPLETED, 0);
 
 #if CLEAR_VDEV_WHEN_COMPLETED
-                InvalidateRect((HWND)c->pwnd, NULL, TRUE);
+                InvalidateRect((HWND)c->hwnd, NULL, TRUE);
 #endif
             }
             //-- play completed --//
@@ -103,7 +103,7 @@ void* vdev_gdi_create(void *surface, int bufnum, int w, int h, int frate)
 
     // init vdev context
     bufnum          = bufnum ? bufnum : DEF_VDEV_BUF_NUM;
-    ctxt->pwnd      = surface;
+    ctxt->hwnd      = surface;
     ctxt->bufnum    = bufnum;
     ctxt->pixfmt    = AV_PIX_FMT_RGB32;
     ctxt->w         = w;
@@ -124,7 +124,7 @@ void* vdev_gdi_create(void *surface, int bufnum, int w, int h, int frate)
     sem_init(&ctxt->semr, 0, 0     );
     sem_init(&ctxt->semw, 0, bufnum);
 
-    ctxt->hdcdst = GetDC((HWND)ctxt->pwnd);
+    ctxt->hdcdst = GetDC((HWND)ctxt->hwnd);
     ctxt->hdcsrc = CreateCompatibleDC(ctxt->hdcdst);
     if (!ctxt->ppts || !ctxt->hbitmaps || !ctxt->pbmpbufs || !ctxt->semr || !ctxt->semw || !ctxt->hdcdst || !ctxt->hdcsrc) {
         av_log(NULL, AV_LOG_ERROR, "failed to allocate resources for vdev-gdi !\n");
@@ -148,7 +148,7 @@ void vdev_gdi_destroy(void *ctxt)
 
     //++ for video
     DeleteDC (c->hdcsrc);
-    ReleaseDC((HWND)c->pwnd, c->hdcdst);
+    ReleaseDC((HWND)c->hwnd, c->hdcdst);
     for (i=0; i<c->bufnum; i++) {
         if (c->hbitmaps[i]) {
             DeleteObject(c->hbitmaps[i]);
@@ -162,7 +162,7 @@ void vdev_gdi_destroy(void *ctxt)
 
 #if CLEAR_VDEV_WHEN_DESTROYED
     // clear window to background
-    InvalidateRect((HWND)c->pwnd, NULL, TRUE);
+    InvalidateRect((HWND)c->hwnd, NULL, TRUE);
 #endif
 
     // free memory

@@ -85,7 +85,7 @@ static void* video_render_thread_proc(void *param)
                 vdev_player_event(c, PLAY_COMPLETED, 0);
 
 #if CLEAR_VDEV_WHEN_COMPLETED
-                InvalidateRect((HWND)c->pwnd, NULL, TRUE);
+                InvalidateRect((HWND)c->hwnd, NULL, TRUE);
 #endif
             }
             //-- play completed --//
@@ -123,7 +123,7 @@ void* vdev_d3d_create(void *surface, int bufnum, int w, int h, int frate)
 
     // init vdev context
     bufnum          = bufnum ? bufnum : DEF_VDEV_BUF_NUM;
-    ctxt->pwnd      = surface;
+    ctxt->hwnd      = surface;
     ctxt->bufnum    = bufnum;
     ctxt->w         = w > 1 ? w : 1;
     ctxt->h         = h > 1 ? h : 1;
@@ -158,7 +158,7 @@ void* vdev_d3d_create(void *surface, int bufnum, int w, int h, int frate)
     ctxt->d3dpp.BackBufferHeight      = ctxt->sh;
     ctxt->d3dpp.MultiSampleType       = D3DMULTISAMPLE_NONE;
     ctxt->d3dpp.SwapEffect            = D3DSWAPEFFECT_DISCARD;
-    ctxt->d3dpp.hDeviceWindow         = (HWND)ctxt->pwnd;
+    ctxt->d3dpp.hDeviceWindow         = (HWND)ctxt->hwnd;
     ctxt->d3dpp.Windowed              = TRUE;
     ctxt->d3dpp.EnableAutoDepthStencil= FALSE;
 #if ENABLE_WAIT_D3D_VSYNC
@@ -167,7 +167,7 @@ void* vdev_d3d_create(void *surface, int bufnum, int w, int h, int frate)
     ctxt->d3dpp.PresentationInterval  = D3DPRESENT_INTERVAL_IMMEDIATE;
 #endif
 
-    if (FAILED(ctxt->pD3D9->CreateDevice(D3DADAPTER_DEFAULT, D3DDEVTYPE_HAL, (HWND)ctxt->pwnd,
+    if (FAILED(ctxt->pD3D9->CreateDevice(D3DADAPTER_DEFAULT, D3DDEVTYPE_HAL, (HWND)ctxt->hwnd,
                 D3DCREATE_SOFTWARE_VERTEXPROCESSING, &ctxt->d3dpp, &ctxt->pD3DDev)) )
     {
         av_log(NULL, AV_LOG_ERROR, "failed to create d3d device !\n");
@@ -223,7 +223,7 @@ void vdev_d3d_destroy(void *ctxt)
 
 #if CLEAR_VDEV_WHEN_DESTROYED
     // clear window to background
-    InvalidateRect((HWND)c->pwnd, NULL, TRUE);
+    InvalidateRect((HWND)c->hwnd, NULL, TRUE);
 #endif
 
     // free memory

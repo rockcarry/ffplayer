@@ -73,7 +73,7 @@ void vdev_player_event(void *ctxt, int32_t msg, int64_t param)
 #ifdef WIN32
     else {
         if (msg == PLAY_COMPLETED) {
-            PostMessage((HWND)c->pwnd, MSG_FFPLAYER, PLAY_COMPLETED, 0);
+            PostMessage((HWND)c->hwnd, MSG_FFPLAYER, PLAY_COMPLETED, 0);
         }
     }
 #endif
@@ -86,7 +86,7 @@ void vdev_refresh_background(void *ctxt)
     int  x = c->x, y = c->y, w = c->w, h = c->h;
 
 #ifdef WIN32
-    HWND hwnd = (HWND)c->pwnd;
+    HWND hwnd = (HWND)c->hwnd;
     GetClientRect(hwnd, &rtwin);
     rect1.left = 0;   rect1.top = 0;   rect1.right = rtwin.right; rect1.bottom = y;
     rect2.left = 0;   rect2.top = y;   rect2.right = x;           rect2.bottom = y+h;
