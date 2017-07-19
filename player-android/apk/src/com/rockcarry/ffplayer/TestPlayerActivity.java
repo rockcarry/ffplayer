@@ -1,11 +1,14 @@
 package com.rockcarry.ffplayer;
 
 import android.app.Activity;
+import android.content.Intent;
+import android.net.Uri;
 import android.os.Bundle;
 import android.view.SurfaceHolder;
 import android.view.SurfaceHolder.Callback;
 import android.view.Surface;
 import android.view.SurfaceView;
+import android.widget.Toast;
 
 public class TestPlayerActivity extends Activity {
     private player      mplayer = null;
@@ -17,8 +20,21 @@ public class TestPlayerActivity extends Activity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.main);
 
+        String file   = "/sdcard/test.mp4";
+        Intent intent = getIntent();
+        String action = intent.getAction();
+        if (intent.ACTION_VIEW.equals(action)) {
+            Uri uri = (Uri) intent.getData();
+            file = uri.getPath();
+        }
+
         mplayer = new player();
-        mplayer.open("/sdcard/test.mp4");
+        if (!mplayer.open(file)) {
+            String str = String.format(getString(R.string.open_video_failed), file);
+            Toast.makeText(this, str, Toast.LENGTH_LONG).show();
+//          finish(); return;
+        }
+
         mplayer.setPlayerEventCallback(new player.playerEventCallback() {
             @Override
             public void onPlayerEvent(int event, long param) {
@@ -49,6 +65,7 @@ public class TestPlayerActivity extends Activity {
     @Override
     public void onDestroy() {
         super.onDestroy();
+        mplayer.close();
     }
 
     @Override

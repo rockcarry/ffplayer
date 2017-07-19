@@ -2,5 +2,6 @@
 <resources>
 
     <string name="app_name">TestPlayer</string>
+    <string name="open_video_failed">Failed to open video file: %s !</string>
 
 </resources>
