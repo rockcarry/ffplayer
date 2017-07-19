@@ -302,7 +302,7 @@ void vdev_setwindow(void *ctxt, const sp<IGraphicBufferProducer>& gbp)
     c->win = gbp != NULL ? new Surface(gbp, /*controlledByApp*/ true) : NULL;
     if (c->win) {
         native_window_set_usage             (c->win, VDEV_GRALLOC_USAGE);
-        native_window_set_scaling_mode      (c->win, NATIVE_WINDOW_SCALING_MODE_SCALE_TO_WINDOW);
+        native_window_set_scaling_mode      (c->win, NATIVE_WINDOW_SCALING_MODE_SCALE_CROP);
         native_window_set_buffer_count      (c->win, c->bufnum + 1);
         native_window_set_buffers_format    (c->win, DEF_WIN_PIX_FMT);
         native_window_set_buffers_dimensions(c->win, c->sw, c->sh);
@@ -312,3 +312,11 @@ void vdev_setwindow(void *ctxt, const sp<IGraphicBufferProducer>& gbp)
     c->status &= ~(VDEV_PAUSE_RENDER_REQ0|VDEV_PAUSE_RENDER_REQ1|VDEV_PAUSE_RENDER_ACK);
 }
 
+void vdev_setscalemode(void *ctxt, int mode)
+{
+    if (!ctxt) return;
+    VDEVCTXT *c = (VDEVCTXT*)ctxt;
+    if (c->win) {
+        native_window_set_scaling_mode(c->win, mode);
+    }
+}
