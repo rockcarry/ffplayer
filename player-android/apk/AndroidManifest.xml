@@ -17,7 +17,8 @@
             android:name=".TestPlayerActivity"
             android:label="@string/app_name"
             android:launchMode="singleTask"
-            android:clearTaskOnLaunch="true" >
+            android:clearTaskOnLaunch="true"
+            android:configChanges="keyboardHidden|orientation|screenSize" >
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
