@@ -329,11 +329,3 @@ void vdev_setwindow(void *ctxt, const sp<IGraphicBufferProducer>& gbp)
     c->status &= ~(VDEV_PAUSE_RENDER_REQ0|VDEV_PAUSE_RENDER_REQ1|VDEV_PAUSE_RENDER_ACK);
 }
 
-void vdev_setscalemode(void *ctxt, int mode)
-{
-    if (!ctxt) return;
-    VDEVCTXT *c = (VDEVCTXT*)ctxt;
-    if (c->win) {
-        native_window_set_scaling_mode(c->win, mode);
-    }
-}

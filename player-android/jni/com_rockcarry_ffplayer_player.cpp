@@ -189,16 +189,3 @@ JNIEXPORT void JNICALL Java_com_rockcarry_ffplayer_player_nativeSetDisplayTarget
     vdev_setwindow(vdev, gbp);
 }
 
-/*
- * Class:     com_rockcarry_ffplayer_player
- * Method:    nativeSetDispScaleMode
- * Signature: (JI)V
- */
-JNIEXPORT void JNICALL Java_com_rockcarry_ffplayer_player_nativeSetDispScaleMode
-  (JNIEnv *env, jclass clazz, jlong hplayer, jint mode)
-{
-    void *vdev = NULL;
-    player_getparam((void*)hplayer, PARAM_VDEV_GET_CONTEXT, &vdev);
-    vdev_setscalemode(vdev, mode);
-}
-
