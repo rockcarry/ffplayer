@@ -27,6 +27,7 @@
                 <category android:name="android.intent.category.DEFAULT" />
                 <category android:name="android.intent.category.BROWSABLE" />
                 <data android:scheme="rtsp" />
+                <data android:scheme="rtmp" />
             </intent-filter>
             <intent-filter>
                 <action android:name="android.intent.action.VIEW" />

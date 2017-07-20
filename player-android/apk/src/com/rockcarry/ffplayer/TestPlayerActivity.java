@@ -2,8 +2,10 @@ package com.rockcarry.ffplayer;
 
 import android.app.Activity;
 import android.content.Intent;
+import android.database.Cursor;
 import android.net.Uri;
 import android.os.Bundle;
+import android.provider.MediaStore;
 import android.view.SurfaceHolder;
 import android.view.SurfaceHolder.Callback;
 import android.view.Surface;
@@ -20,17 +22,31 @@ public class TestPlayerActivity extends Activity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.main);
 
-        String file   = "/sdcard/test.mp4";
+        String url    = "/sdcard/test.mp4";
         Intent intent = getIntent();
         String action = intent.getAction();
         if (intent.ACTION_VIEW.equals(action)) {
-            Uri uri = (Uri) intent.getData();
-            file = uri.getPath();
+            Uri    uri    = (Uri) intent.getData();
+            String scheme = uri.getScheme();
+            if (scheme.equals("file")) {
+                url = uri.getPath();
+            } else if (  scheme.equals("http" )
+                      || scheme.equals("https")
+                      || scheme.equals("rtsp" )
+                      || scheme.equals("rtmp" ) ) {
+                url = uri.toString();
+            } else if (scheme.equals("content")) {
+                String[] proj = { MediaStore.Images.Media.DATA };
+                Cursor cursor = managedQuery(uri, proj, null, null, null);
+                int    colidx = cursor.getColumnIndexOrThrow(MediaStore.Images.Media.DATA);
+                cursor.moveToFirst();
+                url = cursor.getString(colidx);
+            }
         }
 
         mplayer = new player();
-        if (!mplayer.open(file)) {
-            String str = String.format(getString(R.string.open_video_failed), file);
+        if (!mplayer.open(url)) {
+            String str = String.format(getString(R.string.open_video_failed), url);
             Toast.makeText(this, str, Toast.LENGTH_LONG).show();
 //          finish(); return;
         }
