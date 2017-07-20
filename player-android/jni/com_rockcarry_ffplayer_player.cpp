@@ -75,6 +75,7 @@ JNIEXPORT jlong JNICALL Java_com_rockcarry_ffplayer_player_nativeOpen
 {
     const char *str = env->GetStringUTFChars(url, NULL);
     jint hplayer = (jint)player_open((char*)str, NULL);
+    env->ReleaseStringUTFChars(url, str);
     return hplayer;
 }
 
