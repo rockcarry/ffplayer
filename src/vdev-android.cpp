@@ -11,7 +11,7 @@ JNIEXPORT JNIEnv* get_jni_env(void);
 
 // 内部常量定义
 #define DEF_VDEV_BUF_NUM        3
-#define DEF_WIN_PIX_FMT         HAL_PIXEL_FORMAT_YCrCb_420_SP // HAL_PIXEL_FORMAT_RGBX_8888 or HAL_PIXEL_FORMAT_YCrCb_420_SP
+#define DEF_WIN_PIX_FMT         HAL_PIXEL_FORMAT_RGBX_8888 // HAL_PIXEL_FORMAT_RGBX_8888 or HAL_PIXEL_FORMAT_YCrCb_420_SP
 #define VDEV_GRALLOC_USAGE      GRALLOC_USAGE_SW_READ_NEVER \
                                     | GRALLOC_USAGE_SW_WRITE_NEVER \
                                     | GRALLOC_USAGE_HW_TEXTURE
@@ -109,10 +109,6 @@ static void* video_render_thread_proc(void *param)
                 av_log(NULL, AV_LOG_INFO, "play completed !\n");
                 c->status |= VDEV_COMPLETED;
                 env->CallVoidMethod(c->jobj_player, c->jmid_callback, PLAY_COMPLETED, 0);
-
-#if CLEAR_VDEV_WHEN_COMPLETED
-                // todo...
-#endif
             }
             //-- play completed --//
 
@@ -202,11 +198,6 @@ void vdev_android_destroy(void *ctxt)
     // close semaphore
     sem_destroy(&c->semr);
     sem_destroy(&c->semw);
-
-#if CLEAR_VDEV_WHEN_DESTROYED
-    // clear window to background
-    // todo...
-#endif
 
     // for jni
     get_jni_env()->DeleteGlobalRef(c->jobj_player);

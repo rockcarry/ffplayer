@@ -97,10 +97,6 @@ void vdev_refresh_background(void *ctxt)
     InvalidateRect(hwnd, &rect3, TRUE);
     InvalidateRect(hwnd, &rect4, TRUE);
 #endif
-
-#ifdef ANDROID
-    // todo...
-#endif
 }
 
 void* vdev_create(int type, void *surface, int bufnum, int w, int h, int frate)
