@@ -139,7 +139,7 @@ void vdev_request(void *ctxt, uint8_t *buffer[8], int linesize[8])
     }
 #endif
 #ifdef ANDROID
-    vdev_android_request(ctxt, buf, linesize);
+    vdev_android_request(ctxt, buffer, linesize);
 #endif
 }
 

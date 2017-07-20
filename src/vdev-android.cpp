@@ -236,15 +236,15 @@ void vdev_android_request(void *ctxt, uint8_t *buffer[8], int linesize[8])
     switch (c->pixfmt) {
     case AV_PIX_FMT_YUV420P:
         buffer  [0] = dst;
-        buffer  [1] = dst + c->sw * c->sh * 1 / 1;
-        buffer  [2] = dst + c->sw * c->sh * 5 / 4;
+        buffer  [2] = dst + c->sw * c->sh * 1 / 1;
+        buffer  [1] = dst + c->sw * c->sh * 5 / 4;
         linesize[0] = c->sw;
         linesize[1] = c->sw / 2;
         linesize[2] = c->sw / 2;
         break;
     case AV_PIX_FMT_NV21:
         buffer  [0] = dst;
-        buffer  [0] = dst + c->sw * c->sh;
+        buffer  [1] = dst + c->sw * c->sh;
         linesize[0] = c->sw;
         linesize[1] = c->sw;
         break;
