@@ -129,17 +129,17 @@ void vdev_destroy(void *ctxt)
 #endif
 }
 
-void vdev_request(void *ctxt, void **buf, int *stride)
+void vdev_request(void *ctxt, uint8_t *buffer[8], int linesize[8])
 {
     VDEV_COMMON_CTXT *c = (VDEV_COMMON_CTXT*)ctxt;
 #ifdef WIN32
     switch (c->type) {
-    case VDEV_RENDER_TYPE_GDI: vdev_gdi_request(ctxt, buf, stride); break;
-    case VDEV_RENDER_TYPE_D3D: vdev_d3d_request(ctxt, buf, stride); break;
+    case VDEV_RENDER_TYPE_GDI: vdev_gdi_request(ctxt, buffer, linesize); break;
+    case VDEV_RENDER_TYPE_D3D: vdev_d3d_request(ctxt, buffer, linesize); break;
     }
 #endif
 #ifdef ANDROID
-    vdev_android_request(ctxt, buf, stride);
+    vdev_android_request(ctxt, buf, linesize);
 #endif
 }
 

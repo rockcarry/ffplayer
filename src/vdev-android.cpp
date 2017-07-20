@@ -11,7 +11,7 @@ JNIEXPORT JNIEnv* get_jni_env(void);
 
 // 内部常量定义
 #define DEF_VDEV_BUF_NUM        3
-#define DEF_WIN_PIX_FMT         HAL_PIXEL_FORMAT_RGBX_8888 // HAL_PIXEL_FORMAT_RGBX_8888 or HAL_PIXEL_FORMAT_YCrCb_420_SP
+#define DEF_WIN_PIX_FMT         HAL_PIXEL_FORMAT_YV12 // HAL_PIXEL_FORMAT_RGBX_8888 or HAL_PIXEL_FORMAT_RGB_565 or HAL_PIXEL_FORMAT_YCrCb_420_SP or HAL_PIXEL_FORMAT_YV12
 #define VDEV_GRALLOC_USAGE      GRALLOC_USAGE_SW_READ_NEVER \
                                     | GRALLOC_USAGE_SW_WRITE_NEVER \
                                     | GRALLOC_USAGE_HW_TEXTURE
@@ -38,6 +38,11 @@ typedef struct
 } VDEVCTXT;
 
 // 内部函数实现
+inline int ALIGN(int x, int y) {
+    // y must be a power of 2.
+    return (x + y - 1) & ~(y - 1);
+}
+
 inline uint64_t get_tick_count(void)
 {
     struct timespec ts;
@@ -153,8 +158,8 @@ void* vdev_android_create(void *win, int bufnum, int w, int h, int frate)
     ctxt->pixfmt    = android_pixfmt_to_ffmpeg_pixfmt(DEF_WIN_PIX_FMT);
     ctxt->w         = w;
     ctxt->h         = h;
-    ctxt->sw        = w;
-    ctxt->sh        = h;
+    ctxt->sw        = ALIGN(w, 16);
+    ctxt->sh        = ALIGN(h, 16);
     ctxt->tickframe = 1000 / frate;
     ctxt->ticksleep = ctxt->tickframe;
     ctxt->apts      = -1;
@@ -208,18 +213,18 @@ void vdev_android_destroy(void *ctxt)
     free(c);
 }
 
-void vdev_android_request(void *ctxt, void **buffer, int *stride)
+void vdev_android_request(void *ctxt, uint8_t *buffer[8], int linesize[8])
 {
     VDEVCTXT *c = (VDEVCTXT*)ctxt;
 
     sem_wait(&c->semw);
     ANativeWindowBuffer *buf = NULL;
-    void                *dst = NULL;
+    uint8_t             *dst = NULL;
     c->bufs[c->tail] = NULL;
     if (c->win && 0 == native_window_dequeue_buffer_and_wait(c->win, &buf)) {
         GraphicBufferMapper &mapper = GraphicBufferMapper::get();
         Rect bounds(buf->width, buf->height);
-        if (0 != mapper.lock(buf->handle, GRALLOC_USAGE_SW_WRITE_OFTEN, bounds, &dst)) {
+        if (0 != mapper.lock(buf->handle, GRALLOC_USAGE_SW_WRITE_OFTEN, bounds, (void**)&dst)) {
             av_log(NULL, AV_LOG_WARNING, "ANativeWindow failed to lock buffer !\n");
         } else {
             c->bufs[c->tail] = buf;
@@ -228,9 +233,30 @@ void vdev_android_request(void *ctxt, void **buffer, int *stride)
         if (c->win) av_log(NULL, AV_LOG_WARNING, "ANativeWindow failed to dequeue buffer !\n");
     }
 
-    if (buffer) *buffer = dst;
-    if (stride) *stride = buf ? buf->width: 0;
-    if (c->pixfmt == AV_PIX_FMT_BGR32) *stride *= 4;
+    switch (c->pixfmt) {
+    case AV_PIX_FMT_YUV420P:
+        buffer  [0] = dst;
+        buffer  [1] = dst + c->sw * c->sh * 1 / 1;
+        buffer  [2] = dst + c->sw * c->sh * 5 / 4;
+        linesize[0] = c->sw;
+        linesize[1] = c->sw / 2;
+        linesize[2] = c->sw / 2;
+        break;
+    case AV_PIX_FMT_NV21:
+        buffer  [0] = dst;
+        buffer  [0] = dst + c->sw * c->sh;
+        linesize[0] = c->sw;
+        linesize[1] = c->sw;
+        break;
+    case AV_PIX_FMT_BGR32:
+        buffer  [0] = dst;
+        linesize[0] = c->sw * 4;
+        break;
+    case AV_PIX_FMT_RGB565:
+        buffer  [0] = dst;
+        linesize[0] = c->sw * 2;
+        break;
+    }
 }
 
 void vdev_android_post(void *ctxt, int64_t pts)
@@ -293,10 +319,10 @@ void vdev_setwindow(void *ctxt, const sp<IGraphicBufferProducer>& gbp)
     c->win = gbp != NULL ? new Surface(gbp, /*controlledByApp*/ true) : NULL;
     if (c->win) {
         native_window_set_usage             (c->win, VDEV_GRALLOC_USAGE);
-        native_window_set_scaling_mode      (c->win, NATIVE_WINDOW_SCALING_MODE_SCALE_CROP);
         native_window_set_buffer_count      (c->win, c->bufnum + 1);
         native_window_set_buffers_format    (c->win, DEF_WIN_PIX_FMT);
         native_window_set_buffers_dimensions(c->win, c->sw, c->sh);
+        native_window_set_scaling_mode      (c->win, NATIVE_WINDOW_SCALING_MODE_SCALE_TO_WINDOW);
     }
 
     // resume render thread

@@ -66,14 +66,14 @@ typedef struct {
 // vdev-gdi
 void* vdev_gdi_create (void *surface, int bufnum, int w, int h, int frate);
 void  vdev_gdi_destroy(void *ctxt);
-void  vdev_gdi_request(void *ctxt, void **buf, int *stride);
+void  vdev_gdi_request(void *ctxt, uint8_t *buffer[8], int linesize[8]);
 void  vdev_gdi_post   (void *ctxt, int64_t pts);
 void  vdev_gdi_setrect(void *ctxt, int x, int y, int w, int h);
 
 // vdev-d3d
 void* vdev_d3d_create (void *surface, int bufnum, int w, int h, int frate);
 void  vdev_d3d_destroy(void *ctxt);
-void  vdev_d3d_request(void *ctxt, void **buf, int *stride);
+void  vdev_d3d_request(void *ctxt, uint8_t *buffer[8], int linesize[8]);
 void  vdev_d3d_post   (void *ctxt, int64_t pts);
 void  vdev_d3d_setrect(void *ctxt, int x, int y, int w, int h);
 #endif
@@ -81,7 +81,7 @@ void  vdev_d3d_setrect(void *ctxt, int x, int y, int w, int h);
 #ifdef ANDROID
 void* vdev_android_create (void *surface, int bufnum, int w, int h, int frate);
 void  vdev_android_destroy(void *ctxt);
-void  vdev_android_request(void *ctxt, void **buf, int *stride);
+void  vdev_android_request(void *ctxt, uint8_t *buffer[8], int linesize[8]);
 void  vdev_android_post   (void *ctxt, int64_t pts);
 void  vdev_android_setrect(void *ctxt, int x, int y, int w, int h);
 #endif
@@ -97,7 +97,7 @@ void  vdev_refresh_background(void *ctxt);
 
 void* vdev_create  (int type, void *surface, int bufnum, int w, int h, int frate);
 void  vdev_destroy (void *ctxt);
-void  vdev_request (void *ctxt, void **buf, int *stride);
+void  vdev_request (void *ctxt, uint8_t *buffer[8], int linesize[8]);
 void  vdev_post    (void *ctxt, int64_t pts);
 void  vdev_setrect (void *ctxt, int x, int y, int w, int h);
 

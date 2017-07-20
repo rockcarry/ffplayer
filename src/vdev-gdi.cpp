@@ -172,7 +172,7 @@ void vdev_gdi_destroy(void *ctxt)
     free(c);
 }
 
-void vdev_gdi_request(void *ctxt, void **buffer, int *stride)
+void vdev_gdi_request(void *ctxt, uint8_t *buffer[8], int linesize[8])
 {
     VDEVGDICTXT *c = (VDEVGDICTXT*)ctxt;
 
@@ -204,8 +204,8 @@ void vdev_gdi_request(void *ctxt, void **buffer, int *stride)
         GetObject(c->hbitmaps[c->tail], sizeof(BITMAP), &bitmap);
     }
 
-    if (buffer) *buffer = c->pbmpbufs[c->tail];
-    if (stride) *stride = bitmap.bmWidthBytes ;
+    if (buffer  ) buffer[0]   = c->pbmpbufs[c->tail];
+    if (linesize) linesize[0] = bitmap.bmWidthBytes ;
 }
 
 void vdev_gdi_post(void *ctxt, int64_t pts)

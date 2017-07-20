@@ -232,7 +232,7 @@ void vdev_d3d_destroy(void *ctxt)
     free(c);
 }
 
-void vdev_d3d_request(void *ctxt, void **buf, int *stride)
+void vdev_d3d_request(void *ctxt, uint8_t *buffer[8], int linesize[8])
 {
     VDEVD3DCTXT *c = (VDEVD3DCTXT*)ctxt;
 
@@ -252,8 +252,8 @@ void vdev_d3d_request(void *ctxt, void **buf, int *stride)
     D3DLOCKED_RECT d3d_rect;
     c->pSurfs[c->tail]->LockRect(&d3d_rect, NULL, D3DLOCK_DISCARD);
 
-    if (buf   ) *buf    = d3d_rect.pBits;
-    if (stride) *stride = d3d_rect.Pitch;
+    if (buffer  ) buffer[0]   = (uint8_t*)d3d_rect.pBits;
+    if (linesize) linesize[0] = d3d_rect.Pitch;
 }
 
 

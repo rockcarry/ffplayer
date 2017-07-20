@@ -257,8 +257,6 @@ void render_video(void *hrender, AVFrame *video)
 {
     RENDER  *render  = (RENDER*)hrender;
     AVFrame  picture;
-    uint8_t *bmpbuf;
-    int      stride;
 
     // init picture
     memset(&picture, 0, sizeof(AVFrame));
@@ -295,14 +293,8 @@ void render_video(void *hrender, AVFrame *video)
             }
         }
 
-        vdev_request(render->vdev, (void**)&bmpbuf, &stride);
-        if (bmpbuf && video->pts != -1) {
-            picture.data[0]     = bmpbuf;
-            picture.linesize[0] = stride;
-            if (((VDEV_COMMON_CTXT*)render->vdev)->pixfmt == AV_PIX_FMT_NV21) {
-                picture.data[1]     = bmpbuf + ((VDEV_COMMON_CTXT*)render->vdev)->sw * ((VDEV_COMMON_CTXT*)render->vdev)->sh;
-                picture.linesize[1] = stride;
-            }
+        vdev_request(render->vdev, picture.data, picture.linesize);
+        if (picture.data[0] && video->pts != -1) {
             sws_scale(render->sws_context, video->data, video->linesize, 0, render->video_height, picture.data, picture.linesize);
         }
         vdev_post(render->vdev, video->pts);
