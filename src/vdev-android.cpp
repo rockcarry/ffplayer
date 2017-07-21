@@ -35,6 +35,7 @@ typedef struct
     // for jni
     jobject    jobj_player;
     jmethodID  jmid_callback;
+    JNIEnv    *thread_jni_env;
 } VDEVCTXT;
 
 // 内部函数实现
@@ -66,7 +67,7 @@ inline int android_pixfmt_to_ffmpeg_pixfmt(int srcfmt)
 static void* video_render_thread_proc(void *param)
 {
     VDEVCTXT *c = (VDEVCTXT*)param;
-    JNIEnv *env = get_jni_env();
+    c->thread_jni_env = get_jni_env();
 
     while (!(c->status & VDEV_CLOSE))
     {
@@ -96,7 +97,7 @@ static void* video_render_thread_proc(void *param)
 
         if (!(c->status & (VDEV_PAUSE|VDEV_COMPLETED))) {
             // send play progress event
-            env->CallVoidMethod(c->jobj_player, c->jmid_callback, PLAY_PROGRESS, c->vpts > c->apts ? c->vpts : c->apts);
+            vdev_player_event(c, PLAY_PROGRESS, c->vpts > c->apts ? c->vpts : c->apts);
 
             //++ play completed ++//
             if (c->completed_apts != c->apts || c->completed_vpts != c->vpts) {
@@ -107,7 +108,8 @@ static void* video_render_thread_proc(void *param)
             else if (++c->completed_counter == 50) {
                 av_log(NULL, AV_LOG_INFO, "play completed !\n");
                 c->status |= VDEV_COMPLETED;
-                env->CallVoidMethod(c->jobj_player, c->jmid_callback, PLAY_COMPLETED, 0);
+                c->vpts    = -2; // means completed
+                vdev_player_event(c, PLAY_COMPLETED, 0);
             }
             //-- play completed --//
 
@@ -174,7 +176,6 @@ void* vdev_android_create(void *win, int bufnum, int w, int h, int frate)
 
 void vdev_android_destroy(void *ctxt)
 {
-    int i;
     VDEVCTXT *c = (VDEVCTXT*)ctxt;
 
     // make visual effect & rendering thread safely exit
@@ -278,7 +279,14 @@ void vdev_android_setrect(void *ctxt, int x, int y, int w, int h)
     c->refresh_flag  = 1;
 }
 
-void vdev_setjniobj(void *ctxt, JNIEnv *env, jobject obj)
+void vdev_android_default_player_callback(void *ctxt, int32_t msg, int64_t param)
+{
+    if (!ctxt) return;
+    VDEVCTXT *c = (VDEVCTXT*)ctxt;
+    c->thread_jni_env->CallVoidMethod(c->jobj_player, c->jmid_callback, msg, param);
+}
+
+void vdev_android_setjniobj(void *ctxt, JNIEnv *env, jobject obj)
 {
     if (!ctxt) return;
     VDEVCTXT *c = (VDEVCTXT*)ctxt;
@@ -287,7 +295,7 @@ void vdev_setjniobj(void *ctxt, JNIEnv *env, jobject obj)
     c->jmid_callback = env->GetMethodID(cls, "internalPlayerEventCallback", "(IJ)V");
 }
 
-void vdev_setwindow(void *ctxt, const sp<IGraphicBufferProducer>& gbp)
+void vdev_android_setwindow(void *ctxt, const sp<IGraphicBufferProducer>& gbp)
 {
     if (!ctxt) return;
     VDEVCTXT *c = (VDEVCTXT*)ctxt;

@@ -64,6 +64,7 @@ public class TestPlayerActivity extends Activity {
 //          finish(); return;
         }
 
+        /*
         mPlayer.setPlayerEventCallback(new player.playerEventCallback() {
             @Override
             public void onPlayerEvent(int event, long param) {
@@ -76,6 +77,7 @@ public class TestPlayerActivity extends Activity {
                 }
             }
         });
+        */
 
         mRoot = (playerRoot )findViewById(R.id.player_root);
         mRoot.setOnSizeChangedListener(new playerRoot.OnSizeChangedListener() {
@@ -133,7 +135,9 @@ public class TestPlayerActivity extends Activity {
             @Override
             public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
                 if (fromUser) {
+                    mHandler.removeMessages(MSG_UPDATE_PROGRESS);
                     mPlayer.seek(progress);
+                    mHandler.sendEmptyMessageDelayed(MSG_UPDATE_PROGRESS, 200);
                 }
             }
             @Override
@@ -219,8 +223,12 @@ public class TestPlayerActivity extends Activity {
             switch (msg.what) {
             case MSG_UPDATE_PROGRESS: {
                     mHandler.sendEmptyMessageDelayed(MSG_UPDATE_PROGRESS, 200);
-                    mSeek.setProgress(mPlayer.getParam(player.PARAM_MEDIA_POSITION));
-                    Log.d("===ck===", "media progress: " + mPlayer.getParam(player.PARAM_MEDIA_POSITION));
+                    int progress = mPlayer.getParam(player.PARAM_MEDIA_POSITION);
+                    switch (progress) {
+                    case -1: break;
+                    case -2: finish(); break;
+                    default: mSeek.setProgress(mPlayer.getParam(player.PARAM_MEDIA_POSITION)); break;
+                    }
                 }
                 break;
             case MSG_HIDE_BUTTONS: {

@@ -61,8 +61,8 @@ JNIEXPORT void JNICALL Java_com_rockcarry_ffplayer_player_nativeInitJniObject
     void *vdev = NULL;
     player_getparam((void*)hplayer, PARAM_ADEV_GET_CONTEXT, &adev);
     player_getparam((void*)hplayer, PARAM_VDEV_GET_CONTEXT, &vdev);
-    adev_setjniobj(adev, env, obj);
-    vdev_setjniobj(vdev, env, obj);
+    adev_android_setjniobj(adev, env, obj);
+    vdev_android_setjniobj(vdev, env, obj);
 }
 
 /*
@@ -165,7 +165,7 @@ JNIEXPORT void JNICALL Java_com_rockcarry_ffplayer_player_nativeSetDisplayWindow
             gbp = surface->getIGraphicBufferProducer();
         }
     }
-    vdev_setwindow(vdev, gbp);
+    vdev_android_setwindow(vdev, gbp);
 }
 
 /*
@@ -186,6 +186,16 @@ JNIEXPORT void JNICALL Java_com_rockcarry_ffplayer_player_nativeSetDisplayTarget
             return;
         }
     }
-    vdev_setwindow(vdev, gbp);
+    vdev_android_setwindow(vdev, gbp);
 }
 
+/*
+ * Class:     com_rockcarry_ffplayer_player
+ * Method:    nativeEnableCallback
+ * Signature: (JI)V
+ */
+JNIEXPORT void JNICALL Java_com_rockcarry_ffplayer_player_nativeEnableCallback
+  (JNIEnv *env, jclass clazz, jlong hplayer, jint enable)
+{
+    player_setparam((void*)hplayer, PARAM_PLAYER_CALLBACK, (void*)(enable ? vdev_android_default_player_callback : NULL));
+}

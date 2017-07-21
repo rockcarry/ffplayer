@@ -16,10 +16,12 @@ void vdev_pause(void *ctxt, int pause)
 void vdev_reset(void *ctxt)
 {
     VDEV_COMMON_CTXT *c = (VDEV_COMMON_CTXT*)ctxt;
+#if 0 //++ no need to reset vdev buffer queue
     while (0 == sem_trywait(&c->semr)) {
         sem_post(&c->semw);
     }
     c->head   = c->tail =  0;
+#endif//-- no need to reset vdev buffer queue
     c->apts   = c->vpts = -1;
     c->status = 0;
 }
@@ -68,7 +70,7 @@ void vdev_player_event(void *ctxt, int32_t msg, int64_t param)
 {
     VDEV_COMMON_CTXT *c = (VDEV_COMMON_CTXT*)ctxt;
     if (c->fpcb) {
-        c->fpcb(msg, param);
+        c->fpcb(c, msg, param);
     }
 #ifdef WIN32
     else {

@@ -109,7 +109,7 @@ enum {
 };
 
 // player event callback
-typedef void (*PFN_PLAYER_CALLBACK)(int32_t msg, int64_t param);
+typedef void (*PFN_PLAYER_CALLBACK)(void *vdev, int32_t msg, int64_t param);
 
 // 函数声明
 void* player_open    (char *file, void *win);
@@ -232,7 +232,7 @@ player_setparam(g_hplayer, PARAM_AVSYNC_TIME_DIFF, &diff);
 
 PARAM_PLAYER_CALLBACK
 用于设置播放器事件回调函数，回调函数的原型定义如下：
-typedef void (*PFN_PLAYER_CALLBACK)(__int32 msg, __int64 param);
+typedef void (*PFN_PLAYER_CALLBACK)(void *vdev, __int32 msg, __int64 param);
 回调时的参数定义如下：
     msg   - PLAY_PROGRESS 播放进行中，PLAY_COMPLETED 播放完成
     param - 当前播放进度，以毫秒为单位

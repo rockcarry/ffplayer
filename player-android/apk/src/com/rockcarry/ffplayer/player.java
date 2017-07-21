@@ -60,6 +60,7 @@ public final class player
         if (mPlayerEventCB != null) {
             mPlayerEventCB.onPlayerEvent(event, param);
         }
+        nativeEnableCallback(m_hPlayer, mPlayerEventCB != null ? 1 : 0);
     }
 
     private native void nativeInitJniObject(long hplayer);
@@ -117,6 +118,7 @@ public final class player
     private static native void nativeSetDisplayWindow(long hplayer, Object win);
     private static native void nativeSetDisplayTarget(long hplayer, Object win);
     private static native void nativeSetDispScaleMode(long hplayer, int mode  );
+    private static native void nativeEnableCallback  (long hplayer, int enable);
 
     static {
         System.loadLibrary("ffplayer_jni");
