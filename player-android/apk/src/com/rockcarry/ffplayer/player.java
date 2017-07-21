@@ -10,8 +10,8 @@ public final class player
     public static final int SCALING_MODE_SCALE_CROP      = 2;
     public static final int SCALING_MODE_NO_SCALE_CROP   = 3;
 
-    public static final int EVENT_PLAY_PROGRESS          = 0;
-    public static final int EVENT_PLAY_COMPLETED         = 1;
+    public static final int EVENT_PLAY_PROGRESS          = (('R' << 24) | ('U' << 16) | ('N' << 8) | (' ' << 0));
+    public static final int EVENT_PLAY_COMPLETED         = (('E' << 24) | ('N' << 16) | ('D' << 8) | (' ' << 0));
 
     public static final int PARAM_MEDIA_DURATION         = 0x1000 + 0;
     public static final int PARAM_MEDIA_POSITION         = 0x1000 + 1;

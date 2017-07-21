@@ -4,9 +4,29 @@
     android:layout_height="fill_parent"
     android:orientation="vertical" >
 
-    <SurfaceView
-        android:id="@+id/video_view"
+    <com.rockcarry.ffplayer.playerRoot
+        android:id="@+id/player_root"
         android:layout_width="fill_parent"
-        android:layout_height="fill_parent" />
+        android:layout_height="fill_parent" >
+        <SurfaceView
+            android:id="@+id/video_view"
+            android:layout_width="fill_parent"
+            android:layout_height="fill_parent"
+            android:layout_centerInParent="true" />
+        <SeekBar
+            android:id="@+id/seek_bar"
+            android:layout_width="fill_parent"
+            android:layout_height="wrap_content"
+            android:layout_alignParentBottom="true"
+            android:alpha="0.5" />
+        <ImageView
+            android:id="@+id/btn_playpause"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_centerInParent="true"
+            android:src="@drawable/icn_media_pause"
+            android:alpha="0.5"
+            />
+    </com.rockcarry.ffplayer.playerRoot>
 
 </LinearLayout>
