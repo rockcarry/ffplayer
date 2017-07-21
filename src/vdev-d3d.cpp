@@ -69,7 +69,7 @@ static void* video_render_thread_proc(void *param)
         if (++c->head == c->bufnum) c->head = 0;
         sem_post(&c->semw);
 
-        if (!(c->status & VDEV_PAUSE)) {
+        if (!(c->status & (VDEV_PAUSE|VDEV_COMPLETED))) {
             // send play progress event
             vdev_player_event(c, PLAY_PROGRESS, c->vpts > c->apts ? c->vpts : c->apts);
 
@@ -79,7 +79,7 @@ static void* video_render_thread_proc(void *param)
                 c->completed_vpts = c->vpts;
                 c->completed_counter = 0;
             }
-            else if (!(c->status & VDEV_PAUSE) && ++c->completed_counter == 50) {
+            else if (++c->completed_counter == 50) {
                 av_log(NULL, AV_LOG_INFO, "play completed !\n");
                 c->status |= VDEV_COMPLETED;
                 vdev_player_event(c, PLAY_COMPLETED, 0);
@@ -269,7 +269,8 @@ void vdev_d3d_post(void *ctxt, int64_t pts)
 void vdev_d3d_setrect(void *ctxt, int x, int y, int w, int h)
 {
     VDEV_COMMON_CTXT *c = (VDEV_COMMON_CTXT*)ctxt;
-    c->x = x; c->y = y;
-    c->w = w; c->h = h;
-    c->refresh_flag= 1;
+    c->x  = x; c->y  = y;
+    c->w  = w; c->h  = h;
+//  c->sw = w; c->sh = h; // remove for d3d vdev
+    c->refresh_flag  = 1;
 }
