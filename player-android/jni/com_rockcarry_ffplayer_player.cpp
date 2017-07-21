@@ -126,10 +126,10 @@ JNIEXPORT void JNICALL Java_com_rockcarry_ffplayer_player_nativeSeek
 /*
  * Class:     com_rockcarry_ffplayer_player
  * Method:    nativeSetParam
- * Signature: (JII)V
+ * Signature: (JIJ)V
  */
 JNIEXPORT void JNICALL Java_com_rockcarry_ffplayer_player_nativeSetParam
-  (JNIEnv *env, jclass clazz, jlong hplayer, jint id, jint value)
+  (JNIEnv *env, jclass clazz, jlong hplayer, jint id, jlong value)
 {
     player_setparam((void*)hplayer, id, &value);
 }
@@ -137,12 +137,12 @@ JNIEXPORT void JNICALL Java_com_rockcarry_ffplayer_player_nativeSetParam
 /*
  * Class:     com_rockcarry_ffplayer_player
  * Method:    nativeGetParam
- * Signature: (II)I
+ * Signature: (II)J
  */
-JNIEXPORT jint JNICALL Java_com_rockcarry_ffplayer_player_nativeGetParam
+JNIEXPORT jlong JNICALL Java_com_rockcarry_ffplayer_player_nativeGetParam
   (JNIEnv *env, jclass clazz, jlong hplayer, jint id)
 {
-    int value = 0;
+    jlong value = 0;
     player_getparam((void*)hplayer, id, &value);
     return value;
 }

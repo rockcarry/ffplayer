@@ -108,7 +108,6 @@ static void* video_render_thread_proc(void *param)
             else if (++c->completed_counter == 50) {
                 av_log(NULL, AV_LOG_INFO, "play completed !\n");
                 c->status |= VDEV_COMPLETED;
-                c->vpts    = -2; // means completed
                 vdev_player_event(c, PLAY_COMPLETED, 0);
             }
             //-- play completed --//

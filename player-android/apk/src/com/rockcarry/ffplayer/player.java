@@ -38,12 +38,12 @@ public final class player
         return (m_hPlayer != 0);
     }
 
-    public void close()                     { nativeClose(m_hPlayer);     }
-    public void play ()                     { nativePlay (m_hPlayer);     }
-    public void pause()                     { nativePause(m_hPlayer);     }
-    public void seek (long ms)              { nativeSeek (m_hPlayer, ms); }
-    public void setParam(int id, int value) { nativeSetParam(m_hPlayer, id, value); }
-    public int  getParam(int id)            { return nativeGetParam(m_hPlayer, id); }
+    public void close()                      { nativeClose(m_hPlayer);     }
+    public void play ()                      { nativePlay (m_hPlayer);     }
+    public void pause()                      { nativePause(m_hPlayer);     }
+    public void seek (long ms)               { nativeSeek (m_hPlayer, ms); }
+    public void setParam(int id, long value) { nativeSetParam(m_hPlayer, id, value); }
+    public long getParam(int id)             { return nativeGetParam(m_hPlayer, id); }
     public void setDisplayWindow (Object window ) { nativeSetDisplayWindow(m_hPlayer, window ); }
     public void setDisplayTexture(Object texture) { nativeSetDisplayWindow(m_hPlayer, texture); }
     public void setDispScaleMode (int    mode   ) { nativeSetDispScaleMode(m_hPlayer, mode   ); }
@@ -113,8 +113,8 @@ public final class player
     private static native void nativePlay (long hplayer);
     private static native void nativePause(long hplayer);
     private static native void nativeSeek (long hplayer, long ms);
-    private static native void nativeSetParam(long hplayer, int id, int value);
-    private static native int  nativeGetParam(long hplayer, int id);
+    private static native void nativeSetParam(long hplayer, int id, long value);
+    private static native long nativeGetParam(long hplayer, int id);
     private static native void nativeSetDisplayWindow(long hplayer, Object win);
     private static native void nativeSetDisplayTarget(long hplayer, Object win);
     private static native void nativeSetDispScaleMode(long hplayer, int mode  );

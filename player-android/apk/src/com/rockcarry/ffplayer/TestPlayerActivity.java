@@ -86,8 +86,8 @@ public class TestPlayerActivity extends Activity {
                 int rw = w; // root width
                 int rh = h; // root height
 
-                int vw = mPlayer.getParam(player.PARAM_VIDEO_WIDTH ); // video width
-                int vh = mPlayer.getParam(player.PARAM_VIDEO_HEIGHT); // video height
+                int vw = (int)mPlayer.getParam(player.PARAM_VIDEO_WIDTH ); // video width
+                int vh = (int)mPlayer.getParam(player.PARAM_VIDEO_HEIGHT); // video height
 
                 int sw, sh; // scale width & height
                 if (rw * vh < vw * rh) {
@@ -130,7 +130,7 @@ public class TestPlayerActivity extends Activity {
         );
 
         mSeek = (SeekBar)findViewById(R.id.seek_bar);
-        mSeek.setMax(mPlayer.getParam(player.PARAM_MEDIA_DURATION));
+        mSeek.setMax((int)mPlayer.getParam(player.PARAM_MEDIA_DURATION));
         mSeek.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
             @Override
             public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
@@ -223,11 +223,11 @@ public class TestPlayerActivity extends Activity {
             switch (msg.what) {
             case MSG_UPDATE_PROGRESS: {
                     mHandler.sendEmptyMessageDelayed(MSG_UPDATE_PROGRESS, 200);
-                    int progress = mPlayer.getParam(player.PARAM_MEDIA_POSITION);
+                    int progress = (int)mPlayer.getParam(player.PARAM_MEDIA_POSITION);
                     switch (progress) {
                     case -1: break;
                     case -2: finish(); break;
-                    default: mSeek.setProgress(mPlayer.getParam(player.PARAM_MEDIA_POSITION)); break;
+                    default: mSeek.setProgress(progress); break;
                     }
                 }
                 break;

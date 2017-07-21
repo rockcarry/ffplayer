@@ -8,15 +8,15 @@
 
 // 内部类型定义
 typedef struct {
-    long       fsize;
-    long       asize;
-    long       vsize;
-    long       fhead;
-    long       ftail;
-    long       ahead;
-    long       atail;
-    long       vhead;
-    long       vtail;
+    int        fsize;
+    int        asize;
+    int        vsize;
+    int        fhead;
+    int        ftail;
+    int        ahead;
+    int        atail;
+    int        vhead;
+    int        vtail;
     sem_t      fsem;
     sem_t      asem;
     sem_t      vsem;

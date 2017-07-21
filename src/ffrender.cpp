@@ -493,7 +493,9 @@ void render_getparam(void *hrender, int id, void *param)
     switch (id)
     {
     case PARAM_MEDIA_POSITION:
-        {
+        if (((VDEV_COMMON_CTXT*)render->vdev)->status & VDEV_COMPLETED) {
+            *(int64_t*)param  = -2; // means completed
+        } else {
             int64_t *papts, *pvpts;
             vdev_getavpts(render->vdev, &papts, &pvpts);
             *(int64_t*)param  = *papts > *pvpts ? *papts : *pvpts;
