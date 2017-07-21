@@ -18,14 +18,14 @@
             android:layout_width="fill_parent"
             android:layout_height="wrap_content"
             android:layout_alignParentBottom="true"
-            android:alpha="0.5" />
+            android:alpha="0.8" />
         <ImageView
             android:id="@+id/btn_playpause"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_centerInParent="true"
             android:src="@drawable/icn_media_pause"
-            android:alpha="0.5"
+            android:alpha="0.8"
             />
     </com.rockcarry.ffplayer.playerRoot>
 
