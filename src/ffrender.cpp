@@ -289,7 +289,7 @@ void render_video(void *hrender, AVFrame *video)
                 render->sws_context = sws_getContext(
                     render->video_width, render->video_height, render->pixel_fmt,
                     swnew, shnew, (AVPixelFormat)((VDEV_COMMON_CTXT*)render->vdev)->pixfmt,
-                    SWS_BILINEAR, 0, 0, 0);
+                    SWS_FAST_BILINEAR, 0, 0, 0);
             }
         }
 
@@ -450,7 +450,7 @@ void render_setparam(void *hrender, int id, void *param)
                 render->sws_context = sws_getContext(
                     render->video_width, render->video_height, render->pixel_fmt,
                     vdev->sw, vdev->sh, (AVPixelFormat)vdev->pixfmt,
-                    SWS_BILINEAR, 0, 0, 0);
+                    SWS_FAST_BILINEAR, 0, 0, 0);
                 //-- re-create sws
             }
         }
@@ -480,7 +480,7 @@ void render_setparam(void *hrender, int id, void *param)
             render->sws_context = sws_getContext(
                 render->video_width, render->video_height, render->pixel_fmt,
                 vdev->sw, vdev->sh, (AVPixelFormat)vdev->pixfmt,
-                SWS_BILINEAR, 0, 0, 0);
+                SWS_FAST_BILINEAR, 0, 0, 0);
             //-- re-create sws
         }
         break;
