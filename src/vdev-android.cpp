@@ -76,7 +76,13 @@ static void* video_render_thread_proc(void *param)
             usleep(10000); continue;
         }
 
-        sem_wait(&c->semr);
+        struct timespec ts;
+        clock_gettime(CLOCK_REALTIME, &ts);
+        ts.tv_nsec += c->tickframe * 1000000L;
+        ts.tv_sec  += ts.tv_nsec / 1000000000L;
+        ts.tv_nsec %= 1000000000L;
+        if (0 != sem_timedwait(&c->semr, &ts)) { continue; }
+
         int64_t apts = c->apts;
         int64_t vpts = c->vpts = c->ppts[c->head];
 #if CLEAR_VDEV_WHEN_COMPLETED
@@ -178,7 +184,6 @@ void vdev_android_destroy(void *ctxt)
 
     // make visual effect & rendering thread safely exit
     c->status = VDEV_CLOSE;
-    sem_post(&c->semr);
     pthread_join(c->thread, NULL);
 
     //++ destroy android native window and buffers
@@ -188,7 +193,7 @@ void vdev_android_destroy(void *ctxt)
             c->bufs[c->head] = NULL;
         }
         if (++c->head == c->bufnum) c->head = 0;
-//      sem_post(&c->semw);
+        sem_post(&c->semw);
     }
     if (c->win) delete c->win;
     //-- destroy android native window and buffers
@@ -311,7 +316,10 @@ void vdev_android_setwindow(void *ctxt, const sp<IGraphicBufferProducer>& gbp)
     }
 
     // delete old native window
-    if (c->win) delete c->win;
+    if (c->win) {
+        sp<ANativeWindow> win = c->win;
+//      delete c->win;
+    }
 
     // create new native window
     c->win = gbp != NULL ? new Surface(gbp, /*controlledByApp*/ true) : NULL;
