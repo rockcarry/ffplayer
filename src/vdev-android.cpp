@@ -133,7 +133,6 @@ static void* video_render_thread_proc(void *param)
 
     // need call DetachCurrentThread
     g_jvm->DetachCurrentThread();
-
     return NULL;
 }
 

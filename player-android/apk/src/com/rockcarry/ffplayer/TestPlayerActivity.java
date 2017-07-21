@@ -88,6 +88,7 @@ public class TestPlayerActivity extends Activity {
 
                 int vw = (int)mPlayer.getParam(player.PARAM_VIDEO_WIDTH ); // video width
                 int vh = (int)mPlayer.getParam(player.PARAM_VIDEO_HEIGHT); // video height
+                if (vw == 0 || vh == 0) return;
 
                 int sw, sh; // scale width & height
                 if (rw * vh < vw * rh) {
