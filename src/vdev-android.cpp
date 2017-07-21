@@ -215,9 +215,8 @@ void vdev_android_request(void *ctxt, uint8_t *buffer[8], int linesize[8])
     uint8_t             *dst = NULL;
     c->bufs[c->tail] = NULL;
     if (c->win && 0 == native_window_dequeue_buffer_and_wait(c->win, &buf)) {
-        GraphicBufferMapper &mapper = GraphicBufferMapper::get();
         Rect bounds(buf->width, buf->height);
-        if (0 != mapper.lock(buf->handle, GRALLOC_USAGE_SW_WRITE_OFTEN, bounds, (void**)&dst)) {
+        if (0 != GraphicBufferMapper::get().lock(buf->handle, GRALLOC_USAGE_SW_WRITE_OFTEN, bounds, (void**)&dst)) {
             av_log(NULL, AV_LOG_WARNING, "ANativeWindow failed to lock buffer !\n");
         } else {
             c->bufs[c->tail] = buf;
@@ -256,9 +255,8 @@ void vdev_android_post(void *ctxt, int64_t pts)
 {
     VDEVCTXT *c = (VDEVCTXT*)ctxt;
 
-    ANativeWindowBuffer *buf    = c->bufs[c->tail];
-    GraphicBufferMapper &mapper = GraphicBufferMapper::get();
-    if (buf) mapper.unlock(buf->handle);
+    ANativeWindowBuffer *buf = c->bufs[c->tail];
+    if (buf) GraphicBufferMapper::get().unlock(buf->handle);
 
     c->ppts[c->tail] = pts;
     if (++c->tail == c->bufnum) c->tail = 0;
