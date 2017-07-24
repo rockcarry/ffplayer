@@ -44,6 +44,9 @@ cd ffmpeg
 --enable-gpl \
 --enable-version3 \
 --enable-nonfree \
+--enable-jni \
+--enable-mediacodec \
+--enable-decoder=h264_mediacodec \
 --extra-cflags="$CFLAGS $EXTRA_CFLAGS" \
 --extra-ldflags="$EXTRA_LDFLAGS"
 make -j8 && make install
