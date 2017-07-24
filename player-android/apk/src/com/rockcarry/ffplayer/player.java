@@ -44,9 +44,9 @@ public final class player
     public void seek (long ms)               { nativeSeek (m_hPlayer, ms); }
     public void setParam(int id, long value) { nativeSetParam(m_hPlayer, id, value); }
     public long getParam(int id)             { return nativeGetParam(m_hPlayer, id); }
-    public void setDisplayWindow (Object window ) { nativeSetDisplayWindow(m_hPlayer, window ); }
-    public void setDisplayTexture(Object texture) { nativeSetDisplayWindow(m_hPlayer, texture); }
-    public void setDispScaleMode (int    mode   ) { nativeSetDispScaleMode(m_hPlayer, mode   ); }
+    public void setDisplaySurface(Object surface) { nativeSetDisplaySurface(m_hPlayer, surface); }
+    public void setDisplayTexture(Object texture) { nativeSetDisplayTexture(m_hPlayer, texture); }
+    public void setDispScaleMode (int    mode   ) { nativeSetDispScaleMode(m_hPlayer, mode    ); }
 
     public void setPlayerEventCallback(playerEventCallback cb) { mPlayerEventCB = cb; }
     public interface playerEventCallback {
@@ -68,7 +68,7 @@ public final class player
 
     //++ for audio playback
     private AudioTrack mAudioTrack = null;
-    private void audioTrackInit (int buflen) {
+    private void audioTrackInit(int buflen) {
         if (mAudioTrack == null) {
             mAudioTrack = new AudioTrack(AudioManager.STREAM_MUSIC, 44100, AudioFormat.CHANNEL_CONFIGURATION_STEREO,
                                          AudioFormat.ENCODING_PCM_16BIT, buflen, AudioTrack.MODE_STREAM);
@@ -115,8 +115,8 @@ public final class player
     private static native void nativeSeek (long hplayer, long ms);
     private static native void nativeSetParam(long hplayer, int id, long value);
     private static native long nativeGetParam(long hplayer, int id);
-    private static native void nativeSetDisplayWindow(long hplayer, Object win);
-    private static native void nativeSetDisplayTarget(long hplayer, Object win);
+    private static native void nativeSetDisplaySurface(long hplayer, Object surf);
+    private static native void nativeSetDisplayTexture(long hplayer, Object text);
     private static native void nativeSetDispScaleMode(long hplayer, int mode  );
     private static native void nativeEnableCallback  (long hplayer, int enable);
 

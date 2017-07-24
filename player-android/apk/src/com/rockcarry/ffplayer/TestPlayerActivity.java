@@ -120,12 +120,12 @@ public class TestPlayerActivity extends Activity {
 
                 @Override
                 public void surfaceCreated(SurfaceHolder holder) {
-                    mPlayer.setDisplayWindow(holder.getSurface());
+                    mPlayer.setDisplaySurface(holder.getSurface());
                 }
 
                 @Override
                 public void surfaceDestroyed(SurfaceHolder holder) {
-                    mPlayer.setDisplayWindow(null);
+                    mPlayer.setDisplaySurface(null);
                 }
             }
         );

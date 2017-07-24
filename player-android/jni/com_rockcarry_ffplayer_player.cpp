@@ -156,10 +156,10 @@ JNIEXPORT jlong JNICALL Java_com_rockcarry_ffplayer_player_nativeGetParam
 
 /*
  * Class:     com_rockcarry_ffplayer_player
- * Method:    nativeSetDisplayWindow
+ * Method:    nativeSetDisplaySurface
  * Signature: (JLjava/lang/Object;)V
  */
-JNIEXPORT void JNICALL Java_com_rockcarry_ffplayer_player_nativeSetDisplayWindow
+JNIEXPORT void JNICALL Java_com_rockcarry_ffplayer_player_nativeSetDisplaySurface
   (JNIEnv *env, jclass clazz, jlong hplayer, jobject jsurface)
 {
     void *vdev = NULL;
@@ -177,10 +177,10 @@ JNIEXPORT void JNICALL Java_com_rockcarry_ffplayer_player_nativeSetDisplayWindow
 
 /*
  * Class:     com_rockcarry_ffplayer_player
- * Method:    nativeSetDisplayTarget
+ * Method:    nativeSetDisplayTexture
  * Signature: (JLjava/lang/Object;)V
  */
-JNIEXPORT void JNICALL Java_com_rockcarry_ffplayer_player_nativeSetDisplayTarget
+JNIEXPORT void JNICALL Java_com_rockcarry_ffplayer_player_nativeSetDisplayTexture
   (JNIEnv *env, jclass clazz, jlong hplayer, jobject jtexture)
 {
     void *vdev = NULL;
