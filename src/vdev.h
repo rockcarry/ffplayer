@@ -111,7 +111,7 @@ void  vdev_setrect (void *ctxt, int x, int y, int w, int h);
 #include <ui/GraphicBufferMapper.h>
 using namespace android;
 void vdev_android_default_player_callback(void *ctxt, int32_t msg, int64_t param);
-void vdev_android_setjniobj(void *ctxt, JNIEnv *env, jobject obj);
+void vdev_android_initjni  (void *ctxt, JNIEnv *env, jobject obj);
 void vdev_android_setwindow(void *ctxt, const sp<IGraphicBufferProducer>& gbp);
 #endif
 

@@ -9,6 +9,11 @@
 
 using namespace android;
 
+
+// this function defined in libavcodec/jni.h
+extern "C" int av_jni_set_java_vm(void *vm, void *log_ctx);
+
+
 JavaVM* g_jvm = NULL;
 JNIEXPORT jint JNICALL JNI_OnLoad(JavaVM* vm, void* reserved)
 {
@@ -22,6 +27,8 @@ JNIEXPORT jint JNICALL JNI_OnLoad(JavaVM* vm, void* reserved)
 
     // for g_jvm
     g_jvm = vm;
+
+    av_jni_set_java_vm(vm, NULL);
 
     return JNI_VERSION_1_4;
 }
@@ -61,8 +68,8 @@ JNIEXPORT void JNICALL Java_com_rockcarry_ffplayer_player_nativeInitJniObject
     void *vdev = NULL;
     player_getparam((void*)hplayer, PARAM_ADEV_GET_CONTEXT, &adev);
     player_getparam((void*)hplayer, PARAM_VDEV_GET_CONTEXT, &vdev);
-    adev_android_setjniobj(adev, env, obj);
-    vdev_android_setjniobj(vdev, env, obj);
+    adev_android_initjni(adev, env, obj);
+    vdev_android_initjni(vdev, env, obj);
 }
 
 /*

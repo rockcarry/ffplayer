@@ -288,7 +288,7 @@ void adev_getparam(void *ctxt, int id, void *param)
     }
 }
 
-void adev_android_setjniobj(void *ctxt, JNIEnv *env, jobject obj)
+void adev_android_initjni(void *ctxt, JNIEnv *env, jobject obj)
 {
     if (!ctxt) return;
     ADEV_CONTEXT  *c = (ADEV_CONTEXT*)ctxt;

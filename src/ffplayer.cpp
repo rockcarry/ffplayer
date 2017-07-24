@@ -332,7 +332,12 @@ static int reinit_stream(PLAYER *player, enum AVMediaType type, int sel) {
 
         // reopen codec
         if (lastctxt) avcodec_close(lastctxt);
-        decoder = avcodec_find_decoder(player->vcodec_context->codec_id);
+        if (AV_CODEC_ID_H264 == player->vcodec_context->codec_id) {
+            decoder = avcodec_find_decoder_by_name("h264_mediacodec");
+        }
+        if (!decoder) {
+            decoder = avcodec_find_decoder(player->vcodec_context->codec_id);
+        }
         if (decoder && avcodec_open2(player->vcodec_context, decoder, NULL) == 0) {
             player->vstream_index = idx;
         }

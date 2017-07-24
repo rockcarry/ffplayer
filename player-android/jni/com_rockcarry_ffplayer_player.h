@@ -6,7 +6,7 @@
 #define _Included_com_rockcarry_ffplayer_player
 
 
-extern JavaVM* g_jvm;
+extern JavaVM *g_jvm;
 JNIEXPORT jint JNICALL JNI_OnLoad(JavaVM*, void*);
 JNIEXPORT JNIEnv* get_jni_env(void);
 

@@ -11,7 +11,7 @@ JNIEXPORT JNIEnv* get_jni_env(void);
 
 // 内部常量定义
 #define DEF_VDEV_BUF_NUM        3
-#define DEF_WIN_PIX_FMT         HAL_PIXEL_FORMAT_YV12 // HAL_PIXEL_FORMAT_RGBX_8888 or HAL_PIXEL_FORMAT_RGB_565 or HAL_PIXEL_FORMAT_YCrCb_420_SP or HAL_PIXEL_FORMAT_YV12
+#define DEF_WIN_PIX_FMT         HAL_PIXEL_FORMAT_RGBX_8888 // HAL_PIXEL_FORMAT_RGBX_8888 or HAL_PIXEL_FORMAT_RGB_565 or HAL_PIXEL_FORMAT_YCrCb_420_SP or HAL_PIXEL_FORMAT_YV12
 #define VDEV_GRALLOC_USAGE      GRALLOC_USAGE_SW_READ_NEVER \
                                     | GRALLOC_USAGE_SW_WRITE_NEVER \
                                     | GRALLOC_USAGE_HW_TEXTURE
@@ -287,7 +287,7 @@ void vdev_android_default_player_callback(void *ctxt, int32_t msg, int64_t param
     c->thread_jni_env->CallVoidMethod(c->jobj_player, c->jmid_callback, msg, param);
 }
 
-void vdev_android_setjniobj(void *ctxt, JNIEnv *env, jobject obj)
+void vdev_android_initjni(void *ctxt, JNIEnv *env, jobject obj)
 {
     if (!ctxt) return;
     VDEVCTXT *c = (VDEVCTXT*)ctxt;
