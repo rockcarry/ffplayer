@@ -125,7 +125,7 @@ public class TestPlayerActivity extends Activity {
 
                 @Override
                 public void surfaceDestroyed(SurfaceHolder holder) {
-                    mPlayer.setDisplaySurface(null);
+//                  mPlayer.setDisplaySurface(null); // we need call this in onPause to avoid crash
                 }
             }
         );
@@ -177,6 +177,7 @@ public class TestPlayerActivity extends Activity {
     public void onPause() {
         super.onPause();
         testPlayerPlay(false);
+        mPlayer.setDisplaySurface(null);
     }
 
     @Override
