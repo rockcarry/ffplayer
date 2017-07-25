@@ -43,10 +43,10 @@ JNIEXPORT JNIEnv* get_jni_env(void)
         return NULL;
     }
     status = g_jvm->GetEnv((void **)&env, JNI_VERSION_1_4);
-    if (status < 0) {
+    if (status != JNI_OK) {
 //      ALOGD("failed to get JNI environment assuming native thread !\n");
         status = g_jvm->AttachCurrentThread(&env, NULL);
-        if (status < 0) {
+        if (status != JNI_OK) {
             ALOGE("failed to attach current thread !\n");
             return NULL;
         }
