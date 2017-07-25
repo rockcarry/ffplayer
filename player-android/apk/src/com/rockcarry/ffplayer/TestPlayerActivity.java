@@ -120,7 +120,16 @@ public class TestPlayerActivity extends Activity {
 
                 @Override
                 public void surfaceCreated(SurfaceHolder holder) {
-                    mPlayer.setDisplaySurface(holder.getSurface());
+//                  mPlayer.setDisplaySurface(holder.getSurface());
+                    //++ fix crash issue
+                    final Surface s = holder.getSurface();
+                    mHandler.post(new Runnable() {
+                        @Override
+                        public void run() {
+                            mPlayer.setDisplaySurface(s);
+                        }
+                    });
+                    //-- fix crash issue
                 }
 
                 @Override
@@ -170,14 +179,14 @@ public class TestPlayerActivity extends Activity {
     @Override
     public void onResume() {
         super.onResume();
-        testPlayerPlay(true );
+        testPlayerPlay(true);
     }
 
     @Override
     public void onPause() {
-        super.onPause();
-        testPlayerPlay(false);
         mPlayer.setDisplaySurface(null);
+        testPlayerPlay(false);
+        super.onPause();
     }
 
     @Override
