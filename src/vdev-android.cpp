@@ -309,17 +309,14 @@ void vdev_android_setwindow(void *ctxt, const sp<IGraphicBufferProducer>& gbp)
     while (0 == sem_trywait(&c->semr)) {
         if (c->bufs[c->head] && c->win) {
             c->win->cancelBuffer(c->win, c->bufs[c->head], -1);
-            c->bufs[c->head] = NULL;
         }
+        c->bufs[c->head] = NULL;
         if (++c->head == c->bufnum) c->head = 0;
         sem_post(&c->semw);
     }
 
     // delete old native window
-    if (c->win) {
-        sp<ANativeWindow> win = c->win;
-//      delete c->win;
-    }
+    if (c->win) delete c->win;
 
     // create new native window
     c->win = gbp != NULL ? new Surface(gbp, /*controlledByApp*/ true) : NULL;

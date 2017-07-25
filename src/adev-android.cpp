@@ -53,8 +53,9 @@ typedef struct
 
 static void* audio_render_thread_proc(void *param)
 {
-    JNIEnv     *env = get_jni_env();
-    ADEV_CONTEXT *c = (ADEV_CONTEXT*)param;
+    JNIEnv        *env = get_jni_env();
+    ADEV_CONTEXT    *c = (ADEV_CONTEXT*)param;
+    jbyteArray  buffer = (jbyteArray)env->NewLocalRef(c->audio_buffer);
 
     while (!(c->status & ADEV_CLOSE))
     {
@@ -64,11 +65,20 @@ static void* audio_render_thread_proc(void *param)
         }
 
         sem_wait(&c->semr);
-        env->CallVoidMethod(c->jobj_player, c->jmid_at_write, c->audio_buffer, c->head * c->buflen, c->pWaveHdr[c->head].size);
+        if (c->pWaveHdr[c->head].size) {
+            env->CallVoidMethod(c->jobj_player, c->jmid_at_write, buffer, c->head * c->buflen, c->pWaveHdr[c->head].size);
+            c->pWaveHdr[c->head].size = 0;
+        }
         if (c->apts) *c->apts = c->ppts[c->head];
         if (++c->head == c->bufnum) c->head = 0;
         sem_post(&c->semw);
     }
+
+    // close audiotrack
+    env->CallVoidMethod(c->jobj_player, c->jmid_at_close);
+
+    // delete local reference
+    env->DeleteLocalRef(buffer);
 
     // need call DetachCurrentThread
     g_jvm->DetachCurrentThread();
@@ -151,9 +161,6 @@ void adev_destroy(void *ctxt)
     c->status = ADEV_CLOSE;
     sem_post(&c->semr);
     pthread_join(c->thread, NULL);
-
-    // stop audiotrack
-    env->CallVoidMethod(c->jobj_player, c->jmid_at_close);
 
     // close semaphore
     sem_destroy(&c->semr);
