@@ -53,9 +53,8 @@ typedef struct
 
 static void* audio_render_thread_proc(void *param)
 {
-    JNIEnv        *env = get_jni_env();
-    ADEV_CONTEXT    *c = (ADEV_CONTEXT*)param;
-    jbyteArray  buffer = (jbyteArray)env->NewLocalRef(c->audio_buffer);
+    JNIEnv     *env = get_jni_env();
+    ADEV_CONTEXT *c = (ADEV_CONTEXT*)param;
 
     while (!(c->status & ADEV_CLOSE))
     {
@@ -66,7 +65,7 @@ static void* audio_render_thread_proc(void *param)
 
         sem_wait(&c->semr);
         if (c->pWaveHdr[c->head].size) {
-            env->CallVoidMethod(c->jobj_player, c->jmid_at_write, buffer, c->head * c->buflen, c->pWaveHdr[c->head].size);
+            env->CallVoidMethod(c->jobj_player, c->jmid_at_write, c->audio_buffer, c->head * c->buflen, c->pWaveHdr[c->head].size);
             c->pWaveHdr[c->head].size = 0;
         }
         if (c->apts) *c->apts = c->ppts[c->head];
@@ -76,9 +75,6 @@ static void* audio_render_thread_proc(void *param)
 
     // close audiotrack
     env->CallVoidMethod(c->jobj_player, c->jmid_at_close);
-
-    // delete local reference
-    env->DeleteLocalRef(buffer);
 
     // need call DetachCurrentThread
     g_jvm->DetachCurrentThread();
@@ -131,7 +127,7 @@ void* adev_create(int type, int bufnum, int buflen)
     // new buffer
     jbyteArray local_audio_buffer = env->NewByteArray(bufnum * buflen);
     ctxt->audio_buffer = (jbyteArray)env->NewGlobalRef(local_audio_buffer);
-    ctxt->pWaveBuf     = (uint8_t*)env->GetByteArrayElements(ctxt->audio_buffer, 0);
+    ctxt->pWaveBuf     = (uint8_t  *)env->GetByteArrayElements(ctxt->audio_buffer, 0);
     env->DeleteLocalRef(local_audio_buffer);
 
     // init wavebuf

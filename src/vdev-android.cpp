@@ -16,10 +16,6 @@ JNIEXPORT JNIEnv* get_jni_env(void);
                                     | GRALLOC_USAGE_SW_WRITE_NEVER \
                                     | GRALLOC_USAGE_HW_TEXTURE
 
-#define VDEV_PAUSE_RENDER_REQ0  (1 << 3 )
-#define VDEV_PAUSE_RENDER_REQ1  (1 << 4 )
-#define VDEV_PAUSE_RENDER_ACK   (1 << 19)
-
 // 内部类型定义
 typedef struct
 {
@@ -71,11 +67,6 @@ static void* video_render_thread_proc(void *param)
 
     while (!(c->status & VDEV_CLOSE))
     {
-        if (c->status & VDEV_PAUSE_RENDER_REQ1) {
-            c->status |= VDEV_PAUSE_RENDER_ACK;
-            usleep(10000); continue;
-        }
-
         struct timespec ts;
         clock_gettime(CLOCK_REALTIME, &ts);
         ts.tv_nsec += c->tickframe * 1000000L;
@@ -181,6 +172,7 @@ void* vdev_android_create(void *win, int bufnum, int w, int h, int frate)
 void vdev_android_destroy(void *ctxt)
 {
     VDEVCTXT *c = (VDEVCTXT*)ctxt;
+    JNIEnv *env = get_jni_env();
 
     // make visual effect & rendering thread safely exit
     c->status = VDEV_CLOSE;
@@ -203,7 +195,7 @@ void vdev_android_destroy(void *ctxt)
     sem_destroy(&c->semw);
 
     // for jni
-    get_jni_env()->DeleteGlobalRef(c->jobj_player);
+    env->DeleteGlobalRef(c->jobj_player);
 
     // free memory
     free(c->ppts);
@@ -266,9 +258,6 @@ void vdev_android_post(void *ctxt, int64_t pts)
     c->ppts[c->tail] = pts;
     if (++c->tail == c->bufnum) c->tail = 0;
     sem_post(&c->semr);
-
-    // code for block vdev_request & vdev_post
-    while (c->status & VDEV_PAUSE_RENDER_REQ0) { c->status |= VDEV_PAUSE_RENDER_REQ1; usleep(10000); }
 }
 
 void vdev_android_setrect(void *ctxt, int x, int y, int w, int h)
@@ -301,14 +290,12 @@ void vdev_android_setwindow(void *ctxt, const sp<IGraphicBufferProducer>& gbp)
     if (!ctxt) return;
     VDEVCTXT *c = (VDEVCTXT*)ctxt;
 
-    // make render thread paused first
-    c->status &= ~VDEV_PAUSE_RENDER_ACK ;
-    c->status |=  VDEV_PAUSE_RENDER_REQ0;
-    while ((c->status & VDEV_PAUSE_RENDER_ACK) != VDEV_PAUSE_RENDER_ACK) usleep(10000);
+    ANativeWindow *win = c->win;
+    c->win = NULL;
 
     while (0 == sem_trywait(&c->semr)) {
-        if (c->bufs[c->head] && c->win) {
-            c->win->cancelBuffer(c->win, c->bufs[c->head], -1);
+        if (c->bufs[c->head] && win) {
+            win->cancelBuffer(win, c->bufs[c->head], -1);
         }
         c->bufs[c->head] = NULL;
         if (++c->head == c->bufnum) c->head = 0;
@@ -316,19 +303,17 @@ void vdev_android_setwindow(void *ctxt, const sp<IGraphicBufferProducer>& gbp)
     }
 
     // delete old native window
-    if (c->win) delete c->win;
+    if (win) delete win;
 
     // create new native window
-    c->win = gbp != NULL ? new Surface(gbp, /*controlledByApp*/ true) : NULL;
-    if (c->win) {
-        native_window_set_usage             (c->win, VDEV_GRALLOC_USAGE);
-        native_window_set_buffer_count      (c->win, c->bufnum + 1);
-        native_window_set_buffers_format    (c->win, DEF_WIN_PIX_FMT);
-        native_window_set_buffers_dimensions(c->win, c->sw, c->sh);
-        native_window_set_scaling_mode      (c->win, NATIVE_WINDOW_SCALING_MODE_SCALE_TO_WINDOW);
+    win = gbp != NULL ? new Surface(gbp, /*controlledByApp*/ true) : NULL;
+    if (win) {
+        native_window_set_usage             (win, VDEV_GRALLOC_USAGE);
+        native_window_set_buffer_count      (win, c->bufnum + 1);
+        native_window_set_buffers_format    (win, DEF_WIN_PIX_FMT);
+        native_window_set_buffers_dimensions(win, c->sw, c->sh);
+        native_window_set_scaling_mode      (win, NATIVE_WINDOW_SCALING_MODE_SCALE_TO_WINDOW);
     }
-
-    // resume render thread
-    c->status &= ~(VDEV_PAUSE_RENDER_REQ0|VDEV_PAUSE_RENDER_REQ1|VDEV_PAUSE_RENDER_ACK);
+    c->win = win;
 }
 
