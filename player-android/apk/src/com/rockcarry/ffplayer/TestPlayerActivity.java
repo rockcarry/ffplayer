@@ -25,6 +25,7 @@ public class TestPlayerActivity extends Activity {
     private player       mPlayer    = null;
     private playerRoot   mRoot      = null;
     private SurfaceView  mView      = null;
+    private Surface      mSurface   = null;
     private SeekBar      mSeek      = null;
     private ImageView    mPause     = null;
     private boolean      mIsPlaying = false;
@@ -121,12 +122,12 @@ public class TestPlayerActivity extends Activity {
                 @Override
                 public void surfaceCreated(SurfaceHolder holder) {
 //                  mPlayer.setDisplaySurface(holder.getSurface());
+                    mSurface = holder.getSurface();
                     //++ fix crash issue
-                    final Surface s = holder.getSurface();
                     mHandler.post(new Runnable() {
                         @Override
                         public void run() {
-                            mPlayer.setDisplaySurface(s);
+                            mPlayer.setDisplaySurface(mSurface);
                         }
                     });
                     //-- fix crash issue
@@ -135,6 +136,7 @@ public class TestPlayerActivity extends Activity {
                 @Override
                 public void surfaceDestroyed(SurfaceHolder holder) {
 //                  mPlayer.setDisplaySurface(null); // we need call this in onPause to avoid crash
+                    mSurface = null;
                 }
             }
         );
@@ -179,6 +181,7 @@ public class TestPlayerActivity extends Activity {
     @Override
     public void onResume() {
         super.onResume();
+        if (mSurface != null) mPlayer.setDisplaySurface(mSurface);
         testPlayerPlay(true);
     }
 
