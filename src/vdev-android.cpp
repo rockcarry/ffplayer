@@ -72,7 +72,7 @@ static void* video_render_thread_proc(void *param)
         ts.tv_nsec += c->tickframe * 1000000L;
         ts.tv_sec  += ts.tv_nsec / 1000000000L;
         ts.tv_nsec %= 1000000000L;
-        if (0 != sem_timedwait(&c->semr, &ts)) { continue; }
+        if (0 != sem_timedwait(&c->semr, &ts)) continue;
 
         int64_t apts = c->apts;
         int64_t vpts = c->vpts = c->ppts[c->head];
@@ -266,7 +266,6 @@ void vdev_android_setrect(void *ctxt, int x, int y, int w, int h)
     c->x  = x; c->y  = y;
     c->w  = w; c->h  = h;
     c->sw = w; c->sh = h;
-    c->refresh_flag  = 1;
 }
 
 void vdev_android_default_player_callback(void *ctxt, int32_t msg, int64_t param)
