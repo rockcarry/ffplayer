@@ -29,6 +29,8 @@ LOCAL_REQUIRED_MODULES := libffplayer_jni
 
 LOCAL_MULTILIB := 32
 
+LOCAL_PROGUARD_FLAG_FILES := proguard.flags
+
 include $(BUILD_PACKAGE)
 
 
