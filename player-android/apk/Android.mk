@@ -27,7 +27,7 @@ LOCAL_JNI_SHARED_LIBRARIES := libffplayer_jni
 
 LOCAL_REQUIRED_MODULES := libffplayer_jni
 
-LOCAL_PROGUARD_ENABLED := disabled
+LOCAL_MULTILIB := 32
 
 include $(BUILD_PACKAGE)
 

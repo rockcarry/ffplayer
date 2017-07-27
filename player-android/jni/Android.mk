@@ -20,17 +20,15 @@ LOCAL_C_INCLUDES += \
     $(LOCAL_PATH)/../../src
 
 LOCAL_CFLAGS += \
-    -O3 -mthumb -pipe -fpic -fasm \
+    -O3 -pipe -fpic -fasm \
     -finline-limit=300 -ffast-math \
     -fstrict-aliasing -Werror=strict-aliasing \
     -fmodulo-sched -fmodulo-sched-allow-regmoves \
     -Wno-psabi -Wa,--noexecstack \
     -D__ARM_ARCH_5__ -D__ARM_ARCH_5E__ -D__ARM_ARCH_5T__ -D__ARM_ARCH_5TE__ \
-    -DANDROID -DNDEBUG -D__STDC_CONSTANT_MACROS \
-    -mfpu=vfpv3-d16 -mfloat-abi=softfp
+    -DANDROID -DNDEBUG -D__STDC_CONSTANT_MACROS
 
 LOCAL_LDFLAGS += \
-    -Wl,--fix-cortex-a8 \
     $(LOCAL_PATH)/../ffmpeg-android/lib/libavformat.a \
     $(LOCAL_PATH)/../ffmpeg-android/lib/libavcodec.a \
     $(LOCAL_PATH)/../ffmpeg-android/lib/libavdevice.a \
@@ -39,6 +37,8 @@ LOCAL_LDFLAGS += \
     $(LOCAL_PATH)/../ffmpeg-android/lib/libavutil.a
 
 LOCAL_SHARED_LIBRARIES := libcutils libutils libui libgui libandroid_runtime libz
+
+LOCAL_MULTILIB := 32
 
 include $(BUILD_SHARED_LIBRARY)
 
