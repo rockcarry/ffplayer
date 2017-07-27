@@ -1,9 +1,5 @@
 package com.rockcarry.ffplayer;
 
-import android.media.AudioFormat;
-import android.media.AudioManager;
-import android.media.AudioTrack;
-
 public final class player
 {
     public static final int SCALING_MODE_SCALE_TO_WINDOW = 1;
@@ -65,48 +61,6 @@ public final class player
 
     private native void nativeInitJniObject(long hplayer);
     //-- for player event callback
-
-    //++ for audio playback
-    private AudioTrack mAudioTrack = null;
-    private void audioTrackInit(int buflen) {
-        if (mAudioTrack == null) {
-            mAudioTrack = new AudioTrack(AudioManager.STREAM_MUSIC, 44100, AudioFormat.CHANNEL_CONFIGURATION_STEREO,
-                                         AudioFormat.ENCODING_PCM_16BIT, buflen, AudioTrack.MODE_STREAM);
-        }
-    }
-
-    private void audioTrackClose() {
-        if (mAudioTrack != null) {
-            mAudioTrack.stop();
-            mAudioTrack.release();
-            mAudioTrack = null;
-        }
-    }
-
-    private void audioTrackStart() {
-        if (mAudioTrack != null) {
-            mAudioTrack.play();
-        }
-    }
-
-    private void audioTrackPause() {
-        if (mAudioTrack != null) {
-            mAudioTrack.pause();
-        }
-    }
-
-    private void audioTrackWrite(byte[] data, int offset, int size) {
-        if (mAudioTrack != null) {
-            mAudioTrack.write(data, offset, size);
-        }
-    }
-
-    private void audioTrackFlush() {
-        if (mAudioTrack != null) {
-            mAudioTrack.flush();
-        }
-    }
-    //-- for audio playback
 
     private static native long nativeOpen (String url, Object surface, int w, int h);
     private static native void nativeClose(long hplayer);

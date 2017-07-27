@@ -41,13 +41,12 @@ typedef struct
     int        vol_curvol;
 
     // for jni
-    jobject    jobj_player;
-    jmethodID  jmid_at_init;
+    jobject    jobj_at;
+    jmethodID  jmid_at_init ;
     jmethodID  jmid_at_close;
-    jmethodID  jmid_at_start;
+    jmethodID  jmid_at_play ;
     jmethodID  jmid_at_pause;
     jmethodID  jmid_at_write;
-    jmethodID  jmid_at_flush;
     jbyteArray audio_buffer;
 } ADEV_CONTEXT;
 
@@ -65,7 +64,7 @@ static void* audio_render_thread_proc(void *param)
 
         sem_wait(&c->semr);
         if (c->pWaveHdr[c->head].size) {
-            env->CallVoidMethod(c->jobj_player, c->jmid_at_write, c->audio_buffer, c->head * c->buflen, c->pWaveHdr[c->head].size);
+            env->CallVoidMethod(c->jobj_at, c->jmid_at_write, c->audio_buffer, c->head * c->buflen, c->pWaveHdr[c->head].size);
             c->pWaveHdr[c->head].size = 0;
         }
         if (c->apts) *c->apts = c->ppts[c->head];
@@ -74,7 +73,7 @@ static void* audio_render_thread_proc(void *param)
     }
 
     // close audiotrack
-    env->CallVoidMethod(c->jobj_player, c->jmid_at_close);
+    env->CallVoidMethod(c->jobj_at, c->jmid_at_close);
 
     // need call DetachCurrentThread
     g_jvm->DetachCurrentThread();
@@ -136,6 +135,26 @@ void* adev_create(int type, int bufnum, int buflen)
         ctxt->pWaveHdr[i].size = buflen;
     }
 
+    jclass jcls         = env->FindClass("android/media/AudioTrack");
+    ctxt->jmid_at_init  = env->GetMethodID(jcls, "<init>" , "(IIIIII)V");
+    ctxt->jmid_at_close = env->GetMethodID(jcls, "release", "()V");
+    ctxt->jmid_at_play  = env->GetMethodID(jcls, "play"   , "()V");
+    ctxt->jmid_at_pause = env->GetMethodID(jcls, "pause"  , "()V");
+    ctxt->jmid_at_write = env->GetMethodID(jcls, "write"  , "([BII)I");
+
+    // new AudioRecord
+    #define STREAM_MUSIC        3
+    #define ENCODING_PCM_16BIT  2
+    #define CHANNEL_STEREO      3
+    #define MODE_STREAM         1
+    jobject at_obj = env->NewObject(jcls, ctxt->jmid_at_init,
+        STREAM_MUSIC, 44100, CHANNEL_STEREO, ENCODING_PCM_16BIT, ctxt->buflen * 2, MODE_STREAM);
+    ctxt->jobj_at  = env->NewGlobalRef(at_obj);
+    env->DeleteLocalRef(at_obj);
+
+    // start audiotrack
+    env->CallVoidMethod(ctxt->jobj_at, ctxt->jmid_at_play);
+
     // init software volume scaler
     ctxt->vol_zerodb = init_software_volmue_scaler(ctxt->vol_scaler, SW_VOLUME_MINDB, SW_VOLUME_MAXDB);
     ctxt->vol_curvol = ctxt->vol_zerodb;
@@ -143,6 +162,9 @@ void* adev_create(int type, int bufnum, int buflen)
     // create semaphore
     sem_init(&ctxt->semr, 0, 0     );
     sem_init(&ctxt->semw, 0, bufnum);
+
+    // create audio rendering thread
+    pthread_create(&ctxt->thread, NULL, audio_render_thread_proc, ctxt);
 
     return ctxt;
 }
@@ -168,8 +190,8 @@ void adev_destroy(void *ctxt)
 
     // for jni
     env->ReleaseByteArrayElements(c->audio_buffer, (jbyte*)c->pWaveBuf, 0);
-    env->DeleteGlobalRef(c->jobj_player );
     env->DeleteGlobalRef(c->audio_buffer);
+    env->DeleteGlobalRef(c->jobj_at     );
 
     // free adev
     free(c);
@@ -221,11 +243,11 @@ void adev_pause(void *ctxt, int pause)
     ADEV_CONTEXT *c = (ADEV_CONTEXT*)ctxt;
     if (pause) {
         c->status |=  ADEV_PAUSE;
-        env->CallVoidMethod(c->jobj_player, c->jmid_at_pause);
+        env->CallVoidMethod(c->jobj_at, c->jmid_at_pause);
     }
     else {
         c->status &= ~ADEV_PAUSE;
-        env->CallVoidMethod(c->jobj_player, c->jmid_at_start);
+        env->CallVoidMethod(c->jobj_at, c->jmid_at_play );
     }
 }
 
@@ -240,7 +262,6 @@ void adev_reset(void *ctxt)
     c->head   = 0;
     c->tail   = 0;
     c->status = 0;
-    env->CallVoidMethod(c->jobj_player, c->jmid_at_flush);
 }
 
 void adev_syncapts(void *ctxt, int64_t *apts)
@@ -293,22 +314,6 @@ void adev_getparam(void *ctxt, int id, void *param)
 
 void adev_android_initjni(void *ctxt, JNIEnv *env, jobject obj)
 {
-    if (!ctxt) return;
-    ADEV_CONTEXT  *c = (ADEV_CONTEXT*)ctxt;
-    jclass       cls = env->GetObjectClass(obj);
-
-    c->jobj_player   = env->NewGlobalRef(obj);
-    c->jmid_at_init  = env->GetMethodID(cls, "audioTrackInit" , "(I)V");
-    c->jmid_at_close = env->GetMethodID(cls, "audioTrackClose", "()V");
-    c->jmid_at_start = env->GetMethodID(cls, "audioTrackStart", "()V");
-    c->jmid_at_pause = env->GetMethodID(cls, "audioTrackPause", "()V");
-    c->jmid_at_write = env->GetMethodID(cls, "audioTrackWrite", "([BII)V");
-    c->jmid_at_flush = env->GetMethodID(cls, "audioTrackFlush", "()V");
-
-    env->CallVoidMethod(c->jobj_player, c->jmid_at_init, c->buflen * 2); // init
-    env->CallVoidMethod(c->jobj_player, c->jmid_at_start); // start
-
-    // create audio rendering thread
-    pthread_create(&c->thread, NULL, audio_render_thread_proc, c);
+    // do nothing
 }
 
