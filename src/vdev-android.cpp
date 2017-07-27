@@ -155,6 +155,7 @@ void* vdev_android_create(void *win, int bufnum, int w, int h, int frate)
     ctxt->ticksleep = ctxt->tickframe;
     ctxt->apts      = -1;
     ctxt->vpts      = -1;
+    ctxt->tickavdiff= -300;
 
     // alloc buffer & semaphore
     ctxt->ppts = (int64_t*)calloc(bufnum, sizeof(int64_t));

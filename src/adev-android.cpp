@@ -11,7 +11,7 @@ extern    JavaVM* g_jvm;
 JNIEXPORT JNIEnv* get_jni_env(void);
 
 // 内部常量定义
-#define DEF_ADEV_BUF_NUM  6
+#define DEF_ADEV_BUF_NUM  5
 #define DEF_ADEV_BUF_LEN  8192
 
 #define SW_VOLUME_MINDB  -30
