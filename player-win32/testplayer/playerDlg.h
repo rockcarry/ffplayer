@@ -48,5 +48,6 @@ public:
     afx_msg void   OnEffectMode();
     afx_msg void   OnRenderMode();
     afx_msg void   OnAudioStream();
+    afx_msg void   OnVideoStream();
     afx_msg void   OnTakeSnapshot();
 };

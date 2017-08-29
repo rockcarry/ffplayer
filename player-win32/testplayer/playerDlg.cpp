@@ -109,6 +109,7 @@ BEGIN_MESSAGE_MAP(CplayerDlg, CDialog)
     ON_COMMAND(ID_EFFECT_MODE  , &CplayerDlg::OnEffectMode  )
     ON_COMMAND(ID_RENDER_MODE  , &CplayerDlg::OnRenderMode  )
     ON_COMMAND(ID_AUDIO_STREAM , &CplayerDlg::OnAudioStream )
+    ON_COMMAND(ID_VIDEO_STREAM , &CplayerDlg::OnVideoStream )
     ON_COMMAND(ID_TAKE_SNAPSHOT, &CplayerDlg::OnTakeSnapshot)
 END_MESSAGE_MAP()
 
@@ -320,6 +321,16 @@ void CplayerDlg::OnAudioStream()
     player_getparam(g_hplayer, PARAM_AUDIO_STREAM_CUR  , &current);
     current++; current %= total;
     player_setparam(g_hplayer, PARAM_AUDIO_STREAM_CUR  , &current);
+}
+
+void CplayerDlg::OnVideoStream()
+{
+    int total   = 0;
+    int current = 0;
+    player_getparam(g_hplayer, PARAM_VIDEO_STREAM_TOTAL, &total  );
+    player_getparam(g_hplayer, PARAM_VIDEO_STREAM_CUR  , &current);
+    current++; current %= total;
+    player_setparam(g_hplayer, PARAM_VIDEO_STREAM_CUR  , &current);
 }
 
 void CplayerDlg::OnTakeSnapshot()

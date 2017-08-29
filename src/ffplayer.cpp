@@ -205,10 +205,11 @@ static void* video_decode_thread_proc(void *param)
         // read packet
         packet = pktqueue_read_request_v(player->pktqueue);
         if (packet == NULL) {
-            render_video(player->render, vframe);
+            if (!(player->player_status & PAUSE_ACK)) {
+                render_video(player->render, vframe);
+            }
             usleep(20*1000); continue;
         }
-
 
         //++ decode video packet ++//
         while (packet->size > 0) {
@@ -396,6 +397,11 @@ static void set_stream_current(PLAYER *player, enum AVMediaType type, int sel) {
     params.width    = player->vcodec_context->width;
     params.height   = player->vcodec_context->height;
     render_setparam(player->render, PARAM_RENDER_UPDATE, &params);
+
+    if (type == AVMEDIA_TYPE_VIDEO) {
+        int mode = -1;
+        render_setparam(player->render, PARAM_VDEV_RENDER_TYPE, &mode);
+    }
 
     // seek current pos to update pktqueue
     player_seek(player, pos);

@@ -274,23 +274,19 @@ void render_video(void *hrender, AVFrame *video)
             render->render_wcur = render->render_wnew;
             render->render_hcur = render->render_hnew;
 
-            // call vdev_setrect, get both old & new surface size of vdev
-            int swold, shold, swnew, shnew;
-            swold = ((VDEV_COMMON_CTXT*)render->vdev)->sw;
-            shold = ((VDEV_COMMON_CTXT*)render->vdev)->sh;
+            // vdev set rect
             vdev_setrect(render->vdev, render->render_xcur, render->render_ycur,
                 render->render_wcur, render->render_hcur);
-            swnew = ((VDEV_COMMON_CTXT*)render->vdev)->sw;
-            shnew = ((VDEV_COMMON_CTXT*)render->vdev)->sh;
 
-            // if surface width or height of vdev changed, we need recreate sws
-            if (!render->sws_context || swold != swnew || shold != shnew) {
+            // we need recreate sws
+            if (!render->sws_context) {
                 sws_freeContext(render->sws_context);
-                render->sws_context = sws_getContext(
-                    render->video_width, render->video_height, render->pixel_fmt,
-                    swnew, shnew, (AVPixelFormat)((VDEV_COMMON_CTXT*)render->vdev)->pixfmt,
-                    SWS_FAST_BILINEAR, 0, 0, 0);
             }
+            VDEV_COMMON_CTXT *vdev = (VDEV_COMMON_CTXT*)render->vdev;
+            render->sws_context = sws_getContext(
+                render->video_width, render->video_height, render->pixel_fmt,
+                vdev->sw, vdev->sh, (AVPixelFormat)vdev->pixfmt,
+                SWS_FAST_BILINEAR, 0, 0, 0);
         }
 
         vdev_request(render->vdev, picture.data, picture.linesize);
@@ -419,15 +415,18 @@ void render_setparam(void *hrender, int id, void *param)
     case PARAM_ADEV_RENDER_TYPE:
         // we only support WAVEOUT adev now
         break;
-#ifdef WIN32
     case PARAM_VDEV_RENDER_TYPE:
         {
             VDEV_COMMON_CTXT *vdev = (VDEV_COMMON_CTXT*)render->vdev;
             int               type = *(int*)param;
+            if (type == -1) {
+                type = vdev->type;
+                vdev->type = -1;
+            }
             if (type != vdev->type) {
                 render->vdev = NULL;
                 //++ re-create vdev
-                HWND hwnd      = (HWND)vdev->hwnd;
+                void*hwnd      = vdev->hwnd;
                 int  x         = vdev->x;
                 int  y         = vdev->y;
                 int  w         = vdev->w;
@@ -444,18 +443,11 @@ void render_setparam(void *hrender, int id, void *param)
                 vdev->status    = status;
                 render->vdev    = vdev;
                 //-- re-create vdev
-
-                //++ re-create sws
-                sws_freeContext(render->sws_context);
-                render->sws_context = sws_getContext(
-                    render->video_width, render->video_height, render->pixel_fmt,
-                    vdev->sw, vdev->sh, (AVPixelFormat)vdev->pixfmt,
-                    SWS_FAST_BILINEAR, 0, 0, 0);
-                //-- re-create sws
+                render->render_wcur = 0;
+                render->render_hcur = 0;
             }
         }
         break;
-#endif
     case PARAM_RENDER_UPDATE:
         {
             // update render context variables
@@ -464,24 +456,12 @@ void render_setparam(void *hrender, int id, void *param)
             render->sample_fmt  = pru->sampfmt;
             render->chan_layout = pru->chlayout;
             render->frame_rate  = pru->frate;
-            render->pixel_fmt   = pru->pixfmt;
+            render->pixel_fmt   = pru->pixfmt != AV_PIX_FMT_NONE ? pru->pixfmt : AV_PIX_FMT_YUV420P;
             render->video_width = pru->width;
             render->video_height= pru->height;
-            if (render->pixel_fmt == AV_PIX_FMT_NONE) {
-                render->pixel_fmt = AV_PIX_FMT_YUV420P;
-            }
 
             // set render_speed_cur to 1, will cause swr recreate
             render->render_speed_cur = 1;
-
-            //++ re-create sws
-            VDEV_COMMON_CTXT *vdev = (VDEV_COMMON_CTXT*)render->vdev;
-            sws_freeContext(render->sws_context);
-            render->sws_context = sws_getContext(
-                render->video_width, render->video_height, render->pixel_fmt,
-                vdev->sw, vdev->sh, (AVPixelFormat)vdev->pixfmt,
-                SWS_FAST_BILINEAR, 0, 0, 0);
-            //-- re-create sws
         }
         break;
     }

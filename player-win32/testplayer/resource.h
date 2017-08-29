@@ -10,7 +10,8 @@
 #define ID_EFFECT_MODE                  32773
 #define ID_RENDER_MODE                  32774
 #define ID_AUDIO_STREAM                 32775
-#define ID_TAKE_SNAPSHOT                32776
+#define ID_VIDEO_STREAM                 32776
+#define ID_TAKE_SNAPSHOT                32777
 
 // Next default values for new objects
 // 
