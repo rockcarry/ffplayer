@@ -127,7 +127,7 @@ JNIEXPORT void JNICALL Java_com_rockcarry_ffplayer_player_nativePause
 JNIEXPORT void JNICALL Java_com_rockcarry_ffplayer_player_nativeSeek
   (JNIEnv *env, jclass clazz, jlong hplayer, jlong ms)
 {
-    player_seek((void*)hplayer, ms);
+    player_seek((void*)hplayer, ms, SEEK_PRECISELY);
 }
 
 /*
