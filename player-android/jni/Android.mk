@@ -32,6 +32,7 @@ LOCAL_LDFLAGS += \
     $(LOCAL_PATH)/../ffmpeg-android/lib/libavformat.a \
     $(LOCAL_PATH)/../ffmpeg-android/lib/libavcodec.a \
     $(LOCAL_PATH)/../ffmpeg-android/lib/libavdevice.a \
+    $(LOCAL_PATH)/../ffmpeg-android/lib/libavfilter.a \
     $(LOCAL_PATH)/../ffmpeg-android/lib/libswresample.a \
     $(LOCAL_PATH)/../ffmpeg-android/lib/libswscale.a \
     $(LOCAL_PATH)/../ffmpeg-android/lib/libavutil.a

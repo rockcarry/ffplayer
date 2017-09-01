@@ -24,7 +24,8 @@
 #include <limits.h>
 #include <utils/Log.h>
 
-#define MAX_PATH PATH_MAX
+#define MAX_PATH   PATH_MAX
+#define sprintf_s  sprintf
 
 typedef struct {
     long left;
