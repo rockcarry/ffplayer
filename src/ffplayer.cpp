@@ -269,9 +269,7 @@ static void* video_decode_thread_proc(void *param)
         // read packet
         packet = pktqueue_read_request_v(player->pktqueue);
         if (packet == NULL) {
-            if (!(player->player_status & PAUSE_ACK)) {
-                render_video(player->render, vframe);
-            }
+            render_video(player->render, vframe);
             usleep(20*1000); continue;
         }
 
