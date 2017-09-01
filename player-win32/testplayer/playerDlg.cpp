@@ -162,9 +162,7 @@ void CplayerDlg::OnPaint()
 
         // Draw the icon
         dc.DrawIcon(x, y, m_hIcon);
-    }
-    else
-    {
+    } else {
         CPaintDC dc(this);
 
         LONGLONG total = 1, pos = 0;
@@ -236,8 +234,7 @@ void CplayerDlg::OnLButtonDown(UINT nFlags, CPoint point)
         LONGLONG total = 1;
         player_getparam(g_hplayer, PARAM_MEDIA_DURATION, &total);
         player_seek(g_hplayer, total * point.x / m_rtClient.right);
-    }
-    else {
+    } else {
         if (!m_bPlayPause) player_pause(g_hplayer);
         else player_play(g_hplayer);
         m_bPlayPause = !m_bPlayPause;
