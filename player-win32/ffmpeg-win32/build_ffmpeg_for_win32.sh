@@ -27,7 +27,6 @@ cd ffmpeg
 --disable-debug \
 --disable-programs \
 --disable-doc \
---disable-avfilter \
 --disable-postproc \
 --disable-encoders \
 --disable-filters  \
@@ -36,6 +35,7 @@ cd ffmpeg
 --enable-muxer=mjpeg \
 --enable-encoder=apng \
 --enable-muxer=apng \
+--enable-filter=yadif \
 --enable-asm \
 --enable-gpl \
 --enable-version3 \
