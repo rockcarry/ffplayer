@@ -88,8 +88,9 @@ static void vfilter_graph_init(PLAYER *player)
     char      args[256];
     int       ret;
 
+    if (!player->vcodec_context) return;
     player->vfilter_graph = avfilter_graph_alloc();
-    if (!player->vfilter_graph) return;
+    if (!player->vfilter_graph ) return;
 
     sprintf_s(args, "video_size=%dx%d:pix_fmt=%d:time_base=%d/%d:pixel_aspect=%d/%d",
             vdec_ctx->width, vdec_ctx->height, vdec_ctx->pix_fmt,
