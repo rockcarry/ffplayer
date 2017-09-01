@@ -107,27 +107,29 @@ static void vfilter_graph_init(PLAYER *player)
         avfilter_graph_free(&player->vfilter_graph);
         player->vfilter_graph = NULL;
     }
-    player->vfilter_enable = 1;
 }
 
 static void vfilter_graph_free(PLAYER *player)
 {
-    if (player->vfilter_graph) {
-        avfilter_graph_free(&player->vfilter_graph);
-        player->vfilter_graph = NULL;
-    }
+    if (!player->vfilter_graph ) return;
+    avfilter_graph_free(&player->vfilter_graph);
+    player->vfilter_graph = NULL;
 }
 
 static void vfilter_graph_input(PLAYER *player, AVFrame *frame)
 {
-    if (player->vfilter_enable) {
-        av_buffersrc_add_frame_flags(player->vfilter_source_ctx, frame, AV_BUFFERSRC_FLAG_KEEP_REF);
-    }
+    if (!player->vfilter_graph ) return;
+    if (!player->vfilter_enable) return;
+    av_buffersrc_add_frame_flags(player->vfilter_source_ctx, frame, AV_BUFFERSRC_FLAG_KEEP_REF);
 }
 
 static int vfilter_graph_output(PLAYER *player, AVFrame *frame)
 {
-    return player->vfilter_enable ? av_buffersink_get_frame(player->vfilter_sink_ctx, frame) : 0;
+    if (player->vfilter_graph && player->vfilter_enable) {
+        return av_buffersink_get_frame(player->vfilter_sink_ctx, frame);
+    } else {
+        return 0;
+    }
 }
 //-- for filter graph
 
@@ -428,11 +430,12 @@ static void make_player_thread_pause(PLAYER *player, int pause) {
         while ((player->player_status & PAUSE_ACK) != PAUSE_ACK) usleep(20*1000);
     }
     else {
-        // make player thread run
-        player->player_status &=~(PAUSE_REQ | PAUSE_ACK);
-        // pause render if needed
         if (player->player_status & PS_R_PAUSE) {
+            // pause render if needed
             render_pause(player->render);
+        } else {
+            // make player thread run
+            player->player_status &= ~(PAUSE_REQ|PAUSE_ACK);
         }
     }
 }
