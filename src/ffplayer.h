@@ -88,6 +88,10 @@ enum {
     PARAM_AUDIO_STREAM_CUR,
     PARAM_VIDEO_STREAM_CUR,
     PARAM_SUBTITLE_STREAM_CUR,
+
+    // avfilter
+    PARAM_AFILTER_ENABLE,
+    PARAM_VFILTER_ENABLE,
     //-- public
 
     //++ for adev

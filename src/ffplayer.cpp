@@ -8,6 +8,9 @@ extern "C" {
 #include "libavcodec/avcodec.h"
 #include "libavdevice/avdevice.h"
 #include "libavformat/avformat.h"
+#include "libavfilter/avfilter.h"
+#include "libavfilter/buffersrc.h"
+#include "libavfilter/buffersink.h"
 }
 
 // 内部类型定义
@@ -49,6 +52,12 @@ typedef struct
     pthread_t        avdemux_thread;
     pthread_t        adecode_thread;
     pthread_t        vdecode_thread;
+
+    AVFilterGraph   *vfilter_graph;
+    AVFilterContext *vfilter_source_ctx;
+    AVFilterContext *vfilter_yadif_ctx;
+    AVFilterContext *vfilter_sink_ctx;
+    int              vfilter_enable;
 } PLAYER;
 
 // 内部常量定义
@@ -68,6 +77,58 @@ static void ffplayer_log_callback(void* ptr, int level, const char *fmt, va_list
 #endif
     }
 }
+
+//++ for filter graph
+static void vfilter_graph_init(PLAYER *player)
+{
+    AVFilter *filter_source  = avfilter_get_by_name("buffer");
+    AVFilter *filter_yadif   = avfilter_get_by_name("yadif" );
+    AVFilter *filter_sink    = avfilter_get_by_name("buffersink");
+    AVCodecContext *vdec_ctx = player->vcodec_context;
+    char      args[256];
+    int       ret;
+
+    player->vfilter_graph = avfilter_graph_alloc();
+    if (!player->vfilter_graph) return;
+
+    sprintf_s(args, "video_size=%dx%d:pix_fmt=%d:time_base=%d/%d:pixel_aspect=%d/%d",
+            vdec_ctx->width, vdec_ctx->height, vdec_ctx->pix_fmt,
+            vdec_ctx->time_base.num, vdec_ctx->time_base.den,
+            vdec_ctx->sample_aspect_ratio.num, vdec_ctx->sample_aspect_ratio.den);
+    avfilter_graph_create_filter(&player->vfilter_source_ctx, filter_source, "in"   , args, NULL, player->vfilter_graph);
+    avfilter_graph_create_filter(&player->vfilter_yadif_ctx , filter_yadif , "yadif", "mode=send_frame:parity=auto:deint=interlaced", NULL, player->vfilter_graph);
+    avfilter_graph_create_filter(&player->vfilter_sink_ctx  , filter_sink  , "out"  , NULL, NULL, player->vfilter_graph);
+    avfilter_link(player->vfilter_source_ctx, 0, player->vfilter_yadif_ctx, 0);
+    avfilter_link(player->vfilter_yadif_ctx , 0, player->vfilter_sink_ctx , 0);
+
+    ret = avfilter_graph_config(player->vfilter_graph, NULL);
+    if (ret < 0) {
+        avfilter_graph_free(&player->vfilter_graph);
+        player->vfilter_graph = NULL;
+    }
+    player->vfilter_enable = 1;
+}
+
+static void vfilter_graph_free(PLAYER *player)
+{
+    if (player->vfilter_graph) {
+        avfilter_graph_free(&player->vfilter_graph);
+        player->vfilter_graph = NULL;
+    }
+}
+
+static void vfilter_graph_input(PLAYER *player, AVFrame *frame)
+{
+    if (player->vfilter_enable) {
+        av_buffersrc_add_frame_flags(player->vfilter_source_ctx, frame, AV_BUFFERSRC_FLAG_KEEP_REF);
+    }
+}
+
+static int vfilter_graph_output(PLAYER *player, AVFrame *frame)
+{
+    return player->vfilter_enable ? av_buffersink_get_frame(player->vfilter_sink_ctx, frame) : 0;
+}
+//-- for filter graph
 
 static void* av_demux_thread_proc(void *param)
 {
@@ -223,15 +284,19 @@ static void* video_decode_thread_proc(void *param)
             }
 
             if (gotvideo) {
-                vframe->pts = av_rescale_q(av_frame_get_best_effort_timestamp(vframe), player->vstream_timebase, TIMEBASE_MS);
-                //++ for seek operation
-                if ((player->player_status & PS_V_SEEK)) {
-                    if (player->seek_dest_pts - vframe->pts < 100) {
-                        player->player_status |= PS_V_PAUSE;
+                vfilter_graph_input(player, vframe);
+                do {
+                    if (vfilter_graph_output(player, vframe) < 0) break;
+                    vframe->pts = av_rescale_q(av_frame_get_best_effort_timestamp(vframe), player->vstream_timebase, TIMEBASE_MS);
+                    //++ for seek operation
+                    if ((player->player_status & PS_V_SEEK)) {
+                        if (player->seek_dest_pts - vframe->pts < 100) {
+                            player->player_status |= PS_V_PAUSE;
+                        }
                     }
-                }
-                //-- for seek operation
-                else render_video(player->render, vframe);
+                    //-- for seek operation
+                    else render_video(player->render, vframe);
+                } while (player->vfilter_enable);
             }
 
             packet->data += consumed;
@@ -434,6 +499,7 @@ void* player_open(char *file, void *win)
     // av register all
     av_register_all();
     avdevice_register_all();
+    avfilter_register_all();
 
     // setup log
     av_log_set_level(AV_LOG_WARNING);
@@ -501,6 +567,9 @@ void* player_open(char *file, void *win)
         height  = player->vcodec_context->height;
     }
 
+    // init avfilter graph
+    vfilter_graph_init(player);
+
     // open render
     player->render = render_open(ADEV_RENDER_TYPE_WAVEOUT, arate, (AVSampleFormat)aformat, alayout,
                                  VDEV_RENDER_TYPE_GDI, win, vrate, vformat, width, height);
@@ -511,7 +580,7 @@ void* player_open(char *file, void *win)
     }
 
     // make sure player status paused
-    player->player_status = (PS_D_PAUSE|PS_A_PAUSE|PS_V_PAUSE);
+    player->player_status = (PS_D_PAUSE|PS_A_PAUSE|PS_V_PAUSE|PS_R_PAUSE);
     pthread_create(&player->avdemux_thread, NULL, av_demux_thread_proc    , player);
     pthread_create(&player->adecode_thread, NULL, audio_decode_thread_proc, player);
     pthread_create(&player->vdecode_thread, NULL, video_decode_thread_proc, player);
@@ -542,6 +611,9 @@ void player_close(void *hplayer)
 
     // wait video decoding thread exit
     pthread_join(player->vdecode_thread, NULL);
+
+    // free avfilter graph
+    vfilter_graph_free(player);
 
     // destroy packet queue
     pktqueue_destroy(player->pktqueue);
@@ -689,6 +761,7 @@ void player_setparam(void *hplayer, int id, void *param)
     case PARAM_AUDIO_STREAM_CUR   : set_stream_current(player, (AVMediaType)AVMEDIA_TYPE_AUDIO   , *(int*)param); break;
     case PARAM_VIDEO_STREAM_CUR   : set_stream_current(player, (AVMediaType)AVMEDIA_TYPE_VIDEO   , *(int*)param); break;
     case PARAM_SUBTITLE_STREAM_CUR: set_stream_current(player, (AVMediaType)AVMEDIA_TYPE_SUBTITLE, *(int*)param); break;
+    case PARAM_VFILTER_ENABLE     : player->vfilter_enable = *(int*)param; break;
     default:
         render_setparam(player->render, id, param);
         break;
@@ -739,6 +812,9 @@ void player_getparam(void *hplayer, int id, void *param)
         break;
     case PARAM_RENDER_GET_CONTEXT:
         *(void**)param = player->render;
+        break;
+    case PARAM_VFILTER_ENABLE:
+        *(int*)param = player->vfilter_enable;
         break;
     default:
         render_getparam(player->render, id, param);
