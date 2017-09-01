@@ -49,6 +49,12 @@ enum {
     HWACCEL_TYPE_MAX_NUM,
 };
 
+// seek flags
+enum {
+    SEEK_FAST,
+    SEEK_PRECISELY,
+};
+
 // param
 enum {
     //++ public
@@ -120,7 +126,7 @@ void* player_open    (char *file, void *win);
 void  player_close   (void *hplayer);
 void  player_play    (void *hplayer);
 void  player_pause   (void *hplayer);
-void  player_seek    (void *hplayer, int64_t ms);
+void  player_seek    (void *hplayer, int64_t ms, int type);
 void  player_setrect (void *hplayer, int type, int x, int y, int w, int h); // type: 0 - video rect, 1 - visual effect rect
 int   player_snapshot(void *hplayer, char *file, int w, int h, int waitt);
 void  player_setparam(void *hplayer, int id, void *param);

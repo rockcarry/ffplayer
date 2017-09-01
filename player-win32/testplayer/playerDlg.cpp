@@ -52,14 +52,11 @@ void CplayerDlg::PlayerOpenFile(TCHAR *file)
         {
             wcscpy_s(temp, dlg.GetPathName());
             WideCharToMultiByte(CP_ACP, 0, temp, -1, str, MAX_PATH, NULL, NULL);
-        }
-        else
-        {
+        } else {
             OnOK();
             return;
         }
-    }
-    else {
+    } else {
         WideCharToMultiByte(CP_ACP, 0, file, -1, str, MAX_PATH, NULL, NULL);
     }
 
@@ -87,6 +84,12 @@ void CplayerDlg::PlayerOpenFile(TCHAR *file)
         player_getparam(g_hplayer, PARAM_VIDEO_STREAM_CUR     , &param);
         player_getparam(g_hplayer, PARAM_SUBTITLE_STREAM_CUR  , &param);
         //-- get player params
+
+#if 0
+        param = 1; player_setparam(g_hplayer, PARAM_VFILTER_ENABLE  , &param);
+        param = 1; player_setparam(g_hplayer, PARAM_AUDIO_STREAM_CUR, &param);
+        param = 1; player_setparam(g_hplayer, PARAM_VIDEO_STREAM_CUR, &param);
+#endif
 
         player_setrect(g_hplayer, 0, 0, 0, m_rtClient.right, m_rtClient.bottom - 2);
         player_setrect(g_hplayer, 1, 0, 0, m_rtClient.right, m_rtClient.bottom - 2);
@@ -233,7 +236,7 @@ void CplayerDlg::OnLButtonDown(UINT nFlags, CPoint point)
     {
         LONGLONG total = 1;
         player_getparam(g_hplayer, PARAM_MEDIA_DURATION, &total);
-        player_seek(g_hplayer, total * point.x / m_rtClient.right);
+        player_seek(g_hplayer, total * point.x / m_rtClient.right, SEEK_PRECISELY);
     } else {
         if (!m_bPlayPause) player_pause(g_hplayer);
         else player_play(g_hplayer);

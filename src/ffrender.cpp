@@ -429,8 +429,8 @@ void render_setparam(void *hrender, int id, void *param)
                 void*hwnd      = vdev->hwnd;
                 int  x         = vdev->x;
                 int  y         = vdev->y;
-                int  w         = vdev->w;
-                int  h         = vdev->h;
+                int  w         = render->video_width;
+                int  h         = render->video_height;
                 int  tickframe = vdev->tickframe;
                 int  status    = vdev->status;
                 int64_t *papts = NULL;

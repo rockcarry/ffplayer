@@ -468,10 +468,12 @@ static void set_stream_current(PLAYER *player, enum AVMediaType type, int sel) {
     if (type == AVMEDIA_TYPE_VIDEO) {
         int mode = -1;
         render_setparam(player->render, PARAM_VDEV_RENDER_TYPE, &mode);
+        vfilter_graph_free(player);
+        vfilter_graph_init(player);
     }
 
     // seek current pos to update pktqueue
-    player_seek(player, pos);
+    player_seek(player, pos, 0);
 
     // resume player threads
 //  make_player_thread_pause(player, 0); // no need to call this function
@@ -684,7 +686,7 @@ void player_setrect(void *hplayer, int type, int x, int y, int w, int h)
     render_setrect(player->render, type, x + (w - rw) / 2, y + (h - rh) / 2, rw, rh);
 }
 
-void player_seek(void *hplayer, int64_t ms)
+void player_seek(void *hplayer, int64_t ms, int type)
 {
     if (!hplayer) return;
     PLAYER *player   = (PLAYER*)hplayer;
@@ -706,16 +708,18 @@ void player_seek(void *hplayer, int64_t ms)
     render_reset  (player->render);   // reset render
 
     //++ seek to dest pts
-    int SEEK_REQ = 0;
-    int SEEK_ACK = 0;
-    int timeout  = 300;
-    if (player->astream_index != -1) { SEEK_REQ |= PS_A_SEEK; SEEK_ACK |= PS_A_PAUSE; }
-    if (player->vstream_index != -1) { SEEK_REQ |= PS_V_SEEK; SEEK_ACK |= PS_V_PAUSE; }
-    player->seek_dest_pts  =  ms;
-    player->player_status |=  SEEK_REQ;
-    player->player_status &= ~PAUSE_REQ;
-    while (!(player->player_status & SEEK_ACK) && timeout--) usleep(20*1000);
-    player->player_status &= ~SEEK_REQ;
+    if (type) {
+        int SEEK_REQ = 0;
+        int SEEK_ACK = 0;
+        int timeout  = 300;
+        if (player->astream_index != -1) { SEEK_REQ |= PS_A_SEEK; SEEK_ACK |= PS_A_PAUSE; }
+        if (player->vstream_index != -1) { SEEK_REQ |= PS_V_SEEK; SEEK_ACK |= PS_V_PAUSE; }
+        player->seek_dest_pts  =  ms;
+        player->player_status |=  SEEK_REQ;
+        player->player_status &= ~PAUSE_REQ;
+        while (!(player->player_status & SEEK_ACK) && timeout--) usleep(20*1000);
+        player->player_status &= ~SEEK_REQ;
+    }
     //-- seek to dest pts
 
     // resume demuxing & decoding threads
