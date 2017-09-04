@@ -1,13 +1,13 @@
-prefix=/home/xujb/ext1/a33-dvr/android4.4/ffplayer/player-android/ffmpeg-android/ffmpeg/..
+prefix=/home/xujb/ext1/a64-518s/android/ffplayer/player-android/ffmpeg-android/ffmpeg/..
 exec_prefix=${prefix}
 libdir=${prefix}/lib
 includedir=${prefix}/include
 
 Name: libavformat
 Description: FFmpeg container format library
-Version: 57.41.100
+Version: 57.56.101
 Requires: 
-Requires.private: libavcodec >= 57.48.101, libswresample >= 2.1.100, libavutil >= 55.28.100
+Requires.private: libavcodec >= 57.64.101, libswresample >= 2.3.100, libavutil >= 55.34.101
 Conflicts:
 Libs: -L${libdir}  -lavformat 
 Libs.private: -lm -lz

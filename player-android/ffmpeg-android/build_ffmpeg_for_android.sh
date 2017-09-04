@@ -33,8 +33,8 @@ cd ffmpeg
 --disable-doc \
 --disable-postproc \
 --disable-encoders \
+--disable-muxers   \
 --disable-filters  \
---enable-muxers    \
 --enable-encoder=mjpeg \
 --enable-muxer=mjpeg \
 --enable-encoder=apng \
@@ -47,6 +47,11 @@ cd ffmpeg
 --enable-jni \
 --enable-mediacodec \
 --enable-decoder=h264_mediacodec \
+--enable-decoder=hevc_mediacodec \
+--enable-decoder=mpeg2_mediacodec \
+--enable-decoder=mpeg4_mediacodec \
+--enable-decoder=vp8_mediacodec \
+--enable-decoder=vp9_mediacodec \
 --extra-cflags="$CFLAGS $EXTRA_CFLAGS" \
 --extra-ldflags="$EXTRA_LDFLAGS"
 make -j8 && make install

@@ -1,13 +1,13 @@
-prefix=/home/xujb/ext1/a33-dvr/android4.4/ffplayer/player-android/ffmpeg-android/ffmpeg/..
+prefix=/home/xujb/ext1/a64-518s/android/ffplayer/player-android/ffmpeg-android/ffmpeg/..
 exec_prefix=${prefix}
 libdir=${prefix}/lib
 includedir=${prefix}/include
 
 Name: libswscale
 Description: FFmpeg image rescaling library
-Version: 4.1.100
+Version: 4.2.100
 Requires: 
-Requires.private: libavutil >= 55.28.100
+Requires.private: libavutil >= 55.34.101
 Conflicts:
 Libs: -L${libdir}  -lswscale 
 Libs.private: -lm
