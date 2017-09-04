@@ -1,13 +1,17 @@
 package com.rockcarry.ffplayer;
 
+import android.os.Handler;
+import android.os.Message;
+
 public final class player
 {
     public static final int SCALING_MODE_SCALE_TO_WINDOW = 1;
     public static final int SCALING_MODE_SCALE_CROP      = 2;
     public static final int SCALING_MODE_NO_SCALE_CROP   = 3;
 
-    public static final int EVENT_PLAY_PROGRESS          = (('R' << 24) | ('U' << 16) | ('N' << 8) | (' ' << 0));
-    public static final int EVENT_PLAY_COMPLETED         = (('E' << 24) | ('N' << 16) | ('D' << 8) | (' ' << 0));
+    public static final int MSG_PLAY_PROGRESS            = (('R' << 24) | ('U' << 16) | ('N' << 8) | (' ' << 0));
+    public static final int MSG_PLAY_COMPLETED           = (('E' << 24) | ('N' << 16) | ('D' << 8) | (' ' << 0));
+    public static final int MSG_PLAY_INITED              = (('I' << 24) | ('N' << 16) | ('I' << 8) | ('T' << 0));
 
     public static final int PARAM_MEDIA_DURATION         = 0x1000 + 0;
     public static final int PARAM_MEDIA_POSITION         = 0x1000 + 1;
@@ -44,21 +48,21 @@ public final class player
     public void setDisplayTexture(Object texture) { nativeSetDisplayTexture(m_hPlayer, texture); }
     public void setDispScaleMode (int    mode   ) { nativeSetDispScaleMode(m_hPlayer, mode    ); }
 
-    public void setPlayerEventCallback(playerEventCallback cb) { mPlayerEventCB = cb; }
-    public interface playerEventCallback {
-        public void onPlayerEvent(int event, long param);
+    public void setPlayerMsgHandler(Handler h) {
+        mPlayerMsgHandler = h;
+        nativeEnableCallback(m_hPlayer, mPlayerMsgHandler != null ? 1 : 0);
     }
 
     //++ for player event callback
-    private playerEventCallback mPlayerEventCB = null;
-
+    private Handler mPlayerMsgHandler = null;
     private void internalPlayerEventCallback(int event, long param) {
-        if (mPlayerEventCB != null) {
-            mPlayerEventCB.onPlayerEvent(event, param);
+        if (mPlayerMsgHandler != null) {
+            Message msg = new Message();
+            msg.what = event;
+            msg.obj  = new Long(param);
+            mPlayerMsgHandler.sendMessage(msg);
         }
-        nativeEnableCallback(m_hPlayer, mPlayerEventCB != null ? 1 : 0);
     }
-
     private native void nativeInitJniObject(long hplayer);
     //-- for player event callback
 
