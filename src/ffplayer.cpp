@@ -400,6 +400,7 @@ static int reinit_stream(PLAYER *player, enum AVMediaType type, int sel) {
         case AV_CODEC_ID_VP9       : decoder = avcodec_find_decoder_by_name("vp9_mediacodec"  ); break;
         case AV_CODEC_ID_MPEG2VIDEO: decoder = avcodec_find_decoder_by_name("mpeg2_mediacodec"); break;
         case AV_CODEC_ID_MPEG4     : decoder = avcodec_find_decoder_by_name("mpeg4_mediacodec"); break;
+        default: break;
         }
         if (!decoder) decoder = avcodec_find_decoder(player->vcodec_context->codec_id);
         if (decoder) {
