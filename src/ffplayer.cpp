@@ -396,6 +396,21 @@ static int reinit_stream(PLAYER *player, enum AVMediaType type, int sel) {
         if (AV_CODEC_ID_H264 == player->vcodec_context->codec_id) {
             decoder = avcodec_find_decoder_by_name("h264_mediacodec");
         }
+        if (AV_CODEC_ID_HEVC == player->vcodec_context->codec_id) {
+            decoder = avcodec_find_decoder_by_name("hevc_mediacodec");
+        }
+        if (AV_CODEC_ID_VP8 == player->vcodec_context->codec_id) {
+            decoder = avcodec_find_decoder_by_name("vp8_mediacodec");
+        }
+        if (AV_CODEC_ID_VP9 == player->vcodec_context->codec_id) {
+            decoder = avcodec_find_decoder_by_name("vp9_mediacodec");
+        }
+        if (AV_CODEC_ID_MPEG2VIDEO == player->vcodec_context->codec_id) {
+            decoder = avcodec_find_decoder_by_name("mpeg2_mediacodec");
+        }
+        if (AV_CODEC_ID_MPEG4 == player->vcodec_context->codec_id) {
+            decoder = avcodec_find_decoder_by_name("mpeg4_mediacodec");
+        }
         if (!decoder) {
             decoder = avcodec_find_decoder(player->vcodec_context->codec_id);
         }
