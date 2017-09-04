@@ -44,8 +44,6 @@ typedef struct
     #define PS_A_SEEK     (1 << 4)  // seek audio
     #define PS_V_SEEK     (1 << 5)  // seek video
     #define PS_CLOSE      (1 << 6)  // close player
-    #define PAUSE_REQ ((PS_D_PAUSE|PS_A_PAUSE|PS_V_PAUSE) << 0 )
-    #define PAUSE_ACK ((PS_D_PAUSE|PS_A_PAUSE|PS_V_PAUSE) << 16)
     int              player_status;
     int64_t          seek_dest_pts;
 
@@ -420,6 +418,11 @@ static int reinit_stream(PLAYER *player, enum AVMediaType type, int sel) {
 }
 
 static void make_player_thread_pause(PLAYER *player, int pause) {
+    int PAUSE_REQ = PS_D_PAUSE << 0 ;
+    int PAUSE_ACK = PS_D_PAUSE << 16;
+    if (player->astream_index != -1) { PAUSE_REQ |= PS_A_PAUSE; PAUSE_ACK |= PS_A_PAUSE << 16; }
+    if (player->vstream_index != -1) { PAUSE_REQ |= PS_V_PAUSE; PAUSE_ACK |= PS_V_PAUSE << 16; }
+
     if (pause) {
         // make player thread paused
         player->player_status |= PAUSE_REQ;
@@ -715,8 +718,9 @@ void player_seek(void *hplayer, int64_t ms, int type)
         if (player->astream_index != -1) { SEEK_REQ |= PS_A_SEEK; SEEK_ACK |= PS_A_PAUSE; }
         if (player->vstream_index != -1) { SEEK_REQ |= PS_V_SEEK; SEEK_ACK |= PS_V_PAUSE; }
         player->seek_dest_pts  =  ms;
+        player->player_status &= ~SEEK_ACK;
         player->player_status |=  SEEK_REQ;
-        player->player_status &= ~PAUSE_REQ;
+        player->player_status &= ~PS_D_PAUSE;
         while (!(player->player_status & SEEK_ACK) && timeout--) usleep(20*1000);
         player->player_status &= ~SEEK_REQ;
     }
