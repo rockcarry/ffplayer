@@ -393,29 +393,25 @@ static int reinit_stream(PLAYER *player, enum AVMediaType type, int sel) {
 
         // reopen codec
         if (lastctxt) avcodec_close(lastctxt);
-        if (AV_CODEC_ID_H264 == player->vcodec_context->codec_id) {
-            decoder = avcodec_find_decoder_by_name("h264_mediacodec");
+        switch (player->vcodec_context->codec_id) {
+        case AV_CODEC_ID_H264      : decoder = avcodec_find_decoder_by_name("h264_mediacodec" ); break;
+        case AV_CODEC_ID_HEVC      : decoder = avcodec_find_decoder_by_name("hevc_mediacodec" ); break;
+        case AV_CODEC_ID_VP8       : decoder = avcodec_find_decoder_by_name("vp8_mediacodec"  ); break;
+        case AV_CODEC_ID_VP9       : decoder = avcodec_find_decoder_by_name("vp9_mediacodec"  ); break;
+        case AV_CODEC_ID_MPEG2VIDEO: decoder = avcodec_find_decoder_by_name("mpeg2_mediacodec"); break;
+        case AV_CODEC_ID_MPEG4     : decoder = avcodec_find_decoder_by_name("mpeg4_mediacodec"); break;
         }
-        if (AV_CODEC_ID_HEVC == player->vcodec_context->codec_id) {
-            decoder = avcodec_find_decoder_by_name("hevc_mediacodec");
-        }
-        if (AV_CODEC_ID_VP8 == player->vcodec_context->codec_id) {
-            decoder = avcodec_find_decoder_by_name("vp8_mediacodec");
-        }
-        if (AV_CODEC_ID_VP9 == player->vcodec_context->codec_id) {
-            decoder = avcodec_find_decoder_by_name("vp9_mediacodec");
-        }
-        if (AV_CODEC_ID_MPEG2VIDEO == player->vcodec_context->codec_id) {
-            decoder = avcodec_find_decoder_by_name("mpeg2_mediacodec");
-        }
-        if (AV_CODEC_ID_MPEG4 == player->vcodec_context->codec_id) {
-            decoder = avcodec_find_decoder_by_name("mpeg4_mediacodec");
-        }
-        if (!decoder) {
-            decoder = avcodec_find_decoder(player->vcodec_context->codec_id);
-        }
-        if (decoder && avcodec_open2(player->vcodec_context, decoder, NULL) == 0) {
-            player->vstream_index = idx;
+        if (!decoder) decoder = avcodec_find_decoder(player->vcodec_context->codec_id);
+        if (decoder) {
+            int decoder_ok = 1;
+            if (avcodec_open2(player->vcodec_context, decoder, NULL) < 0) {
+                avcodec_close(player->vcodec_context);
+                decoder = avcodec_find_decoder(player->vcodec_context->codec_id);
+                if (avcodec_open2(player->vcodec_context, decoder, NULL) < 0) {
+                    decoder_ok = 0;
+                }
+            }
+            if (decoder_ok) player->vstream_index = idx;
         }
         else {
             av_log(NULL, AV_LOG_WARNING, "failed to find or open decoder for video !\n");
