@@ -147,8 +147,8 @@ void* vdev_android_create(void *win, int bufnum, int w, int h, int frate)
     ctxt->hwnd      = win;
     ctxt->bufnum    = bufnum;
     ctxt->pixfmt    = android_pixfmt_to_ffmpeg_pixfmt(DEF_WIN_PIX_FMT);
-    ctxt->w         = w;
-    ctxt->h         = h;
+    ctxt->w         = w ? w : 1;
+    ctxt->h         = h ? h : 1;
     ctxt->sw        = ALIGN(w, 16);
     ctxt->sh        = ALIGN(h, 16);
     ctxt->tickframe = 1000 / frate;
