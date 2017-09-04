@@ -29,8 +29,8 @@ cd ffmpeg
 --disable-doc \
 --disable-postproc \
 --disable-encoders \
+--disable-muxers   \
 --disable-filters  \
---enable-muxers    \
 --enable-encoder=mjpeg \
 --enable-muxer=mjpeg \
 --enable-encoder=apng \
