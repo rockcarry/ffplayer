@@ -65,20 +65,9 @@ public class TestPlayerActivity extends Activity {
 //          finish(); return;
         }
 
-        /*
-        mPlayer.setPlayerEventCallback(new player.playerEventCallback() {
-            @Override
-            public void onPlayerEvent(int event, long param) {
-//              android.util.Log.d("===ck===", "event = " + event + ", param = " + param);
-                switch (event) {
-                case player.EVENT_PLAY_PROGRESS:
-                    break;
-                case player.EVENT_PLAY_COMPLETED:
-                    break;
-                }
-            }
-        });
-        */
+//      mPlayer.setParam(player.PARAM_AUDIO_STREAM_CUR, 1);
+//      mPlayer.setParam(player.PARAM_VIDEO_STREAM_CUR, 1);
+//      mPlayer.setParam(player.PARAM_VFILTER_ENABLE  , 1);
 
         mRoot = (playerRoot )findViewById(R.id.player_root);
         mRoot.setOnSizeChangedListener(new playerRoot.OnSizeChangedListener() {

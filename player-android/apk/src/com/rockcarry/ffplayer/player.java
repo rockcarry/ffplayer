@@ -11,7 +11,6 @@ public final class player
 
     public static final int MSG_PLAY_PROGRESS            = (('R' << 24) | ('U' << 16) | ('N' << 8) | (' ' << 0));
     public static final int MSG_PLAY_COMPLETED           = (('E' << 24) | ('N' << 16) | ('D' << 8) | (' ' << 0));
-    public static final int MSG_PLAY_INITED              = (('I' << 24) | ('N' << 16) | ('I' << 8) | ('T' << 0));
 
     public static final int PARAM_MEDIA_DURATION         = 0x1000 + 0;
     public static final int PARAM_MEDIA_POSITION         = 0x1000 + 1;
@@ -30,6 +29,8 @@ public final class player
     public static final int PARAM_AUDIO_STREAM_CUR       = 0x1000 +14;
     public static final int PARAM_VIDEO_STREAM_CUR       = 0x1000 +15;
     public static final int PARAM_SUBTITLE_STREAM_CUR    = 0x1000 +16;
+    public static final int PARAM_AFILTER_ENABLE         = 0x1000 +17;
+    public static final int PARAM_VFILTER_ENABLE         = 0x1000 +18;
 
     private long m_hPlayer = 0;
     public boolean open(String url) {
