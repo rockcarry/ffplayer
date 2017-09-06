@@ -106,7 +106,7 @@ void* adev_create(int type, int bufnum, int buflen)
     wfx.cbSize          = sizeof(wfx);
     wfx.wFormatTag      = WAVE_FORMAT_PCM;
     wfx.wBitsPerSample  = 16;    // 16bit
-    wfx.nSamplesPerSec  = 44100; // 44.1k
+    wfx.nSamplesPerSec  = ADEV_SAMPLE_RATE;
     wfx.nChannels       = 2;     // stereo
     wfx.nBlockAlign     = wfx.nChannels * wfx.wBitsPerSample / 8;
     wfx.nAvgBytesPerSec = wfx.nBlockAlign * wfx.nSamplesPerSec;

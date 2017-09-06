@@ -16,6 +16,8 @@ typedef struct {
 } AUDIOBUF;
 #endif
 
+#define ADEV_SAMPLE_RATE  44100
+
 // º¯ÊıÉùÃ÷
 void* adev_create  (int type, int bufnum, int buflen);
 void  adev_destroy (void *ctxt);

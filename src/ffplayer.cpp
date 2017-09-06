@@ -171,7 +171,7 @@ static void* av_demux_thread_proc(void *param)
         }
 
         if (  packet->stream_index != player->astream_index
-           && packet->stream_index != player->vstream_index )
+           && packet->stream_index != player->vstream_index)
         {
             av_packet_unref(packet); // free packet
             pktqueue_write_post_i(player->pktqueue, packet);

@@ -148,7 +148,7 @@ void* adev_create(int type, int bufnum, int buflen)
     #define CHANNEL_STEREO      3
     #define MODE_STREAM         1
     jobject at_obj = env->NewObject(jcls, ctxt->jmid_at_init,
-        STREAM_MUSIC, 44100, CHANNEL_STEREO, ENCODING_PCM_16BIT, ctxt->buflen * 2, MODE_STREAM);
+        STREAM_MUSIC, ADEV_SAMPLE_RATE, CHANNEL_STEREO, ENCODING_PCM_16BIT, ctxt->buflen * 2, MODE_STREAM);
     ctxt->jobj_at  = env->NewGlobalRef(at_obj);
     env->DeleteLocalRef(at_obj);
 

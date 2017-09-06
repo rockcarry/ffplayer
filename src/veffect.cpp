@@ -1,8 +1,8 @@
 ﻿// 包含头文件
 #include <math.h>
-#include "ffplayer.h"
-#include "veffect.h"
+#include "adev.h"
 #include "fft.h"
+#include "veffect.h"
 
 // 内部常量定义
 #define MAX_GRID_COLS  64
@@ -267,8 +267,7 @@ void veffect_render(void *ctxt, int x, int y, int w, int h, int type, void *buf,
                 fdst += 1;
                 fsrc += 2;
             }
-//          draw_waveform(ve, x, y, w, h, 0x100000, ve->data_buf, ve->data_len);
-            draw_spectrum(ve, x, y, w, h, ve->data_buf, ve->data_len * 47 / 128); // 44100 * 47 / 128 = 16K
+            draw_spectrum(ve, x, y, w, h, ve->data_buf, (int)(ve->data_len * 16000.0 / ADEV_SAMPLE_RATE));
         }
         break;
     }

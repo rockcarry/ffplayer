@@ -153,7 +153,7 @@ void* render_open(int adevtype, int srate, AVSampleFormat sndfmt, int64_t ch_lay
 #endif
 
     // create adev & vdev
-    render->adev = adev_create(adevtype, 0, (int)(44100.0 * frate.den / frate.num + 0.5) * 4);
+    render->adev = adev_create(adevtype, 0, (int)((double)ADEV_SAMPLE_RATE * frate.den / frate.num + 0.5) * 4);
     render->vdev = vdev_create(vdevtype, surface, 0, w, h, (int)((double)frate.num / frate.den + 0.5));
 
     // make adev & vdev sync together
@@ -228,7 +228,7 @@ void render_audio(void *hrender, AVFrame *audio)
             if (render->swr_context) {
                 swr_free(&render->swr_context);
             }
-            int samprate = 44100 * 100 / render->render_speed_cur;
+            int samprate = ADEV_SAMPLE_RATE * 100.0 / render->render_speed_cur;
             render->swr_context = swr_alloc_set_opts(NULL, AV_CH_LAYOUT_STEREO, AV_SAMPLE_FMT_S16, samprate,
                 render->chan_layout, render->sample_fmt, render->sample_rate, 0, NULL);
             swr_init(render->swr_context);
