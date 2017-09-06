@@ -34,7 +34,6 @@ typedef struct
     int            video_mode;
     int            video_width;
     int            video_height;
-    int            frame_period;
     AVRational     frame_rate;
     AVPixelFormat  pixel_fmt;
 
@@ -88,6 +87,11 @@ typedef struct
 static void render_setspeed(RENDER *render, int speed)
 {
     if (speed > 0) {
+        // set vdev frame rate
+        int framerate = (int)((render->frame_rate.num * speed) / (render->frame_rate.den * 100.0) + 0.5);
+        vdev_setparam(render->vdev, PARAM_VDEV_FRAME_RATE, &framerate);
+
+        // set render_speed_new to triger swr_context re-create
         render->render_speed_new = speed;
     }
 }
@@ -128,7 +132,6 @@ void* render_open(int adevtype, int srate, AVSampleFormat sndfmt, int64_t ch_lay
     render->video_height = h;
     render->render_wnew  = w;
     render->render_hnew  = h;
-    render->frame_period = 1000 * frate.den / frate.num;
     render->frame_rate   = frate;
     render->pixel_fmt    = pixfmt;
     if (render->pixel_fmt == AV_PIX_FMT_NONE) {
@@ -151,7 +154,7 @@ void* render_open(int adevtype, int srate, AVSampleFormat sndfmt, int64_t ch_lay
 
     // create adev & vdev
     render->adev = adev_create(adevtype, 0, (int)(44100.0 * frate.den / frate.num + 0.5) * 4);
-    render->vdev = vdev_create(vdevtype, surface, 0, w, h, frate.num / frate.den);
+    render->vdev = vdev_create(vdevtype, surface, 0, w, h, (int)((double)frate.num / frate.den + 0.5));
 
     // make adev & vdev sync together
     int64_t *papts = NULL;
@@ -214,18 +217,13 @@ void render_audio(void *hrender, AVFrame *audio)
     do {
         if (render->adev_buf_avail == 0) {
             adev_request(render->adev, &render->adev_hdr_cur);
-            apts += render->frame_period * render->render_speed_cur / 100;
+            apts += 10 * render->render_speed_cur * render->frame_rate.den / render->frame_rate.num;
             render->adev_buf_avail = (int     )render->adev_hdr_cur->size;
             render->adev_buf_cur   = (uint8_t*)render->adev_hdr_cur->data;
         }
 
         if (render->render_speed_cur != render->render_speed_new) {
             render->render_speed_cur = render->render_speed_new;
-
-            // set vdev frame rate
-            int framerate = (render->frame_rate.num * render->render_speed_cur) / (render->frame_rate.den * 100);
-            vdev_setparam(render->vdev, PARAM_VDEV_FRAME_RATE, &framerate);
-
             //++ allocate & init swr context
             if (render->swr_context) {
                 swr_free(&render->swr_context);
@@ -431,17 +429,16 @@ void render_setparam(void *hrender, int id, void *param)
                 int  y         = vdev->y;
                 int  w         = render->video_width;
                 int  h         = render->video_height;
-                int  tickframe = vdev->tickframe;
                 int  status    = vdev->status;
+                int  frate     = (int)((render->frame_rate.num * render->render_speed_new) / (render->frame_rate.den * 100.0) + 0.5);
                 int64_t *papts = NULL;
                 vdev_destroy(vdev);
-                vdev = (VDEV_COMMON_CTXT*)vdev_create(type, hwnd, 0, w, h, 30);
+                vdev = (VDEV_COMMON_CTXT*)vdev_create(type, hwnd, 0, w, h, frate);
                 vdev_setrect (vdev, x, y, w, h   );
                 vdev_getavpts(vdev, &papts, NULL );
                 adev_syncapts(render->adev, papts);
-                vdev->tickframe = tickframe;
-                vdev->status    = status;
-                render->vdev    = vdev;
+                vdev->status   = status;
+                render->vdev   = vdev;
                 //-- re-create vdev
                 render->render_wcur = 0;
                 render->render_hcur = 0;
@@ -460,8 +457,8 @@ void render_setparam(void *hrender, int id, void *param)
             render->video_width = pru->width;
             render->video_height= pru->height;
 
-            // set render_speed_cur to 1, will cause swr recreate
-            render->render_speed_cur = 1;
+            // set render_speed_cur to triger swr_context re-create
+            render->render_speed_cur = -1;
         }
         break;
     }
