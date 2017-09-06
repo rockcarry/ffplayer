@@ -138,7 +138,7 @@ public class TestPlayerActivity extends Activity {
                 if (fromUser) {
                     mHandler.removeMessages(MSG_UPDATE_PROGRESS);
                     mPlayer.seek(progress);
-                    mHandler.sendEmptyMessageDelayed(MSG_UPDATE_PROGRESS, 200);
+                    mHandler.sendEmptyMessageDelayed(MSG_UPDATE_PROGRESS, 600);
                 }
             }
             @Override
