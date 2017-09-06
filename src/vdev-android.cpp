@@ -35,6 +35,11 @@ typedef struct
 } VDEVCTXT;
 
 // 内部函数实现
+inline int ALIGN(int x, int y) {
+    // y must be a power of 2.
+    return (x + y - 1) & ~(y - 1);
+}
+
 inline uint64_t get_tick_count(void)
 {
     struct timespec ts;
@@ -144,8 +149,8 @@ void* vdev_android_create(void *win, int bufnum, int w, int h, int frate)
     ctxt->pixfmt    = android_pixfmt_to_ffmpeg_pixfmt(DEF_WIN_PIX_FMT);
     ctxt->w         = w ? w : 1;
     ctxt->h         = h ? h : 1;
-    ctxt->sw        = w;
-    ctxt->sh        = h;
+    ctxt->sw        = ALIGN(w, 16);
+    ctxt->sh        = ALIGN(h, 2 );
     ctxt->tickframe = 1000 / frate;
     ctxt->ticksleep = ctxt->tickframe;
     ctxt->apts      = -1;
