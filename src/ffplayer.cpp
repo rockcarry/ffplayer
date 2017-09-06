@@ -313,35 +313,6 @@ static void* video_decode_thread_proc(void *param)
     return NULL;
 }
 
-static int get_stream_total(PLAYER *player, enum AVMediaType type) {
-    int total, i;
-    for (i=0,total=0; i<(int)player->avformat_context->nb_streams; i++) {
-        if (player->avformat_context->streams[i]->codec->codec_type == type) {
-            total++;
-        }
-    }
-    return total;
-}
-
-static int get_stream_current(PLAYER *player, enum AVMediaType type) {
-    int idx, cur, i;
-    switch (type) {
-    case AVMEDIA_TYPE_AUDIO   : idx = player->astream_index; break;
-    case AVMEDIA_TYPE_VIDEO   : idx = player->vstream_index; break;
-    case AVMEDIA_TYPE_SUBTITLE: return -1; // todo...
-    default: return -1;
-    }
-    for (i=0,cur=-1; i<(int)player->avformat_context->nb_streams; i++) {
-        if (player->avformat_context->streams[i]->codec->codec_type == type) {
-            cur++;
-        }
-        if (i == idx) {
-            break;
-        }
-    }
-    return cur;
-}
-
 static int reinit_stream(PLAYER *player, enum AVMediaType type, int sel) {
     AVCodecContext *lastctxt = NULL;
     AVCodec        *decoder  = NULL;
@@ -451,6 +422,35 @@ static void make_player_thread_pause(PLAYER *player, int pause) {
             player->player_status &= ~(PAUSE_REQ|PAUSE_ACK);
         }
     }
+}
+
+static int get_stream_total(PLAYER *player, enum AVMediaType type) {
+    int total, i;
+    for (i=0,total=0; i<(int)player->avformat_context->nb_streams; i++) {
+        if (player->avformat_context->streams[i]->codec->codec_type == type) {
+            total++;
+        }
+    }
+    return total;
+}
+
+static int get_stream_current(PLAYER *player, enum AVMediaType type) {
+    int idx, cur, i;
+    switch (type) {
+    case AVMEDIA_TYPE_AUDIO   : idx = player->astream_index; break;
+    case AVMEDIA_TYPE_VIDEO   : idx = player->vstream_index; break;
+    case AVMEDIA_TYPE_SUBTITLE: return -1; // todo...
+    default: return -1;
+    }
+    for (i=0,cur=-1; i<(int)player->avformat_context->nb_streams; i++) {
+        if (player->avformat_context->streams[i]->codec->codec_type == type) {
+            cur++;
+        }
+        if (i == idx) {
+            break;
+        }
+    }
+    return cur;
 }
 
 static void set_stream_current(PLAYER *player, enum AVMediaType type, int sel) {
