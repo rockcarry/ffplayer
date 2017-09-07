@@ -9,7 +9,6 @@
 
 using namespace android;
 
-
 // this function defined in libavcodec/jni.h
 extern "C" int av_jni_set_java_vm(void *vm, void *log_ctx);
 
@@ -17,8 +16,9 @@ extern "C" int av_jni_set_java_vm(void *vm, void *log_ctx);
 JavaVM* g_jvm = NULL;
 JNIEXPORT jint JNICALL JNI_OnLoad(JavaVM* vm, void* reserved)
 {
-    JNIEnv* env = NULL;
+    DO_USE_VAR(reserved);
 
+    JNIEnv* env = NULL;
     if (vm->GetEnv((void**) &env, JNI_VERSION_1_4) != JNI_OK) {
         ALOGE("ERROR: GetEnv failed\n");
         return -1;
@@ -27,9 +27,7 @@ JNIEXPORT jint JNICALL JNI_OnLoad(JavaVM* vm, void* reserved)
 
     // for g_jvm
     g_jvm = vm;
-
     av_jni_set_java_vm(vm, NULL);
-
     return JNI_VERSION_1_4;
 }
 
@@ -53,7 +51,6 @@ JNIEXPORT JNIEnv* get_jni_env(void)
     }
     return env;
 }
-
 
 
 /*
@@ -80,6 +77,10 @@ JNIEXPORT void JNICALL Java_com_rockcarry_ffplayer_player_nativeInitJniObject
 JNIEXPORT jlong JNICALL Java_com_rockcarry_ffplayer_player_nativeOpen
   (JNIEnv *env, jclass clazz, jstring url, jobject jsurface, jint w, jint h)
 {
+    DO_USE_VAR(clazz);
+    DO_USE_VAR(jsurface);
+    DO_USE_VAR(w);
+    DO_USE_VAR(h);
     const char *str = env->GetStringUTFChars(url, NULL);
     jlong hplayer = (jlong)player_open((char*)str, NULL);
     env->ReleaseStringUTFChars(url, str);
@@ -94,6 +95,8 @@ JNIEXPORT jlong JNICALL Java_com_rockcarry_ffplayer_player_nativeOpen
 JNIEXPORT void JNICALL Java_com_rockcarry_ffplayer_player_nativeClose
   (JNIEnv *env, jclass clazz, jlong hplayer)
 {
+    DO_USE_VAR(env);
+    DO_USE_VAR(clazz);
     player_close((void*)hplayer);
 }
 
@@ -105,6 +108,8 @@ JNIEXPORT void JNICALL Java_com_rockcarry_ffplayer_player_nativeClose
 JNIEXPORT void JNICALL Java_com_rockcarry_ffplayer_player_nativePlay
   (JNIEnv *env, jclass clazz, jlong hplayer)
 {
+    DO_USE_VAR(env);
+    DO_USE_VAR(clazz);
     player_play((void*)hplayer);
 }
 
@@ -116,6 +121,8 @@ JNIEXPORT void JNICALL Java_com_rockcarry_ffplayer_player_nativePlay
 JNIEXPORT void JNICALL Java_com_rockcarry_ffplayer_player_nativePause
   (JNIEnv *env, jclass clazz, jlong hplayer)
 {
+    DO_USE_VAR(env);
+    DO_USE_VAR(clazz);
     player_pause((void*)hplayer);
 }
 
@@ -127,6 +134,8 @@ JNIEXPORT void JNICALL Java_com_rockcarry_ffplayer_player_nativePause
 JNIEXPORT void JNICALL Java_com_rockcarry_ffplayer_player_nativeSeek
   (JNIEnv *env, jclass clazz, jlong hplayer, jlong ms)
 {
+    DO_USE_VAR(env);
+    DO_USE_VAR(clazz);
     player_seek((void*)hplayer, ms, SEEK_PRECISELY);
 }
 
@@ -138,6 +147,8 @@ JNIEXPORT void JNICALL Java_com_rockcarry_ffplayer_player_nativeSeek
 JNIEXPORT void JNICALL Java_com_rockcarry_ffplayer_player_nativeSetParam
   (JNIEnv *env, jclass clazz, jlong hplayer, jint id, jlong value)
 {
+    DO_USE_VAR(env);
+    DO_USE_VAR(clazz);
     player_setparam((void*)hplayer, id, &value);
 }
 
@@ -149,6 +160,8 @@ JNIEXPORT void JNICALL Java_com_rockcarry_ffplayer_player_nativeSetParam
 JNIEXPORT jlong JNICALL Java_com_rockcarry_ffplayer_player_nativeGetParam
   (JNIEnv *env, jclass clazz, jlong hplayer, jint id)
 {
+    DO_USE_VAR(env);
+    DO_USE_VAR(clazz);
     jlong value = 0;
     player_getparam((void*)hplayer, id, &value);
     return value;
@@ -162,6 +175,7 @@ JNIEXPORT jlong JNICALL Java_com_rockcarry_ffplayer_player_nativeGetParam
 JNIEXPORT void JNICALL Java_com_rockcarry_ffplayer_player_nativeSetDisplaySurface
   (JNIEnv *env, jclass clazz, jlong hplayer, jobject jsurface)
 {
+    DO_USE_VAR(clazz);
     void *vdev = NULL;
     player_getparam((void*)hplayer, PARAM_VDEV_GET_CONTEXT, &vdev);
     sp<IGraphicBufferProducer> gbp;
@@ -183,6 +197,7 @@ JNIEXPORT void JNICALL Java_com_rockcarry_ffplayer_player_nativeSetDisplaySurfac
 JNIEXPORT void JNICALL Java_com_rockcarry_ffplayer_player_nativeSetDisplayTexture
   (JNIEnv *env, jclass clazz, jlong hplayer, jobject jtexture)
 {
+    DO_USE_VAR(clazz);
     void *vdev = NULL;
     player_getparam((void*)hplayer, PARAM_VDEV_GET_CONTEXT, &vdev);
     sp<IGraphicBufferProducer> gbp = NULL;
@@ -204,5 +219,7 @@ JNIEXPORT void JNICALL Java_com_rockcarry_ffplayer_player_nativeSetDisplayTextur
 JNIEXPORT void JNICALL Java_com_rockcarry_ffplayer_player_nativeEnableCallback
   (JNIEnv *env, jclass clazz, jlong hplayer, jint enable)
 {
+    DO_USE_VAR(env);
+    DO_USE_VAR(clazz);
     player_setparam((void*)hplayer, PARAM_PLAYER_CALLBACK, (void*)(enable ? vdev_android_default_player_callback : NULL));
 }
