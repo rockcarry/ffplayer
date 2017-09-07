@@ -63,6 +63,7 @@ static const AVRational TIMEBASE_MS = { 1, 1000 };
 
 // 内部函数实现
 static void ffplayer_log_callback(void* ptr, int level, const char *fmt, va_list vl) {
+    DO_USE_VAR(ptr);
     if (level <= av_log_get_level()) {
         char str[1024];
 #ifdef WIN32

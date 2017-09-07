@@ -263,7 +263,11 @@ void vdev_android_post(void *ctxt, int64_t pts)
 
 void vdev_android_setrect(void *ctxt, int x, int y, int w, int h)
 {
-    // do nothing.
+    DO_USE_VAR(ctxt);
+    DO_USE_VAR(x   );
+    DO_USE_VAR(y   );
+    DO_USE_VAR(w   );
+    DO_USE_VAR(h   );
 }
 
 void vdev_android_default_player_callback(void *ctxt, int32_t msg, int64_t param)

@@ -107,6 +107,8 @@ void* adev_create(int type, int bufnum, int buflen)
     ADEV_CONTEXT *ctxt = NULL;
     int           i;
 
+    DO_USE_VAR(type);
+
     // allocate adev context
     ctxt = (ADEV_CONTEXT*)calloc(1, sizeof(ADEV_CONTEXT));
     if (!ctxt) {
@@ -314,6 +316,8 @@ void adev_getparam(void *ctxt, int id, void *param)
 
 void adev_android_initjni(void *ctxt, JNIEnv *env, jobject obj)
 {
-    // do nothing
+    DO_USE_VAR(ctxt);
+    DO_USE_VAR(env );
+    DO_USE_VAR(obj );
 }
 

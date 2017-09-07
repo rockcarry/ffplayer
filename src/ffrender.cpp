@@ -175,9 +175,10 @@ void render_close(void *hrender)
 {
     RENDER *render = (RENDER*)hrender;
 
-#if CONFIG_ENABLE_VEFFECT
     // wait visual effect thread exit
     render->render_status = RENDER_CLOSE;
+
+#if CONFIG_ENABLE_VEFFECT
     pthread_join(render->veffect_thread, NULL);
     veffect_destroy(render->veffect_context);
 #endif
@@ -262,6 +263,7 @@ void render_video(void *hrender, AVFrame *video)
     // fix play progress issue
     if (render->start_pts == -1) render->start_pts = video->pts;
 
+    if (!render->vdev) return;
     do {
         if (  render->render_xcur != render->render_xnew
            || render->render_ycur != render->render_ynew
@@ -351,6 +353,12 @@ void render_reset(void *hrender)
 
 int render_snapshot(void *hrender, char *file, int w, int h, int waitt)
 {
+    DO_USE_VAR(hrender);
+    DO_USE_VAR(file);
+    DO_USE_VAR(w);
+    DO_USE_VAR(h);
+    DO_USE_VAR(waitt);
+
 #if CONFIG_ENABLE_SNAPSHOT
     if (!hrender) return -1;
     RENDER *render = (RENDER*)hrender;
@@ -376,6 +384,7 @@ int render_snapshot(void *hrender, char *file, int w, int h, int waitt)
         }
     }
 #endif
+
     return 0;
 }
 

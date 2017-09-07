@@ -40,6 +40,9 @@ typedef struct {
 #endif
 
 
+#define DO_USE_VAR(a) do { a = a; } while (0)
+
+
 #endif
 
 
