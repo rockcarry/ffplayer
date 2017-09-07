@@ -228,7 +228,7 @@ void render_audio(void *hrender, AVFrame *audio)
             if (render->swr_context) {
                 swr_free(&render->swr_context);
             }
-            int samprate = ADEV_SAMPLE_RATE * 100.0 / render->render_speed_cur;
+            int samprate = (int)(ADEV_SAMPLE_RATE * 100.0 / render->render_speed_cur);
             render->swr_context = swr_alloc_set_opts(NULL, AV_CH_LAYOUT_STEREO, AV_SAMPLE_FMT_S16, samprate,
                 render->chan_layout, render->sample_fmt, render->sample_rate, 0, NULL);
             swr_init(render->swr_context);
