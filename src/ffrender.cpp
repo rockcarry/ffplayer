@@ -420,7 +420,8 @@ void render_setparam(void *hrender, int id, void *param)
         vdev_setparam(render->vdev, PARAM_PLAYER_CALLBACK, param);
         break;
     case PARAM_ADEV_RENDER_TYPE:
-        // we only support WAVEOUT adev now
+        // set render_speed_cur to triger swr_context re-create
+        render->render_speed_cur = -1;
         break;
     case PARAM_VDEV_RENDER_TYPE:
         {
@@ -449,6 +450,8 @@ void render_setparam(void *hrender, int id, void *param)
                 vdev->status   = status;
                 render->vdev   = vdev;
                 //-- re-create vdev
+
+                // set render_wcur & render_hcur to triger sws_context re-create
                 render->render_wcur = 0;
                 render->render_hcur = 0;
             }
@@ -465,9 +468,6 @@ void render_setparam(void *hrender, int id, void *param)
             render->pixel_fmt   = pru->pixfmt != AV_PIX_FMT_NONE ? pru->pixfmt : AV_PIX_FMT_YUV420P;
             render->video_width = pru->width;
             render->video_height= pru->height;
-
-            // set render_speed_cur to triger swr_context re-create
-            render->render_speed_cur = -1;
         }
         break;
     }

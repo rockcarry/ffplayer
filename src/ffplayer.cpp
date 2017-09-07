@@ -481,11 +481,18 @@ static void set_stream_current(PLAYER *player, enum AVMediaType type, int sel) {
     params.height   = player->vcodec_context->height;
     render_setparam(player->render, PARAM_RENDER_UPDATE, &params);
 
-    if (type == AVMEDIA_TYPE_VIDEO) {
-        int mode = -1;
-        render_setparam(player->render, PARAM_VDEV_RENDER_TYPE, &mode);
-        vfilter_graph_free(player);
-        vfilter_graph_init(player);
+    switch (type) {
+    case AVMEDIA_TYPE_AUDIO: {
+            int mode = -1; render_setparam(player->render, PARAM_ADEV_RENDER_TYPE, &mode);
+        }
+        break;
+    case AVMEDIA_TYPE_VIDEO: {
+            int mode = -1; render_setparam(player->render, PARAM_VDEV_RENDER_TYPE, &mode);
+            vfilter_graph_free(player);
+            vfilter_graph_init(player);
+        }
+        break;
+    default: break;
     }
 
     // seek current pos to update pktqueue
