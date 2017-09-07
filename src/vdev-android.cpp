@@ -65,9 +65,14 @@ static void* video_render_thread_proc(void *param)
     VDEVCTXT *c = (VDEVCTXT*)param;
     c->thread_jni_env = get_jni_env();
 
-    while (1) {
-        sem_wait(&c->semr);
-        if (c->status & VDEV_CLOSE) break;
+    while (!(c->status & VDEV_CLOSE))
+    {
+        struct timespec ts;
+        clock_gettime(CLOCK_REALTIME, &ts);
+        ts.tv_nsec += c->tickframe * 1000000L;
+        ts.tv_sec  += ts.tv_nsec / 1000000000L;
+        ts.tv_nsec %= 1000000000L;
+        if (0 != sem_timedwait(&c->semr, &ts)) continue;
 
         int64_t apts = c->apts;
         int64_t vpts = c->vpts = c->ppts[c->head];
@@ -172,12 +177,19 @@ void vdev_android_destroy(void *ctxt)
 
     // make visual effect & rendering thread safely exit
     c->status = VDEV_CLOSE;
-    sem_post(&c->semr);
-    sem_post(&c->semw);
     pthread_join(c->thread, NULL);
 
-    // destroy android native window
+    //++ destroy android native window and buffers
+    while (0 == sem_trywait(&c->semr)) {
+        if (c->bufs[c->head] && c->win) {
+            c->win->cancelBuffer(c->win, c->bufs[c->head], -1);
+            c->bufs[c->head] = NULL;
+        }
+        if (++c->head == c->bufnum) c->head = 0;
+        sem_post(&c->semw);
+    }
     if (c->win) delete c->win;
+    //-- destroy android native window and buffers
 
     // close semaphore
     sem_destroy(&c->semr);
@@ -197,8 +209,6 @@ void vdev_android_request(void *ctxt, uint8_t *buffer[8], int linesize[8])
     VDEVCTXT *c = (VDEVCTXT*)ctxt;
 
     sem_wait(&c->semw);
-    if (c->status & VDEV_CLOSE) return;
-
     ANativeWindowBuffer *buf = NULL;
     uint8_t             *dst = NULL;
     c->bufs[c->tail] = NULL;

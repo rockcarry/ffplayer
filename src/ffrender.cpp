@@ -175,10 +175,9 @@ void render_close(void *hrender)
 {
     RENDER *render = (RENDER*)hrender;
 
+#if CONFIG_ENABLE_VEFFECT
     // wait visual effect thread exit
     render->render_status = RENDER_CLOSE;
-
-#if CONFIG_ENABLE_VEFFECT
     pthread_join(render->veffect_thread, NULL);
     veffect_destroy(render->veffect_context);
 #endif
@@ -218,7 +217,6 @@ void render_audio(void *hrender, AVFrame *audio)
     do {
         if (render->adev_buf_avail == 0) {
             adev_request(render->adev, &render->adev_hdr_cur);
-            if (render->render_status & RENDER_CLOSE) return;
             apts += 10 * render->render_speed_cur * render->frame_rate.den / render->frame_rate.num;
             render->adev_buf_avail = (int     )render->adev_hdr_cur->size;
             render->adev_buf_cur   = (uint8_t*)render->adev_hdr_cur->data;
@@ -264,7 +262,6 @@ void render_video(void *hrender, AVFrame *video)
     // fix play progress issue
     if (render->start_pts == -1) render->start_pts = video->pts;
 
-//  if (!render->vdev) return;
     do {
         if (  render->render_xcur != render->render_xnew
            || render->render_ycur != render->render_ynew
@@ -291,7 +288,6 @@ void render_video(void *hrender, AVFrame *video)
         }
 
         vdev_request(render->vdev, picture.data, picture.linesize);
-        if (render->render_status & RENDER_CLOSE) return;
         if (picture.data[0] && video->pts != -1) {
             sws_scale(render->sws_context, video->data, video->linesize, 0, render->video_height, picture.data, picture.linesize);
         }

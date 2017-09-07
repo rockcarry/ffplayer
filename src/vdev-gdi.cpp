@@ -25,9 +25,9 @@ static void* video_render_thread_proc(void *param)
 {
     VDEVGDICTXT *c = (VDEVGDICTXT*)param;
 
-    while (1) {
+    while (!(c->status & VDEV_CLOSE))
+    {
         sem_wait(&c->semr);
-        if (c->status & VDEV_CLOSE) break;
 
         if (c->refresh_flag) {
             c->refresh_flag = 0;
@@ -144,7 +144,6 @@ void vdev_gdi_destroy(void *ctxt)
     // make visual effect & rendering thread safely exit
     c->status = VDEV_CLOSE;
     sem_post(&c->semr);
-    sem_post(&c->semw);
     pthread_join(c->thread, NULL);
 
     //++ for video
@@ -178,7 +177,6 @@ void vdev_gdi_request(void *ctxt, uint8_t *buffer[8], int linesize[8])
     VDEVGDICTXT *c = (VDEVGDICTXT*)ctxt;
 
     sem_wait(&c->semw);
-    if (c->status & VDEV_CLOSE) return;
 
     BITMAP bitmap;
     int bmpw = 0;

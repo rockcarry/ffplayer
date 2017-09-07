@@ -46,9 +46,9 @@ static void* video_render_thread_proc(void *param)
 {
     VDEVD3DCTXT *c = (VDEVD3DCTXT*)param;
 
-    while (1) {
+    while (!(c->status & VDEV_CLOSE))
+    {
         sem_wait(&c->semr);
-        if (c->status & VDEV_CLOSE) break;
 
         if (c->refresh_flag) {
             c->refresh_flag = 0;
@@ -206,7 +206,6 @@ void vdev_d3d_destroy(void *ctxt)
     // make visual effect & rendering thread safely exit
     c->status = VDEV_CLOSE;
     sem_post(&c->semr);
-    sem_post(&c->semw);
     pthread_join(c->thread, NULL);
 
     for (i=0; i<c->bufnum; i++) {
@@ -238,7 +237,6 @@ void vdev_d3d_request(void *ctxt, uint8_t *buffer[8], int linesize[8])
     VDEVD3DCTXT *c = (VDEVD3DCTXT*)ctxt;
 
     sem_wait(&c->semw);
-    if (c->status & VDEV_CLOSE) return;
 
     if (!c->pSurfs[c->tail]) {
         // create surface

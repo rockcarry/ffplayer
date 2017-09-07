@@ -55,15 +55,14 @@ static void* audio_render_thread_proc(void *param)
     JNIEnv     *env = get_jni_env();
     ADEV_CONTEXT *c = (ADEV_CONTEXT*)param;
 
-    while (1) {
+    while (!(c->status & ADEV_CLOSE))
+    {
         if (c->status & ADEV_PAUSE) {
             usleep(10*1000);
             continue;
         }
 
         sem_wait(&c->semr);
-        if (c->status & ADEV_CLOSE) break;
-
         if (c->pWaveHdr[c->head].size) {
             env->CallVoidMethod(c->jobj_at, c->jmid_at_write, c->audio_buffer, c->head * c->buflen, c->pWaveHdr[c->head].size);
             c->pWaveHdr[c->head].size = 0;
@@ -179,7 +178,6 @@ void adev_destroy(void *ctxt)
     // make audio rendering thread safely exit
     c->status = ADEV_CLOSE;
     sem_post(&c->semr);
-    sem_post(&c->semw);
     pthread_join(c->thread, NULL);
 
     // close semaphore
@@ -204,7 +202,6 @@ void adev_request(void *ctxt, AUDIOBUF **ppab)
     if (!ctxt) return;
     ADEV_CONTEXT *c = (ADEV_CONTEXT*)ctxt;
     sem_wait(&c->semw);
-    if (c->status & ADEV_CLOSE) return;
     *ppab = (AUDIOBUF*)&c->pWaveHdr[c->tail];
     (*ppab)->size = c->buflen;
 }
