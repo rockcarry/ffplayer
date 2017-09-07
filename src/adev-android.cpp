@@ -55,14 +55,15 @@ static void* audio_render_thread_proc(void *param)
     JNIEnv     *env = get_jni_env();
     ADEV_CONTEXT *c = (ADEV_CONTEXT*)param;
 
-    while (!(c->status & ADEV_CLOSE))
-    {
+    while (1) {
         if (c->status & ADEV_PAUSE) {
             usleep(10*1000);
             continue;
         }
 
         sem_wait(&c->semr);
+        if (c->status & ADEV_CLOSE) break;
+
         if (c->pWaveHdr[c->head].size) {
             env->CallVoidMethod(c->jobj_at, c->jmid_at_write, c->audio_buffer, c->head * c->buflen, c->pWaveHdr[c->head].size);
             c->pWaveHdr[c->head].size = 0;

@@ -25,9 +25,9 @@ static void* video_render_thread_proc(void *param)
 {
     VDEVGDICTXT *c = (VDEVGDICTXT*)param;
 
-    while (!(c->status & VDEV_CLOSE))
-    {
+    while (1) {
         sem_wait(&c->semr);
+        if (c->status & VDEV_CLOSE) break;
 
         if (c->refresh_flag) {
             c->refresh_flag = 0;
