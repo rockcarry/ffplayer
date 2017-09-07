@@ -619,7 +619,8 @@ void player_close(void *hplayer)
 
     player->player_status |= PS_CLOSE;
     if (player->render) {
-        render_start(player->render);
+        render_close(player->render);
+        player->render = NULL;
     }
 
     // wait audio/video demuxing thread exit
@@ -637,7 +638,6 @@ void player_close(void *hplayer)
     // destroy packet queue
     pktqueue_destroy(player->pktqueue);
 
-    if (player->render          ) render_close (player->render);
     if (player->acodec_context  ) avcodec_close(player->acodec_context);
     if (player->vcodec_context  ) avcodec_close(player->vcodec_context);
     if (player->avformat_context) avformat_close_input(&player->avformat_context);
