@@ -391,6 +391,7 @@ int render_snapshot(void *hrender, char *file, int w, int h, int waitt)
 void render_setparam(void *hrender, int id, void *param)
 {
     RENDER *render = (RENDER*)hrender;
+    if (!render) return;
     switch (id)
     {
     case PARAM_VIDEO_MODE:
