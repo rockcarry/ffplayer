@@ -295,7 +295,7 @@ static void* video_decode_thread_proc(void *param)
                         }
                     }
                     //-- for seek operation
-                    else render_video(player->render, vframe);
+                    render_video(player->render, vframe);
                 } while (player->vfilter_graph && player->vfilter_enable);
             }
 
