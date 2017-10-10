@@ -66,7 +66,7 @@ static void* audio_render_thread_proc(void *param)
 
         if (c->pWaveHdr[c->head].size) {
             if (c->vol_curvol) {
-                env->CallVoidMethod(c->jobj_at, c->jmid_at_write, c->audio_buffer, c->head * c->buflen, c->pWaveHdr[c->head].size);
+                env->CallIntMethod(c->jobj_at, c->jmid_at_write, c->audio_buffer, c->head * c->buflen, c->pWaveHdr[c->head].size);
             }
             c->pWaveHdr[c->head].size = 0;
         }
