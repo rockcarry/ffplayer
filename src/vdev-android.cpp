@@ -144,8 +144,8 @@ void* vdev_android_create(void *win, int bufnum, int w, int h, int frate)
     ctxt->pixfmt    = android_pixfmt_to_ffmpeg_pixfmt(DEF_WIN_PIX_FMT);
     ctxt->w         = w ? w : 1;
     ctxt->h         = h ? h : 1;
-    ctxt->sw        = ALIGN(w, 16);
-    ctxt->sh        = ALIGN(h, 2 );
+    ctxt->sw        = w;
+    ctxt->sh        = h;
     ctxt->tickframe = 1000 / frate;
     ctxt->ticksleep = ctxt->tickframe;
     ctxt->apts      = -1;
@@ -208,30 +208,36 @@ void vdev_android_request(void *ctxt, uint8_t *buffer[8], int linesize[8])
         }
     } else {
         if (c->win) av_log(NULL, AV_LOG_WARNING, "ANativeWindow failed to dequeue buffer !\n");
+        buffer[0] = NULL; return;
     }
+
+    int yheight = buf->height;
+    int uheight = yheight / 2;
+    int ystride = buf->stride;
+    int ustride = ALIGN(ystride/2, 16);
 
     switch (c->pixfmt) {
     case AV_PIX_FMT_YUV420P:
         buffer  [0] = dst;
-        buffer  [2] = dst + c->sw * c->sh * 1 / 1;
-        buffer  [1] = dst + c->sw * c->sh * 5 / 4;
-        linesize[0] = c->sw;
-        linesize[1] = c->sw / 2;
-        linesize[2] = c->sw / 2;
+        buffer  [2] = dst + ystride * yheight;
+        buffer  [1] = dst + ystride * yheight + ustride * uheight;
+        linesize[0] = ystride;
+        linesize[1] = ustride;
+        linesize[2] = ustride;
         break;
     case AV_PIX_FMT_NV21:
         buffer  [0] = dst;
-        buffer  [1] = dst + c->sw * c->sh;
-        linesize[0] = c->sw;
-        linesize[1] = c->sw;
+        buffer  [1] = dst + ystride * yheight;
+        linesize[0] = ystride;
+        linesize[1] = ystride;
         break;
     case AV_PIX_FMT_BGR32:
         buffer  [0] = dst;
-        linesize[0] = c->sw * 4;
+        linesize[0] = buf->stride * 4;
         break;
     case AV_PIX_FMT_RGB565:
         buffer  [0] = dst;
-        linesize[0] = c->sw * 2;
+        linesize[0] = buf->stride * 2;
         break;
     }
 }
