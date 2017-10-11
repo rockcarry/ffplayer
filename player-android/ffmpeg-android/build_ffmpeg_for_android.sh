@@ -3,23 +3,23 @@ set -e
 
 #++ build ffmpeg ++#
 if [ ! -d ffmpeg ]; then
-git clone git://source.ffmpeg.org/ffmpeg.git
+  git clone git://source.ffmpeg.org/ffmpeg.git
 fi
 
-EXTRA_CFLAGS="-DANDROID -DNDEBUG -Os -mfpu=neon-vfpv4 -mfloat-abi=softfp"
+EXTRA_CFLAGS="-DANDROID -DNDEBUG -Os -ffast-math -mfpu=neon-vfpv4 -mfloat-abi=softfp"
 
 cd ffmpeg
 ./configure \
---arch=arm \
+--pkg-config=pkg-config \
+--arch=armv7 \
 --cpu=armv7-a \
---target-os=linux \
+--target-os=android \
 --enable-cross-compile \
 --cross-prefix=arm-linux-androideabi- \
 --prefix=$PWD/.. \
 --enable-static \
 --enable-small \
 --disable-shared \
---disable-swscale-alpha \
 --disable-symver \
 --disable-debug \
 --disable-programs \
@@ -28,6 +28,7 @@ cd ffmpeg
 --disable-encoders \
 --disable-muxers   \
 --disable-filters  \
+--disable-swscale-alpha \
 --enable-encoder=mjpeg \
 --enable-muxer=mjpeg \
 --enable-encoder=apng \

@@ -9,6 +9,6 @@ Version: 57.1.100
 Requires: libavfilter >= 6.65.100, libavformat >= 57.56.101, libavcodec >= 57.64.101, libswresample >= 2.3.100, libavutil >= 55.34.101
 Requires.private: 
 Conflicts:
-Libs: -L${libdir}  -lavdevice -lm -lz
+Libs: -L${libdir}  -lavdevice -ldl -lm -lz
 Libs.private: 
 Cflags: -I${includedir}

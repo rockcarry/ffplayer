@@ -9,6 +9,6 @@ Version: 6.65.100
 Requires: libavutil >= 55.34.101
 Requires.private: 
 Conflicts:
-Libs: -L${libdir}  -lavfilter -lm -lz
+Libs: -L${libdir}  -lavfilter -ldl -lm -lz
 Libs.private: 
 Cflags: -I${includedir}

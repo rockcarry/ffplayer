@@ -9,6 +9,6 @@ Version: 57.64.101
 Requires: libswresample >= 2.3.100, libavutil >= 55.34.101
 Requires.private: 
 Conflicts:
-Libs: -L${libdir}  -lavcodec -lm -lz
+Libs: -L${libdir}  -lavcodec -ldl -lm -lz
 Libs.private: 
 Cflags: -I${includedir}

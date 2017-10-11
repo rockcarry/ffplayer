@@ -19,14 +19,7 @@ LOCAL_C_INCLUDES += \
     $(LOCAL_PATH)/../ffmpeg-android/include \
     $(LOCAL_PATH)/../../src
 
-LOCAL_CFLAGS += \
-    -O3 -pipe -fpic -fasm \
-    -finline-limit=300 -ffast-math \
-    -fstrict-aliasing -Werror=strict-aliasing \
-    -fmodulo-sched -fmodulo-sched-allow-regmoves \
-    -Wno-psabi -Wa,--noexecstack \
-    -D__ARM_ARCH_5__ -D__ARM_ARCH_5E__ -D__ARM_ARCH_5T__ -D__ARM_ARCH_5TE__ \
-    -DANDROID -DNDEBUG -D__STDC_CONSTANT_MACROS
+LOCAL_CFLAGS += -DANDROID -DNDEBUG -Os -mfpu=neon-vfpv4 -mfloat-abi=softfp
 
 LOCAL_LDFLAGS += \
     $(LOCAL_PATH)/../ffmpeg-android/lib/libavformat.a \
