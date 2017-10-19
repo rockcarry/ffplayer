@@ -27,7 +27,7 @@ typedef struct
     int64_t *apts;
 
     // store current audio data
-    SHORT   *curdata;
+    int16_t *curdata;
 
     // software volume
     int      vol_scaler[256];
@@ -53,21 +53,21 @@ static void CALLBACK waveOutProc(HWAVEOUT hwo, UINT uMsg, DWORD dwInstance, DWOR
 
 static int init_software_volmue_scaler(int *scaler, int mindb, int maxdb)
 {
-    double a[256];
-    double b[256];
+    double tabdb[256];
+    double tabf [256];
     int    z, i;
 
     for (i=0; i<256; i++) {
-        a[i]      = mindb + (maxdb - mindb) * i / 256.0;
-        b[i]      = pow(10.0, a[i] / 20.0);
-        scaler[i] = (int)(0x10000 * b[i]);
+        tabdb[i]  = mindb + (maxdb - mindb) * i / 256.0;
+        tabf [i]  = pow(10.0, tabdb[i] / 20.0);
+        scaler[i] = (int)((1 << 14) * tabf[i]); // Q14 fix point
     }
 
     z = -mindb * 256 / (maxdb - mindb);
     z = z > 0   ? z : 0  ;
     z = z < 255 ? z : 255;
     scaler[0] = 0;        // mute
-    scaler[z] = 0x10000;  // 0db
+    scaler[z] = (1 << 14);// 0db
     return z;
 }
 
@@ -96,7 +96,7 @@ void* adev_create(int type, int bufnum, int buflen)
     ctxt->ppts     = (int64_t*)calloc(bufnum, sizeof(int64_t));
     ctxt->pWaveHdr = (WAVEHDR*)calloc(bufnum, (sizeof(WAVEHDR) + buflen));
     ctxt->bufsem   = CreateSemaphore(NULL, bufnum, bufnum, NULL);
-    ctxt->curdata  = (SHORT  *)calloc(1, buflen);
+    ctxt->curdata  = (int16_t*)calloc(1, buflen);
     if (!ctxt->ppts || !ctxt->pWaveHdr || !ctxt->bufsem || !ctxt->curdata) {
         av_log(NULL, AV_LOG_ERROR, "failed to allocate waveout buffer and waveout semaphore !\n");
         exit(0);
@@ -177,21 +177,20 @@ void adev_post(void *ctxt, int64_t pts)
     c->ppts[c->tail] = pts;
 
     //++ software volume scale
-    int    multiplier = c->vol_scaler[c->vol_curvol];
-    SHORT *buf        = (SHORT*)c->pWaveHdr[c->tail].lpData;
-    int    n          = c->pWaveHdr[c->tail].dwBufferLength / sizeof(SHORT);
-    if (multiplier > 0x10000) {
+    int      multiplier = c->vol_scaler[c->vol_curvol];
+    int16_t *buf        = (int16_t*)c->pWaveHdr[c->tail].lpData;
+    int      n          = c->pWaveHdr[c->tail].dwBufferLength / sizeof(int16_t);
+    if (multiplier > (1 << 14)) {
         int64_t v;
         while (n--) {
-            v = ((int64_t)*buf * multiplier) >> 16;
+            v = ((int32_t)*buf * multiplier) >> 14;
             v = v < 0x7fff ? v : 0x7fff;
             v = v >-0x7fff ? v :-0x7fff;
-            *buf++ = (SHORT)v;
+            *buf++ = (int16_t)v;
         }
-    }
-    else if (multiplier < 0x10000) {
+    } else if (multiplier < (1 << 14)) {
         while (n--) {
-            *buf = ((int32_t)*buf * multiplier) >> 16; buf++;
+            *buf = ((int32_t)*buf * multiplier) >> 14; buf++;
         }
     }
     //-- software volume scale
