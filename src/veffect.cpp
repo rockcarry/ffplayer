@@ -159,8 +159,7 @@ static void draw_spectrum(VEFFECT *ve, int x, int y, int w, int h, float *sample
         if (ve->peak_y[i] >= ty) {
             ve->peak_y[i] = ty;
             ve->peak_v[i] = 0 ;
-        }
-        else {
+        } else {
             ve->peak_v[i] += 1;
             ve->peak_y[i] += ve->peak_v[i];
             if (ve->peak_y[i] > sy + sh) ve->peak_y[i] = sy + sh;

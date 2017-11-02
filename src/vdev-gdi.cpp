@@ -58,8 +58,7 @@ static void* video_render_thread_proc(void *param)
                 c->completed_apts = c->apts;
                 c->completed_vpts = c->vpts;
                 c->completed_counter = 0;
-            }
-            else if (++c->completed_counter == 50) {
+            } else if (++c->completed_counter == 50) {
                 av_log(NULL, AV_LOG_INFO, "play completed !\n");
                 c->status |= VDEV_COMPLETED;
                 vdev_player_event(c, PLAY_COMPLETED, 0);
@@ -85,8 +84,7 @@ static void* video_render_thread_proc(void *param)
             if (c->ticksleep > 0) Sleep(c->ticksleep);
             av_log(NULL, AV_LOG_INFO, "gdi d: %3lld, s: %d\n", avdiff, c->ticksleep);
             //-- frame rate & av sync control --//
-        }
-        else Sleep(c->tickframe);
+        } else Sleep(c->tickframe);
     }
 
     return NULL;

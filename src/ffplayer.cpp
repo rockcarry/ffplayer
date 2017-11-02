@@ -230,9 +230,9 @@ static void* audio_decode_thread_proc(void *param)
                 }
                 aframe->pts = av_rescale_q(apts, tb_sample_rate, TIMEBASE_MS);
                 //++ for seek operation
-                if ((player->player_status & PS_A_SEEK)) {
+                if (player->player_status & PS_A_SEEK) {
                     if (player->seek_dest_pts - aframe->pts < 100) {
-                        player->player_status |= PS_A_PAUSE;
+                        player->player_status &= ~PS_A_SEEK;
                     }
                 }
                 //-- for seek operation
@@ -297,13 +297,13 @@ static void* video_decode_thread_proc(void *param)
                     if (vfilter_graph_output(player, vframe) < 0) break;
                     vframe->pts = av_rescale_q(av_frame_get_best_effort_timestamp(vframe), player->vstream_timebase, TIMEBASE_MS);
                     //++ for seek operation
-                    if ((player->player_status & PS_V_SEEK)) {
+                    if (player->player_status & PS_V_SEEK) {
                         if (player->seek_dest_pts - vframe->pts < 100) {
-                            player->player_status |= PS_V_PAUSE;
+                            player->player_status &= ~PS_V_SEEK;
                         }
                     }
                     //-- for seek operation
-                    render_video(player->render, vframe);
+                    else render_video(player->render, vframe);
                 } while (player->vfilter_graph && player->vfilter_enable);
             }
 
@@ -421,8 +421,7 @@ static void make_player_thread_pause(PLAYER *player, int pause) {
         player->player_status &=~PAUSE_ACK;
         render_start(player->render); // render is running but player thread is paused
         while ((player->player_status & PAUSE_ACK) != PAUSE_ACK) usleep(20*1000);
-    }
-    else {
+    } else {
         if (player->player_status & PS_R_PAUSE) {
             // pause render if needed
             render_pause(player->render);
@@ -746,15 +745,11 @@ void player_seek(void *hplayer, int64_t ms, int type)
     if (type) {
         int SEEK_REQ = 0;
         int SEEK_ACK = 0;
-        int timeout  = 300;
-        if (player->astream_index != -1) { SEEK_REQ |= PS_A_SEEK; SEEK_ACK |= PS_A_PAUSE; }
-        if (player->vstream_index != -1) { SEEK_REQ |= PS_V_SEEK; SEEK_ACK |= PS_V_PAUSE; }
+        if (player->astream_index != -1) SEEK_REQ |= PS_A_SEEK;
+        if (player->vstream_index != -1) SEEK_REQ |= PS_V_SEEK;
         player->seek_dest_pts  =  ms;
-        player->player_status &= ~SEEK_ACK;
         player->player_status |=  SEEK_REQ;
-        player->player_status &= ~PS_D_PAUSE;
-        while (!(player->player_status & SEEK_ACK) && timeout--) usleep(20*1000);
-        player->player_status &= ~SEEK_REQ;
+        player->player_status &= ~(PS_D_PAUSE|PS_A_PAUSE|PS_V_PAUSE);
     }
     //-- seek to dest pts
 
