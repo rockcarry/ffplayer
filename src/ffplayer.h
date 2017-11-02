@@ -151,6 +151,7 @@ player_pause    暂停播放
 player_seek     跳转到指定位置
     hplayer     - 指向 player_open 返回的 player 对象
     ms          - 指定位置，以毫秒为单位
+    type        - 指定类型，SEEK_FAST / SEEK_PRECISELY
 
 player_setrect  设置显示区域，有两种显示区域，视频显示区和视觉效果显示区
     hplayer     - 指向 player_open 返回的 player 对象

@@ -187,6 +187,7 @@ static void* audio_decode_thread_proc(void *param)
     PLAYER   *player = (PLAYER*)param;
     AVPacket *packet = NULL;
     AVFrame  *aframe = NULL;
+    int64_t   apts;
 
     aframe = av_frame_alloc();
     if (!aframe) return NULL;
@@ -209,7 +210,8 @@ static void* audio_decode_thread_proc(void *param)
         }
 
         //++ decode audio packet ++//
-        while (packet->size > 0) {
+        apts = -1; // make it -1
+        while (packet->size > 0 && !(player->player_status & (PS_A_PAUSE|PS_CLOSE))) {
             int consumed = 0;
             int gotaudio = 0;
 
@@ -220,7 +222,13 @@ static void* audio_decode_thread_proc(void *param)
             }
 
             if (gotaudio) {
-                aframe->pts = av_rescale_q(av_frame_get_best_effort_timestamp(aframe), player->astream_timebase, TIMEBASE_MS);
+                AVRational tb_sample_rate = { 1, player->acodec_context->sample_rate };
+                if (apts == -1) {
+                    apts  = av_rescale_q(aframe->pts, av_codec_get_pkt_timebase(player->acodec_context), tb_sample_rate);
+                } else {
+                    apts += aframe->nb_samples;
+                }
+                aframe->pts = av_rescale_q(apts, tb_sample_rate, TIMEBASE_MS);
                 //++ for seek operation
                 if ((player->player_status & PS_A_SEEK)) {
                     if (player->seek_dest_pts - aframe->pts < 100) {
@@ -273,7 +281,7 @@ static void* video_decode_thread_proc(void *param)
         }
 
         //++ decode video packet ++//
-        while (packet->size > 0) {
+        while (packet->size > 0 && !(player->player_status & (PS_V_PAUSE|PS_CLOSE))) {
             int consumed = 0;
             int gotvideo = 0;
 
