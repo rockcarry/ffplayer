@@ -212,7 +212,9 @@ void render_audio(void *hrender, AVFrame *audio)
     int64_t apts    = audio->pts;
 
     // fix play progress issue
-    if (render->start_pts == -1) render->start_pts = audio->pts;
+    if (render->start_pts == -1 && audio->pts >= 0) {
+        render->start_pts = audio->pts;
+    }
 
     if (!render->adev) return;
     do {
@@ -261,7 +263,9 @@ void render_video(void *hrender, AVFrame *video)
     memset(&picture, 0, sizeof(AVFrame));
 
     // fix play progress issue
-    if (render->start_pts == -1) render->start_pts = video->pts;
+    if (render->start_pts == -1 && video->pts >= 0) {
+        render->start_pts = video->pts;
+    }
 
     if (!render->vdev) return;
     do {
