@@ -12,7 +12,7 @@ JNIEXPORT JNIEnv* get_jni_env(void);
 
 // 内部常量定义
 #define DEF_ADEV_BUF_NUM  5
-#define DEF_ADEV_BUF_LEN  8192
+#define DEF_ADEV_BUF_LEN  2048
 
 #define SW_VOLUME_MINDB  -30
 #define SW_VOLUME_MAXDB  +12
