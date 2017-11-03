@@ -738,18 +738,22 @@ void player_seek(void *hplayer, int64_t ms, int type)
     if (player->astream_index != -1) avcodec_flush_buffers(player->acodec_context);
     if (player->vstream_index != -1) avcodec_flush_buffers(player->vcodec_context);
 
-    pktqueue_reset(player->pktqueue); // reset packet queue
+    pktqueue_reset(player->pktqueue); // reset pktqueue
     render_reset  (player->render);   // reset render
 
     //++ seek to dest pts
     if (type) {
         int SEEK_REQ = 0;
-        int SEEK_ACK = 0;
         if (player->astream_index != -1) SEEK_REQ |= PS_A_SEEK;
         if (player->vstream_index != -1) SEEK_REQ |= PS_V_SEEK;
         player->seek_dest_pts  =  ms;
         player->player_status |=  SEEK_REQ;
         player->player_status &= ~(PS_D_PAUSE|PS_A_PAUSE|PS_V_PAUSE);
+        //++ if render paused, we need wait util seek done
+        if (player->player_status & PS_R_PAUSE) {
+            while (player->player_status & SEEK_REQ) usleep(20*1000);
+        }
+        //-- if render paused, we need wait util seek done
     }
     //-- seek to dest pts
 
