@@ -144,7 +144,7 @@ void* render_open(int adevtype, int srate, AVSampleFormat sndfmt, int64_t ch_lay
     render->chan_layout  = ch_layout;
 
     // fix play progress issue
-    render->start_pts    = -1;
+    render->start_pts    = 0;
 
     // init for visual effect
 #if CONFIG_ENABLE_VEFFECT
@@ -211,11 +211,6 @@ void render_audio(void *hrender, AVFrame *audio)
     int     sampnum = 0;
     int64_t apts    = audio->pts;
 
-    // fix play progress issue
-    if (render->start_pts == -1 && audio->pts >= 0) {
-        render->start_pts = audio->pts;
-    }
-
     if (!render->adev) return;
     do {
         if (render->adev_buf_avail == 0) {
@@ -261,11 +256,6 @@ void render_video(void *hrender, AVFrame *video)
 
     // init picture
     memset(&picture, 0, sizeof(AVFrame));
-
-    // fix play progress issue
-    if (render->start_pts == -1 && video->pts >= 0) {
-        render->start_pts = video->pts;
-    }
 
     if (!render->vdev) return;
     do {
@@ -474,6 +464,9 @@ void render_setparam(void *hrender, int id, void *param)
             render->video_width = pru->width;
             render->video_height= pru->height;
         }
+        break;
+    case PARAM_RENDER_START_PTS:
+        render->start_pts = *(int64_t*)param;
         break;
     }
 }

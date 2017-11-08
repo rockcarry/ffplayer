@@ -613,6 +613,11 @@ void* player_open(char *file, void *win)
         render_setparam(player->render, PARAM_VISUAL_EFFECT, &effect);
     }
 
+    if (player->avformat_context->start_time > 0) {
+        int64_t startpts = player->avformat_context->start_time * 1000 / AV_TIME_BASE;
+        render_setparam(player->render, PARAM_RENDER_START_PTS, &startpts);
+    }
+
     // make sure player status paused
     player->player_status = (PS_D_PAUSE|PS_A_PAUSE|PS_V_PAUSE|PS_R_PAUSE);
     pthread_create(&player->avdemux_thread, NULL, av_demux_thread_proc    , player);
