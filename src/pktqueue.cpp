@@ -4,7 +4,7 @@
 #include "pktqueue.h"
 
 // 内部常量定义
-#define DEF_PKT_QUEUE_SIZE 256 // must be a power of 2
+#define DEF_PKT_QUEUE_SIZE 256 // important!! size must be a power of 2
 
 // 内部类型定义
 typedef struct {

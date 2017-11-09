@@ -12,7 +12,7 @@ extern "C" {
 #include "libavformat/avformat.h"
 
 // º¯ÊýÉùÃ÷
-void* pktqueue_create (int   size);
+void* pktqueue_create (int   size); // important!! size must be power of 2
 void  pktqueue_destroy(void *ctxt);
 void  pktqueue_reset  (void *ctxt);
 
