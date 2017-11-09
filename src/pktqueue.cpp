@@ -4,7 +4,7 @@
 #include "pktqueue.h"
 
 // 内部常量定义
-#define DEF_PKT_QUEUE_SIZE 256
+#define DEF_PKT_QUEUE_SIZE 256 // must be a power of 2
 
 // 内部类型定义
 typedef struct {
@@ -48,15 +48,13 @@ void* pktqueue_create(int size)
     sem_init(&ppq->vsem, 0, 0         );
 
     // check invalid
-    if (!ppq->bpkts || !ppq->fpkts || !ppq->apkts || !ppq->vpkts)
-    {
+    if (!ppq->bpkts || !ppq->fpkts || !ppq->apkts || !ppq->vpkts) {
         av_log(NULL, AV_LOG_ERROR, "failed to allocate resources for pktqueue !\n");
         exit(0);
     }
 
     // init fpkts
-    int i;
-    for (i=0; i<ppq->fsize; i++) {
+    for (int i=0; i<ppq->fsize; i++) {
         ppq->fpkts[i] = &ppq->bpkts[i];
     }
 
@@ -103,70 +101,56 @@ void pktqueue_reset(void *ctxt)
 AVPacket* pktqueue_write_request(void *ctxt)
 {
     PKTQUEUE *ppq = (PKTQUEUE*)ctxt;
-    AVPacket *pkt = NULL;
     if (0 != sem_trywait(&ppq->fsem)) return NULL;
-    pkt = ppq->fpkts[ppq->fhead++];
-    if (ppq->fhead == ppq->fsize) ppq->fhead = 0;
-    return pkt;
+    return ppq->fpkts[ppq->fhead++ & (ppq->fsize - 1)];
 }
 
 void pktqueue_write_post_a(void *ctxt, AVPacket *pkt)
 {
     PKTQUEUE *ppq = (PKTQUEUE*)ctxt;
-    ppq->apkts[ppq->atail++] = pkt;
-    if (ppq->atail == ppq->asize) ppq->atail = 0;
+    ppq->apkts[ppq->atail++ & (ppq->asize - 1)] = pkt;
     sem_post(&ppq->asem);
 }
 
 void pktqueue_write_post_v(void *ctxt, AVPacket *pkt)
 {
     PKTQUEUE *ppq = (PKTQUEUE*)ctxt;
-    ppq->vpkts[ppq->vtail++] = pkt;
-    if (ppq->vtail == ppq->vsize) ppq->vtail = 0;
+    ppq->vpkts[ppq->vtail++ & (ppq->vsize - 1)] = pkt;
     sem_post(&ppq->vsem);
 }
 
 void pktqueue_write_post_i(void *ctxt, AVPacket *pkt)
 {
     PKTQUEUE *ppq = (PKTQUEUE*)ctxt;
-    ppq->fpkts[ppq->ftail++] = pkt;
-    if (ppq->ftail == ppq->fsize) ppq->ftail = 0;
+    ppq->fpkts[ppq->ftail++ & (ppq->fsize - 1)] = pkt;
     sem_post(&ppq->fsem);
 }
 
 AVPacket* pktqueue_read_request_a(void *ctxt)
 {
     PKTQUEUE *ppq = (PKTQUEUE*)ctxt;
-    AVPacket *pkt = NULL;
     if (0 != sem_trywait(&ppq->asem)) return NULL;
-    pkt = ppq->apkts[ppq->ahead++];
-    if (ppq->ahead == ppq->asize) ppq->ahead = 0;
-    return pkt;
+    return ppq->apkts[ppq->ahead++ & (ppq->asize - 1)];
 }
 
 void pktqueue_read_done_a(void *ctxt, AVPacket *pkt)
 {
     PKTQUEUE *ppq = (PKTQUEUE*)ctxt;
-    ppq->fpkts[ppq->ftail++] = pkt;
-    if (ppq->ftail == ppq->fsize) ppq->ftail = 0;
+    ppq->fpkts[ppq->ftail++ & (ppq->fsize - 1)] = pkt;
     sem_post(&ppq->fsem);
 }
 
 AVPacket* pktqueue_read_request_v(void *ctxt)
 {
     PKTQUEUE *ppq = (PKTQUEUE*)ctxt;
-    AVPacket *pkt = NULL;
     if (0 != sem_trywait(&ppq->vsem)) return NULL;
-    pkt = ppq->vpkts[ppq->vhead++];
-    if (ppq->vhead == ppq->vsize) ppq->vhead = 0;
-    return pkt;
+    return ppq->vpkts[ppq->vhead++ & (ppq->vsize - 1)];
 }
 
 void pktqueue_read_done_v(void *ctxt, AVPacket *pkt)
 {
     PKTQUEUE *ppq = (PKTQUEUE*)ctxt;
-    ppq->fpkts[ppq->ftail++] = pkt;
-    if (ppq->ftail == ppq->fsize) ppq->ftail = 0;
+    ppq->fpkts[ppq->ftail++ & (ppq->fsize - 1)] = pkt;
     sem_post(&ppq->fsem);
 }
 
