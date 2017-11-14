@@ -19,7 +19,7 @@ LOCAL_C_INCLUDES += \
     $(LOCAL_PATH)/../ffmpeg-android/include \
     $(LOCAL_PATH)/../../src
 
-LOCAL_CFLAGS += -DANDROID -DNDEBUG -Os -mfpu=neon-vfpv4 -mfloat-abi=softfp
+LOCAL_CFLAGS += -DANDROID -DNDEBUG -D__STDC_CONSTANT_MACROS -Os -mfpu=neon-vfpv4 -mfloat-abi=softfp
 
 LOCAL_LDFLAGS += \
     $(LOCAL_PATH)/../ffmpeg-android/lib/libavformat.a \
