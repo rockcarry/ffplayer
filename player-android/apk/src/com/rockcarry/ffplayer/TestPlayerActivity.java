@@ -228,8 +228,7 @@ public class TestPlayerActivity extends Activity {
                     mHandler.sendEmptyMessageDelayed(MSG_UPDATE_PROGRESS, 200);
                     int progress = (int)mPlayer.getParam(player.PARAM_MEDIA_POSITION);
                     switch (progress) {
-                    case -1: break;
-                    case -2: finish(); break;
+                    case -1: finish(); break;
                     default: mSeek.setProgress(progress); break;
                     }
                 }
