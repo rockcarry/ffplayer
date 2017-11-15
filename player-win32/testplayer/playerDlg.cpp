@@ -164,12 +164,12 @@ void CplayerDlg::OnPaint()
         // Draw the icon
         dc.DrawIcon(x, y, m_hIcon);
     } else {
-        CPaintDC dc(this);
-        LONGLONG total, pos;
+        LONGLONG total = 1, pos = 0;
         player_getparam(m_ffPlayer, PARAM_MEDIA_DURATION, &total);
         player_getparam(m_ffPlayer, PARAM_MEDIA_POSITION, &pos  );
         if (!m_bLiveStream) {
             if (pos > 0) {
+                CPaintDC dc(this);
                 RECT fill  = m_rtClient;
                 fill.right = (LONG)(fill.right * pos / total);
                 fill.top   = fill.bottom - 2;
@@ -181,6 +181,7 @@ void CplayerDlg::OnPaint()
         } else {
             SetWindowText(pos == -1 ? TEXT("testplayer - buffering") : TEXT("testplayer"));
         }
+        CDialog::OnPaint();
     }
 }
 
