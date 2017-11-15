@@ -57,11 +57,7 @@ static void* video_render_thread_proc(void *param)
 
         int64_t apts = c->apts;
         int64_t vpts = c->vpts = c->ppts[c->head];
-#if CLEAR_VDEV_WHEN_COMPLETED
-        if (vpts != -1 && !(c->status & VDEV_COMPLETED)) {
-#else
         if (vpts != -1) {
-#endif
             d3d_draw_surf(c, c->pSurfs[c->head]);
         }
 
@@ -69,42 +65,8 @@ static void* video_render_thread_proc(void *param)
         if (++c->head == c->bufnum) c->head = 0;
         sem_post(&c->semw);
 
-        if (!(c->status & (VDEV_PAUSE|VDEV_COMPLETED))) {
-            // send play progress event
-            vdev_player_event(c, PLAY_PROGRESS, c->vpts > c->apts ? c->vpts : c->apts);
-
-            //++ play completed ++//
-            if (c->completed_apts != c->apts || c->completed_vpts != c->vpts) {
-                c->completed_apts = c->apts;
-                c->completed_vpts = c->vpts;
-                c->completed_counter = 0;
-            } else if (++c->completed_counter == 50) {
-                av_log(NULL, AV_LOG_INFO, "play completed !\n");
-                c->status |= VDEV_COMPLETED;
-                vdev_player_event(c, PLAY_COMPLETED, 0);
-
-#if CLEAR_VDEV_WHEN_COMPLETED
-                InvalidateRect((HWND)c->hwnd, NULL, TRUE);
-#endif
-            }
-            //-- play completed --//
-
-            //++ frame rate & av sync control ++//
-            DWORD   tickcur  = GetTickCount();
-            int     tickdiff = tickcur - c->ticklast;
-            int64_t avdiff   = apts - vpts - c->tickavdiff;
-            c->ticklast = tickcur;
-            if (tickdiff - c->tickframe >  2) c->ticksleep--;
-            if (tickdiff - c->tickframe < -2) c->ticksleep++;
-            if (apts != -1 && vpts != -1) {
-                if (avdiff > 5) c->ticksleep-=2;
-                if (avdiff <-5) c->ticksleep+=2;
-            }
-            if (c->ticksleep < 0) c->ticksleep = 0;
-            if (c->ticksleep > 0) Sleep(c->ticksleep);
-            av_log(NULL, AV_LOG_INFO, "d3d d: %3lld, s: %d\n", avdiff, c->ticksleep);
-            //-- frame rate & av sync control --//
-        } else Sleep(c->tickframe);
+        // handle vdev event, frame rate & av-sync
+        vdev_handle_event_frate(c);
     }
 
     return NULL;
@@ -129,8 +91,8 @@ void* vdev_d3d_create(void *surface, int bufnum, int w, int h, int frate)
     ctxt->sh        = ctxt->h < GetSystemMetrics(SM_CYSCREEN) ? ctxt->h : GetSystemMetrics(SM_CYSCREEN);
     ctxt->tickframe = 1000 / frate;
     ctxt->ticksleep = ctxt->tickframe;
-    ctxt->apts      =-1;
-    ctxt->vpts      =-1;
+    ctxt->apts      = -1;
+    ctxt->vpts      = -1;
 
     // alloc buffer & semaphore
     ctxt->ppts   = (int64_t*)calloc(bufnum, sizeof(int64_t));
@@ -216,11 +178,6 @@ void vdev_d3d_destroy(void *ctxt)
     // close semaphore
     sem_destroy(&c->semr);
     sem_destroy(&c->semw);
-
-#if CLEAR_VDEV_WHEN_DESTROYED
-    // clear window to background
-    InvalidateRect((HWND)c->hwnd, NULL, TRUE);
-#endif
 
     // free memory
     free(c->ppts  );

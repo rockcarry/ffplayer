@@ -1,6 +1,27 @@
 // 包含头文件
 #include "vdev.h"
 
+extern "C" {
+#include "libavutil/log.h"
+}
+
+// 内部常量定义
+#define COMPLETE_COUNTER  30
+
+// 内部函数实现
+static void vdev_player_event(void *ctxt, int32_t msg, int64_t param)
+{
+    VDEV_COMMON_CTXT *c = (VDEV_COMMON_CTXT*)ctxt;
+    if (c->fpcb) c->fpcb(c, msg, param);
+#ifdef WIN32
+    else {
+        if (msg == PLAY_COMPLETED) {
+            PostMessage((HWND)c->hwnd, MSG_FFPLAYER, PLAY_COMPLETED, 0);
+        }
+    }
+#endif
+}
+
 // 函数实现
 void vdev_pause(void *ctxt, int pause)
 {
@@ -22,7 +43,7 @@ void vdev_reset(void *ctxt)
     }
     c->head   = c->tail =  0;
 #endif//-- no need to reset vdev buffer queue
-    c->apts   = c->vpts = -1;
+//  c->apts   = c->vpts = -1; // no need to reset to -1
     c->status = 0;
 }
 
@@ -66,21 +87,6 @@ void vdev_getparam(void *ctxt, int id, void *param)
     }
 }
 
-void vdev_player_event(void *ctxt, int32_t msg, int64_t param)
-{
-    VDEV_COMMON_CTXT *c = (VDEV_COMMON_CTXT*)ctxt;
-    if (c->fpcb) {
-        c->fpcb(c, msg, param);
-    }
-#ifdef WIN32
-    else {
-        if (msg == PLAY_COMPLETED) {
-            PostMessage((HWND)c->hwnd, MSG_FFPLAYER, PLAY_COMPLETED, 0);
-        }
-    }
-#endif
-}
-
 void vdev_refresh_background(void *ctxt)
 {
     VDEV_COMMON_CTXT *c = (VDEV_COMMON_CTXT*)ctxt;
@@ -101,9 +107,59 @@ void vdev_refresh_background(void *ctxt)
 #endif
 }
 
-void* vdev_create(int type, void *surface, int bufnum, int w, int h, int frate)
+void vdev_handle_event_frate(void *ctxt)
 {
+    VDEV_COMMON_CTXT *c = (VDEV_COMMON_CTXT*)ctxt;
+
+    if (!(c->status & (VDEV_PAUSE|VDEV_COMPLETED))) {
+        // send play progress event
+        vdev_player_event(c, PLAY_PROGRESS, c->vpts > c->apts ? c->vpts : c->apts);
+
+        //++ play completed ++//
+        if (c->completed_apts != c->apts || c->completed_vpts != c->vpts) {
+            c->completed_apts = c->apts;
+            c->completed_vpts = c->vpts;
+            c->completed_counter = 0;
+        } else if (++c->completed_counter == COMPLETE_COUNTER) {
+            av_log(NULL, AV_LOG_INFO, "play completed !\n");
+            c->status |= VDEV_COMPLETED;
+            vdev_player_event(c, PLAY_COMPLETED, 0);
+        }
+        //-- play completed --//
+
+        //++ frame rate & av sync control ++//
+        DWORD   tickcur  = GetTickCount();
+        int     tickdiff = tickcur - c->ticklast;
+        int64_t avdiff   = c->apts - c->vpts - c->tickavdiff;
+        c->ticklast = tickcur;
+        if (tickdiff - c->tickframe >  2) c->ticksleep--;
+        if (tickdiff - c->tickframe < -2) c->ticksleep++;
+        if (c->apts != -1 && c->vpts != -1) {
+            if (avdiff > 5) c->ticksleep-=2;
+            if (avdiff <-5) c->ticksleep+=2;
+        }
+        if (c->ticksleep < 0) c->ticksleep = 0;
+        if (c->ticksleep > 0) usleep(c->ticksleep * 1000);
+        av_log(NULL, AV_LOG_INFO, "d: %3lld, s: %d\n", avdiff, c->ticksleep);
+        //-- frame rate & av sync control --//
+    } else {
+        usleep(c->ticksleep * 1000);
+    }
+}
+
+void* vdev_create(int type, void *surface, int bufnum, int w, int h, int frate, void *params)
+{
+    VDEV_COMMON_CTXT *p = (VDEV_COMMON_CTXT*)params;
     VDEV_COMMON_CTXT *c = NULL;
+
+    if (p) {
+        surface = p->hwnd;
+        bufnum  = p->bufnum;
+        w       = p->w;
+        h       = p->h;
+        frate   = 1000 / p->tickframe;
+    }
+
 #ifdef WIN32
     switch (type) {
     case VDEV_RENDER_TYPE_GDI: c = (VDEV_COMMON_CTXT*)vdev_gdi_create(surface, bufnum, w, h, frate); break;
@@ -114,6 +170,18 @@ void* vdev_create(int type, void *surface, int bufnum, int w, int h, int frate)
     c = (VDEV_COMMON_CTXT*)vdev_android_create(surface, bufnum, w, h, frate);
 #endif
     if (c) c->type = type;
+
+    if (p) {
+        c->apts       = p->apts;
+        c->vpts       = p->vpts;
+        c->tickavdiff = p->tickavdiff;
+        c->tickframe  = p->tickframe;
+        c->ticksleep  = p->ticksleep;
+        c->ticklast   = p->ticklast;
+        c->status     = p->status;
+        vdev_setrect(c, p->x, p->y, w, h);
+    }
+
     return c;
 }
 

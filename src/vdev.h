@@ -10,10 +10,6 @@
 extern "C" {
 #endif
 
-// 预编译开关
-#define CLEAR_VDEV_WHEN_DESTROYED  TRUE
-#define CLEAR_VDEV_WHEN_COMPLETED  TRUE
-
 // 常量定义
 #define VDEV_CLOSE      (1 << 0)
 #define VDEV_PAUSE      (1 << 1)
@@ -92,10 +88,10 @@ void  vdev_reset   (void *ctxt);
 void  vdev_getavpts(void *ctxt, int64_t **ppapts, int64_t **ppvpts);
 void  vdev_setparam(void *ctxt, int id, void *param);
 void  vdev_getparam(void *ctxt, int id, void *param);
-void  vdev_player_event(void *ctxt, int32_t msg, int64_t param);
 void  vdev_refresh_background(void *ctxt);
+void  vdev_handle_event_frate(void *ctxt);
 
-void* vdev_create  (int type, void *surface, int bufnum, int w, int h, int frate);
+void* vdev_create  (int type, void *surface, int bufnum, int w, int h, int frate, void *params);
 void  vdev_destroy (void *ctxt);
 void  vdev_request (void *ctxt, uint8_t *buffer[8], int linesize[8]);
 void  vdev_post    (void *ctxt, int64_t pts);

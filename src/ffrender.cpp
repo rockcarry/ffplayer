@@ -143,9 +143,6 @@ void* render_open(int adevtype, int srate, AVSampleFormat sndfmt, int64_t ch_lay
     render->sample_fmt   = sndfmt;
     render->chan_layout  = ch_layout;
 
-    // fix play progress issue
-    render->start_pts    = 0;
-
     // init for visual effect
 #if CONFIG_ENABLE_VEFFECT
     render->veffect_context = veffect_create(surface);
@@ -153,8 +150,8 @@ void* render_open(int adevtype, int srate, AVSampleFormat sndfmt, int64_t ch_lay
 #endif
 
     // create adev & vdev
-    render->adev = adev_create(adevtype, 0, (int)((double)ADEV_SAMPLE_RATE * frate.den / frate.num + 0.5) * 4);
-    render->vdev = vdev_create(vdevtype, surface, 0, w, h, (int)((double)frate.num / frate.den + 0.5));
+    render->adev = adev_create(adevtype, 0, (int)((double)ADEV_SAMPLE_RATE * frate.den / frate.num + 0.5) * 4, NULL);
+    render->vdev = vdev_create(vdevtype, surface, 0, w, h, (int)((double)frate.num / frate.den + 0.5), NULL);
 
     // make adev & vdev sync together
     int64_t *papts = NULL;
@@ -252,10 +249,7 @@ void render_audio(void *hrender, AVFrame *audio)
 void render_video(void *hrender, AVFrame *video)
 {
     RENDER  *render  = (RENDER*)hrender;
-    AVFrame  picture;
-
-    // init picture
-    memset(&picture, 0, sizeof(AVFrame));
+    AVFrame  picture = {};
 
     if (!render->vdev) return;
     do {
@@ -427,23 +421,12 @@ void render_setparam(void *hrender, int id, void *param)
                 vdev->type = -1;
             }
             if (type != vdev->type) {
-                render->vdev = NULL;
                 //++ re-create vdev
-                void*hwnd      = vdev->hwnd;
-                int  x         = vdev->x;
-                int  y         = vdev->y;
-                int  w         = render->video_width;
-                int  h         = render->video_height;
-                int  status    = vdev->status;
-                int  frate     = (int)((render->frame_rate.num * render->render_speed_new) / (render->frame_rate.den * 100.0) + 0.5);
                 int64_t *papts = NULL;
+                render->vdev   = (VDEV_COMMON_CTXT*)vdev_create(type, NULL, 0, 0, 0, 0, vdev);
+                vdev_getavpts(render->vdev, &papts, NULL);
+                adev_syncapts(render->adev,  papts);
                 vdev_destroy(vdev);
-                vdev = (VDEV_COMMON_CTXT*)vdev_create(type, hwnd, 0, w, h, frate);
-                vdev_setrect (vdev, x, y, w, h   );
-                vdev_getavpts(vdev, &papts, NULL );
-                adev_syncapts(render->adev, papts);
-                vdev->status   = status;
-                render->vdev   = vdev;
                 //-- re-create vdev
 
                 // set render_wcur & render_hcur to triger sws_context re-create
@@ -478,12 +461,12 @@ void render_getparam(void *hrender, int id, void *param)
     {
     case PARAM_MEDIA_POSITION:
         if (((VDEV_COMMON_CTXT*)render->vdev)->status & VDEV_COMPLETED) {
-            *(int64_t*)param  = -2; // means completed
+            *(int64_t*)param  = -1; // means completed
         } else {
-            int64_t *papts, *pvpts;
+            int64_t *papts, *pvpts, pos;
             vdev_getavpts(render->vdev, &papts, &pvpts);
-            *(int64_t*)param  = *papts > *pvpts ? *papts : *pvpts;
-            *(int64_t*)param -= render->start_pts; // fix play progress issue
+            pos = (*papts > *pvpts ? *papts : *pvpts) - render->start_pts;
+            *(int64_t*)param  = pos > 0 ? pos : 0;
         }
         break;
     case PARAM_VIDEO_MODE:
