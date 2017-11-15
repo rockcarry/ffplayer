@@ -164,9 +164,7 @@ void CplayerDlg::OnPaint()
         // Draw the icon
         dc.DrawIcon(x, y, m_hIcon);
     } else {
-        CDialog::OnPaint();
-
-        if (m_bLiveStream) {
+        if (!m_bLiveStream) {
             CPaintDC dc(this);
             LONGLONG total, pos;
             player_getparam(m_ffPlayer, PARAM_MEDIA_DURATION, &total);
