@@ -5,34 +5,17 @@
 #pragma warning(disable:4312)
 
 // 内部常量定义
-#define DEF_ADEV_BUF_NUM  8
+#define DEF_ADEV_BUF_NUM  6
 #define DEF_ADEV_BUF_LEN  8192
-
-#define SW_VOLUME_MINDB  -30
-#define SW_VOLUME_MAXDB  +12
 
 // 内部类型定义
 typedef struct
 {
-    // waveout
+    ADEV_COMMON_MEMBERS
+
     HWAVEOUT hWaveOut;
     WAVEHDR *pWaveHdr;
-
-    int64_t *ppts;
-    int      bufnum;
-    int      buflen;
-    int      head;
-    int      tail;
     HANDLE   bufsem;
-    int64_t *apts;
-
-    // store current audio data
-    int16_t *curdata;
-
-    // software volume
-    int      vol_scaler[256];
-    int      vol_zerodb;
-    int      vol_curvol;
 } ADEV_CONTEXT;
 
 // 内部函数实现
@@ -49,26 +32,6 @@ static void CALLBACK waveOutProc(HWAVEOUT hwo, UINT uMsg, DWORD dwInstance, DWOR
         ReleaseSemaphore(c->bufsem, 1, NULL);
         break;
     }
-}
-
-static int init_software_volmue_scaler(int *scaler, int mindb, int maxdb)
-{
-    double tabdb[256];
-    double tabf [256];
-    int    z, i;
-
-    for (i=0; i<256; i++) {
-        tabdb[i]  = mindb + (maxdb - mindb) * i / 256.0;
-        tabf [i]  = pow(10.0, tabdb[i] / 20.0);
-        scaler[i] = (int)((1 << 14) * tabf[i]); // Q14 fix point
-    }
-
-    z = -mindb * 256 / (maxdb - mindb);
-    z = z > 0   ? z : 0  ;
-    z = z < 255 ? z : 255;
-    scaler[0] = 0;        // mute
-    scaler[z] = (1 << 14);// 0db
-    return z;
 }
 
 // 接口函数实现
@@ -129,7 +92,7 @@ void* adev_create(int type, int bufnum, int buflen, void *params)
     }
 
     // init software volume scaler
-    ctxt->vol_zerodb = init_software_volmue_scaler(ctxt->vol_scaler, SW_VOLUME_MINDB, SW_VOLUME_MAXDB);
+    ctxt->vol_zerodb = swvol_scaler_init(ctxt->vol_scaler, SW_VOLUME_MINDB, SW_VOLUME_MAXDB);
     ctxt->vol_curvol = ctxt->vol_zerodb;
     return ctxt;
 }
@@ -180,19 +143,7 @@ void adev_post(void *ctxt, int64_t pts)
     int      multiplier = c->vol_scaler[c->vol_curvol];
     int16_t *buf        = (int16_t*)c->pWaveHdr[c->tail].lpData;
     int      n          = c->pWaveHdr[c->tail].dwBufferLength / sizeof(int16_t);
-    if (multiplier > (1 << 14)) {
-        int64_t v;
-        while (n--) {
-            v = ((int32_t)*buf * multiplier) >> 14;
-            v = v < 0x7fff ? v : 0x7fff;
-            v = v >-0x7fff ? v :-0x7fff;
-            *buf++ = (int16_t)v;
-        }
-    } else if (multiplier < (1 << 14)) {
-        while (n--) {
-            *buf = ((int32_t)*buf * multiplier) >> 14; buf++;
-        }
-    }
+    swvol_scaler_run(buf, n, multiplier);
     //-- software volume scale
 
     waveOutWrite(c->hWaveOut, &c->pWaveHdr[c->tail], sizeof(WAVEHDR));
@@ -217,53 +168,5 @@ void adev_reset(void *ctxt)
     waveOutReset(c->hWaveOut);
     c->head = c->tail = 0;
     ReleaseSemaphore(c->bufsem, c->bufnum, NULL);
-}
-
-void adev_syncapts(void *ctxt, int64_t *apts)
-{
-    if (!ctxt) return;
-    ADEV_CONTEXT *c = (ADEV_CONTEXT*)ctxt;
-    c->apts = apts;
-    if (c->apts) {
-        *c->apts = -1;
-    }
-}
-
-void adev_curdata(void *ctxt, void **buf, int *len)
-{
-    if (!ctxt) return;
-    ADEV_CONTEXT *c = (ADEV_CONTEXT*)ctxt;
-    if (buf) *buf = c->curdata;
-    if (len) *len = c->buflen;
-}
-
-void adev_setparam(void *ctxt, int id, void *param)
-{
-    if (!ctxt || !param) return;
-    ADEV_CONTEXT *c = (ADEV_CONTEXT*)ctxt;
-
-    switch (id) {
-    case PARAM_AUDIO_VOLUME:
-        {
-            int vol = *(int*)param;
-            vol += c->vol_zerodb;
-            vol  = vol > 0   ? vol : 0  ;
-            vol  = vol < 255 ? vol : 255;
-            c->vol_curvol = vol;
-        }
-        break;
-    }
-}
-
-void adev_getparam(void *ctxt, int id, void *param)
-{
-    if (!ctxt || !param) return;
-    ADEV_CONTEXT *c = (ADEV_CONTEXT*)ctxt;
-
-    switch (id) {
-    case PARAM_AUDIO_VOLUME:
-        *(int*)param = c->vol_curvol - c->vol_zerodb;
-        break;
-    }
 }
 
