@@ -122,7 +122,7 @@ void vdev_handle_event_frate(void *ctxt)
 {
     VDEV_COMMON_CTXT *c = (VDEV_COMMON_CTXT*)ctxt;
 
-    if (!(c->status & (VDEV_PAUSE|VDEV_COMPLETED))) {
+    if (!(c->status & VDEV_PAUSE)) {
         // send play progress event
         vdev_player_event(c, PLAY_PROGRESS, c->vpts > c->apts ? c->vpts : c->apts);
 
@@ -131,8 +131,8 @@ void vdev_handle_event_frate(void *ctxt)
             c->completed_apts = c->apts;
             c->completed_vpts = c->vpts;
             c->completed_counter = 0;
+            c->status &=~VDEV_COMPLETED;
         } else if (++c->completed_counter == COMPLETE_COUNTER) {
-            av_log(NULL, AV_LOG_INFO, "play completed !\n");
             c->status |= VDEV_COMPLETED;
             vdev_player_event(c, PLAY_COMPLETED, 0);
         }
