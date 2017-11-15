@@ -9,6 +9,17 @@ extern "C" {
 #define COMPLETE_COUNTER  30
 
 // 内部函数实现
+static inline int get_tick_count(void)
+{
+#ifdef WIN32
+    return GetTickCount();
+#else
+    struct timespec ts;
+    clock_gettime(CLOCK_MONOTONIC, &ts);
+    return (ts.tv_sec * 1000 + ts.tv_nsec / 1000000);
+#endif
+}
+
 static void vdev_player_event(void *ctxt, int32_t msg, int64_t param)
 {
     VDEV_COMMON_CTXT *c = (VDEV_COMMON_CTXT*)ctxt;
@@ -128,7 +139,7 @@ void vdev_handle_event_frate(void *ctxt)
         //-- play completed --//
 
         //++ frame rate & av sync control ++//
-        DWORD   tickcur  = GetTickCount();
+        int     tickcur  = get_tick_count();
         int     tickdiff = tickcur - c->ticklast;
         int64_t avdiff   = c->apts - c->vpts - c->tickavdiff;
         c->ticklast = tickcur;

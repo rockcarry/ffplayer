@@ -248,8 +248,11 @@ void render_audio(void *hrender, AVFrame *audio)
 
 void render_video(void *hrender, AVFrame *video)
 {
-    RENDER  *render  = (RENDER*)hrender;
-    AVFrame  picture = {};
+    RENDER  *render = (RENDER*)hrender;
+    AVFrame  picture;
+
+    // init picture
+    memset(&picture, 0, sizeof(AVFrame));
 
     if (!render->vdev) return;
     do {

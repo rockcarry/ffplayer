@@ -38,13 +38,6 @@ inline int ALIGN(int x, int y) {
     return (x + y - 1) & ~(y - 1);
 }
 
-inline uint64_t get_tick_count(void)
-{
-    struct timespec ts;
-    clock_gettime(CLOCK_MONOTONIC, &ts);
-    return (ts.tv_sec * 1000 + ts.tv_nsec / 1000000);
-}
-
 inline int android_pixfmt_to_ffmpeg_pixfmt(int srcfmt)
 {
     // dst fmt
