@@ -29,6 +29,7 @@ public class TestPlayerActivity extends Activity {
     private SeekBar      mSeek      = null;
     private ImageView    mPause     = null;
     private boolean      mIsPlaying = false;
+    private boolean      mIsLive    = false;
 
     /** Called when the activity is first created. */
     @Override
@@ -58,6 +59,7 @@ public class TestPlayerActivity extends Activity {
             }
         }
 
+        mIsLive = url.startsWith("http://") && url.endsWith(".m3u8") || url.startsWith("rtmp://");
         mPlayer = new player();
         if (!mPlayer.open(url)) {
             String str = String.format(getString(R.string.open_video_failed), url);
@@ -205,6 +207,7 @@ public class TestPlayerActivity extends Activity {
 
     private void showUIControls(boolean show, boolean autohide) {
         mHandler.removeMessages(MSG_HIDE_BUTTONS);
+        if (mIsLive) show = false;
         if (show) {
             mSeek .setVisibility(View.VISIBLE);
             mPause.setVisibility(View.VISIBLE);
@@ -226,10 +229,12 @@ public class TestPlayerActivity extends Activity {
             switch (msg.what) {
             case MSG_UPDATE_PROGRESS: {
                     mHandler.sendEmptyMessageDelayed(MSG_UPDATE_PROGRESS, 200);
-                    int progress = (int)mPlayer.getParam(player.PARAM_MEDIA_POSITION);
-                    switch (progress) {
-                    case -1: finish(); break;
-                    default: mSeek.setProgress(progress); break;
+                    if (!mIsLive) {
+                        int progress = (int)mPlayer.getParam(player.PARAM_MEDIA_POSITION);
+                        switch (progress) {
+                        case -1: finish(); break;
+                        default: mSeek.setProgress(progress); break;
+                        }
                     }
                 }
                 break;
