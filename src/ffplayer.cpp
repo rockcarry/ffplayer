@@ -667,6 +667,9 @@ void player_close(void *hplayer)
     if (player->avformat_context) avformat_close_input(&player->avformat_context);
 
     free(player);
+
+    // deinit network
+    avformat_network_deinit();
 }
 
 void player_play(void *hplayer)
