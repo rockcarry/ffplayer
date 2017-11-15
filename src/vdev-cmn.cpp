@@ -20,7 +20,7 @@ static inline int get_tick_count(void)
 #endif
 }
 
-static inline vdev_player_event(void *ctxt, int32_t msg, int64_t param)
+static inline void vdev_player_event(void *ctxt, int32_t msg, int64_t param)
 {
     VDEV_COMMON_CTXT *c = (VDEV_COMMON_CTXT*)ctxt;
     if (c->fpcb) c->fpcb(c, msg, param);
