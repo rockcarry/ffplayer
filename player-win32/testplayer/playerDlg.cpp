@@ -164,11 +164,11 @@ void CplayerDlg::OnPaint()
         // Draw the icon
         dc.DrawIcon(x, y, m_hIcon);
     } else {
+        CPaintDC dc(this);
+        LONGLONG total, pos;
+        player_getparam(m_ffPlayer, PARAM_MEDIA_DURATION, &total);
+        player_getparam(m_ffPlayer, PARAM_MEDIA_POSITION, &pos  );
         if (!m_bLiveStream) {
-            CPaintDC dc(this);
-            LONGLONG total, pos;
-            player_getparam(m_ffPlayer, PARAM_MEDIA_DURATION, &total);
-            player_getparam(m_ffPlayer, PARAM_MEDIA_POSITION, &pos  );
             if (pos > 0) {
                 RECT fill  = m_rtClient;
                 fill.right = (LONG)(fill.right * pos / total);
@@ -178,6 +178,8 @@ void CplayerDlg::OnPaint()
                 fill.right = m_rtClient.right;
                 dc.FillSolidRect(&fill, RGB(0, 0, 0));
             }
+        } else {
+            SetWindowText(pos == -1 ? TEXT("testplayer - buffering") : TEXT("testplayer"));
         }
     }
 }
