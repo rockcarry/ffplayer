@@ -153,7 +153,6 @@ static void* av_demux_thread_proc(void *param)
         retv = av_read_frame(player->avformat_context, packet);
         //++ play completed ++//
         if (retv < 0) {
-            player->player_status |= PS_D_PAUSE;
             pktqueue_write_post_i(player->pktqueue, packet);
             usleep(20*1000); continue;
         }
@@ -828,7 +827,7 @@ void player_getparam(void *hplayer, int id, void *param)
     case PARAM_MEDIA_DURATION:
         if (!player->avformat_context) *(int64_t*)param = 1;
         else *(int64_t*)param = (player->avformat_context->duration * 1000 / AV_TIME_BASE);
-        if (*(int64_t*)param == 0) *(int64_t*)param = 1;
+        if (*(int64_t*)param <= 0) *(int64_t*)param = 1;
         break;
     case PARAM_VIDEO_WIDTH:
         if (!player->vcodec_context) *(int*)param = 0;
