@@ -13,16 +13,13 @@
 #define TIMER_ID_FIRST_DIALOG  1
 #define TIMER_ID_PROGRESS      2
 
-// 全局变量定义
-static void *g_hplayer = NULL;
-
 // CplayerDlg dialog
-
-
 CplayerDlg::CplayerDlg(CWnd* pParent /*=NULL*/)
     : CDialog(CplayerDlg::IDD, pParent)
 {
     m_hIcon = AfxGetApp()->LoadIcon(IDR_MAINFRAME);
+    m_ffPlayer    = NULL;
+    m_bLiveStream = FALSE;
 }
 
 void CplayerDlg::DoDataExchange(CDataExchange* pDX)
@@ -39,17 +36,15 @@ void CplayerDlg::PlayerOpenFile(TCHAR *file)
     KillTimer(TIMER_ID_PROGRESS);
 
     // stop player first
-    if (g_hplayer)
-    {
-        player_close(g_hplayer);
-        g_hplayer = NULL;
+    if (m_ffPlayer) {
+        player_close(m_ffPlayer);
+        m_ffPlayer = NULL;
     }
 
     // open file dialog
     if (!file) {
         TCHAR temp[MAX_PATH];
-        if (dlg.DoModal() == IDOK)
-        {
+        if (dlg.DoModal() == IDOK) {
             wcscpy_s(temp, dlg.GetPathName());
             WideCharToMultiByte(CP_ACP, 0, temp, -1, str, MAX_PATH, NULL, NULL);
         } else {
@@ -61,39 +56,43 @@ void CplayerDlg::PlayerOpenFile(TCHAR *file)
     }
 
     // player open file
-    g_hplayer = player_open(str, GetSafeHwnd());
-    if (g_hplayer)
-    {
+    if (strstr(str, "rtmp://") == str || strstr(str, "http://") == str && strstr(str, ".m3u8")) {
+        m_bLiveStream = TRUE;
+    } else {
+        m_bLiveStream = FALSE;
+    }
+    m_ffPlayer = player_open(str, GetSafeHwnd());
+    if (m_ffPlayer) {
         int param = 0;
         //++ set player params
-//      param = 6;                    player_setparam(g_hplayer, PARAM_DECODE_THREAD_COUNT, &param);
-        param = VDEV_RENDER_TYPE_D3D; player_setparam(g_hplayer, PARAM_VDEV_RENDER_TYPE   , &param);
-//      param = 150;                  player_setparam(g_hplayer, PARAM_PLAY_SPEED         , &param);
+//      param = 6;                    player_setparam(m_ffPlayer, PARAM_DECODE_THREAD_COUNT, &param);
+        param = VDEV_RENDER_TYPE_D3D; player_setparam(m_ffPlayer, PARAM_VDEV_RENDER_TYPE   , &param);
+//      param = 150;                  player_setparam(m_ffPlayer, PARAM_PLAY_SPEED         , &param);
 
         // software volume scale -30dB to 12dB
         // range for volume is [-182, 73]
         // -255 - mute, +255 - max volume, 0 - 0dB
-        param = -0;                   player_setparam(g_hplayer, PARAM_AUDIO_VOLUME       , &param);
+        param = -0;                   player_setparam(m_ffPlayer, PARAM_AUDIO_VOLUME       , &param);
         //-- set player params
 
         //++ get player params
-        player_getparam(g_hplayer, PARAM_AUDIO_STREAM_TOTAL   , &param);
-        player_getparam(g_hplayer, PARAM_VIDEO_STREAM_TOTAL   , &param);
-        player_getparam(g_hplayer, PARAM_SUBTITLE_STREAM_TOTAL, &param);
-        player_getparam(g_hplayer, PARAM_AUDIO_STREAM_CUR     , &param);
-        player_getparam(g_hplayer, PARAM_VIDEO_STREAM_CUR     , &param);
-        player_getparam(g_hplayer, PARAM_SUBTITLE_STREAM_CUR  , &param);
+        player_getparam(m_ffPlayer, PARAM_AUDIO_STREAM_TOTAL   , &param);
+        player_getparam(m_ffPlayer, PARAM_VIDEO_STREAM_TOTAL   , &param);
+        player_getparam(m_ffPlayer, PARAM_SUBTITLE_STREAM_TOTAL, &param);
+        player_getparam(m_ffPlayer, PARAM_AUDIO_STREAM_CUR     , &param);
+        player_getparam(m_ffPlayer, PARAM_VIDEO_STREAM_CUR     , &param);
+        player_getparam(m_ffPlayer, PARAM_SUBTITLE_STREAM_CUR  , &param);
         //-- get player params
 
 #if 0
-        param = 1; player_setparam(g_hplayer, PARAM_VFILTER_ENABLE  , &param);
-        param = 1; player_setparam(g_hplayer, PARAM_AUDIO_STREAM_CUR, &param);
-        param = 1; player_setparam(g_hplayer, PARAM_VIDEO_STREAM_CUR, &param);
+        param = 1; player_setparam(m_ffPlayer, PARAM_VFILTER_ENABLE  , &param);
+        param = 1; player_setparam(m_ffPlayer, PARAM_AUDIO_STREAM_CUR, &param);
+        param = 1; player_setparam(m_ffPlayer, PARAM_VIDEO_STREAM_CUR, &param);
 #endif
 
-        player_setrect(g_hplayer, 0, 0, 0, m_rtClient.right, m_rtClient.bottom - 2);
-        player_setrect(g_hplayer, 1, 0, 0, m_rtClient.right, m_rtClient.bottom - 2);
-        player_play(g_hplayer);
+        player_setrect(m_ffPlayer, 0, 0, 0, m_rtClient.right, m_rtClient.bottom - 2);
+        player_setrect(m_ffPlayer, 1, 0, 0, m_rtClient.right, m_rtClient.bottom - 2);
+        player_play(m_ffPlayer);
         m_bPlayPause = FALSE;
         SetTimer(TIMER_ID_PROGRESS, 100, NULL);
     }
@@ -125,8 +124,8 @@ BOOL CplayerDlg::OnInitDialog()
 
     // Set the icon for this dialog.  The framework does this automatically
     //  when the application's main window is not a dialog
-    SetIcon(m_hIcon, TRUE);         // Set big icon
-    SetIcon(m_hIcon, FALSE);        // Set small icon
+    SetIcon(m_hIcon, TRUE );  // Set big icon
+    SetIcon(m_hIcon, FALSE);  // Set small icon
 
     // load accelerators
     m_hAcc = LoadAccelerators(AfxGetInstanceHandle(), MAKEINTRESOURCE(IDR_ACCELERATOR1)); 
@@ -149,8 +148,7 @@ BOOL CplayerDlg::OnInitDialog()
 
 void CplayerDlg::OnPaint()
 {
-    if (IsIconic())
-    {
+    if (IsIconic()) {
         CPaintDC dc(this); // device context for painting
 
         SendMessage(WM_ICONERASEBKGND, reinterpret_cast<WPARAM>(dc.GetSafeHdc()), 0);
@@ -166,22 +164,23 @@ void CplayerDlg::OnPaint()
         // Draw the icon
         dc.DrawIcon(x, y, m_hIcon);
     } else {
-        CPaintDC dc(this);
-
-        LONGLONG total = 1, pos = 0;
-        player_getparam(g_hplayer, PARAM_MEDIA_DURATION, &total);
-        player_getparam(g_hplayer, PARAM_MEDIA_POSITION, &pos  );
-        if (pos > 0) {
-            RECT fill  = m_rtClient;
-            fill.right = (LONG)(fill.right * pos / total);
-            fill.top   = fill.bottom - 2;
-            dc.FillSolidRect(&fill, RGB(250, 150, 0));
-            fill.left  = fill.right;
-            fill.right = m_rtClient.right;
-            dc.FillSolidRect(&fill, RGB(0, 0, 0));
-        }
-
         CDialog::OnPaint();
+
+        if (m_bLiveStream) {
+            CPaintDC dc(this);
+            LONGLONG total, pos;
+            player_getparam(m_ffPlayer, PARAM_MEDIA_DURATION, &total);
+            player_getparam(m_ffPlayer, PARAM_MEDIA_POSITION, &pos  );
+            if (pos > 0) {
+                RECT fill  = m_rtClient;
+                fill.right = (LONG)(fill.right * pos / total);
+                fill.top   = fill.bottom - 2;
+                dc.FillSolidRect(&fill, RGB(250, 150, 0));
+                fill.left  = fill.right;
+                fill.right = m_rtClient.right;
+                dc.FillSolidRect(&fill, RGB(0, 0, 0));
+            }
+        }
     }
 }
 
@@ -198,10 +197,9 @@ void CplayerDlg::OnDestroy()
     ReleaseDC(m_pDrawDC);
 
     // close player
-    if (g_hplayer)
-    {
-        player_close(g_hplayer);
-        g_hplayer = NULL;
+    if (m_ffPlayer) {
+        player_close(m_ffPlayer);
+        m_ffPlayer = NULL;
     }
 }
 
@@ -232,14 +230,15 @@ void CplayerDlg::OnTimer(UINT_PTR nIDEvent)
 
 void CplayerDlg::OnLButtonDown(UINT nFlags, CPoint point)
 {
-    if (point.y > m_rtClient.bottom - 8)
-    {
-        LONGLONG total = 1;
-        player_getparam(g_hplayer, PARAM_MEDIA_DURATION, &total);
-        player_seek(g_hplayer, total * point.x / m_rtClient.right, SEEK_PRECISELY);
+    if (point.y > m_rtClient.bottom - 8) {
+        if (!m_bLiveStream) {
+            LONGLONG total = 1;
+            player_getparam(m_ffPlayer, PARAM_MEDIA_DURATION, &total);
+            player_seek(m_ffPlayer, total * point.x / m_rtClient.right, SEEK_PRECISELY);
+        }
     } else {
-        if (!m_bPlayPause) player_pause(g_hplayer);
-        else player_play(g_hplayer);
+        if (!m_bPlayPause) player_pause(m_ffPlayer);
+        else player_play(m_ffPlayer);
         m_bPlayPause = !m_bPlayPause;
     }
 
@@ -262,8 +261,8 @@ void CplayerDlg::OnSize(UINT nType, int cx, int cy)
 
     if (nType != SIZE_MINIMIZED) {
         GetClientRect(&m_rtClient);
-        player_setrect(g_hplayer, 0, 0, 0, cx, cy - 2);
-        player_setrect(g_hplayer, 1, 0, 0, cx, cy - 2);
+        player_setrect(m_ffPlayer, 0, 0, 0, cx, cy - 2);
+        player_setrect(m_ffPlayer, 1, 0, 0, cx, cy - 2);
     }
 }
 
@@ -271,12 +270,13 @@ BOOL CplayerDlg::PreTranslateMessage(MSG *pMsg)
 {
     if (TranslateAccelerator(GetSafeHwnd(), m_hAcc, pMsg)) return TRUE;
 
-    if (pMsg->message == MSG_FFPLAYER)
-    {
+    if (pMsg->message == MSG_FFPLAYER) {
         switch (pMsg->wParam)
         {
         case PLAY_COMPLETED:
-            PlayerOpenFile(NULL);
+            if (!m_bLiveStream) {
+                PlayerOpenFile(NULL);
+            }
             break;
         }
         return TRUE;
@@ -292,50 +292,50 @@ void CplayerDlg::OnOpenFile()
 void CplayerDlg::OnVideoMode()
 {
     int mode = 0;
-    player_getparam(g_hplayer, PARAM_VIDEO_MODE, &mode);
+    player_getparam(m_ffPlayer, PARAM_VIDEO_MODE, &mode);
     mode++; mode %= VIDEO_MODE_MAX_NUM;
-    player_setparam(g_hplayer, PARAM_VIDEO_MODE, &mode);
+    player_setparam(m_ffPlayer, PARAM_VIDEO_MODE, &mode);
 }
 
 void CplayerDlg::OnEffectMode()
 {
     int mode = 0;
-    player_getparam(g_hplayer, PARAM_VISUAL_EFFECT, &mode);
+    player_getparam(m_ffPlayer, PARAM_VISUAL_EFFECT, &mode);
     mode++; mode %= VISUAL_EFFECT_MAX_NUM;
-    player_setparam(g_hplayer, PARAM_VISUAL_EFFECT, &mode);
+    player_setparam(m_ffPlayer, PARAM_VISUAL_EFFECT, &mode);
 }
 
 void CplayerDlg::OnRenderMode()
 {
     int mode = 0;
-    player_getparam(g_hplayer, PARAM_VDEV_RENDER_TYPE, &mode);
+    player_getparam(m_ffPlayer, PARAM_VDEV_RENDER_TYPE, &mode);
     mode++; mode %= VDEV_RENDER_TYPE_MAX_NUM;
-    player_setparam(g_hplayer, PARAM_VDEV_RENDER_TYPE, &mode);
+    player_setparam(m_ffPlayer, PARAM_VDEV_RENDER_TYPE, &mode);
 }
 
 void CplayerDlg::OnAudioStream()
 {
     int total   = 0;
     int current = 0;
-    player_getparam(g_hplayer, PARAM_AUDIO_STREAM_TOTAL, &total  );
-    player_getparam(g_hplayer, PARAM_AUDIO_STREAM_CUR  , &current);
+    player_getparam(m_ffPlayer, PARAM_AUDIO_STREAM_TOTAL, &total  );
+    player_getparam(m_ffPlayer, PARAM_AUDIO_STREAM_CUR  , &current);
     current++; current %= total;
-    player_setparam(g_hplayer, PARAM_AUDIO_STREAM_CUR  , &current);
+    player_setparam(m_ffPlayer, PARAM_AUDIO_STREAM_CUR  , &current);
 }
 
 void CplayerDlg::OnVideoStream()
 {
     int total   = 0;
     int current = 0;
-    player_getparam(g_hplayer, PARAM_VIDEO_STREAM_TOTAL, &total  );
-    player_getparam(g_hplayer, PARAM_VIDEO_STREAM_CUR  , &current);
+    player_getparam(m_ffPlayer, PARAM_VIDEO_STREAM_TOTAL, &total  );
+    player_getparam(m_ffPlayer, PARAM_VIDEO_STREAM_CUR  , &current);
     current++; current %= total;
-    player_setparam(g_hplayer, PARAM_VIDEO_STREAM_CUR  , &current);
+    player_setparam(m_ffPlayer, PARAM_VIDEO_STREAM_CUR  , &current);
 }
 
 void CplayerDlg::OnTakeSnapshot()
 {
-    player_snapshot(g_hplayer, "snapshot.jpg", 0, 0, 1000);
+    player_snapshot(m_ffPlayer, "snapshot.jpg", 0, 0, 1000);
 }
 
 

@@ -20,7 +20,7 @@ protected:
 
 // Implementation
 protected:
-    HICON m_hIcon;
+    HICON  m_hIcon;
     HACCEL m_hAcc;
 
     // Generated message map functions
@@ -30,7 +30,9 @@ protected:
     DECLARE_MESSAGE_MAP()
 
 private:
-    void PlayerOpenFile(TCHAR *file);
+    void *m_ffPlayer;
+    BOOL  m_bLiveStream;
+    void  PlayerOpenFile(TCHAR *file);
 
 private:
     CDC  *m_pDrawDC;
