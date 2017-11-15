@@ -27,6 +27,15 @@
             android:src="@drawable/icn_media_pause"
             android:alpha="0.8"
             />
+        <ProgressBar
+            android:id="@+id/buffering"
+            style="?android:attr/progressBarStyleLarge"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_centerInParent="true"
+            android:alpha="0.8"
+            android:visibility="invisible"
+            />
     </com.rockcarry.ffplayer.playerRoot>
 
 </LinearLayout>

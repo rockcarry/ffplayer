@@ -16,6 +16,7 @@ import android.view.SurfaceView;
 import android.view.View;
 import android.widget.Button;
 import android.widget.ImageView;
+import android.widget.ProgressBar;
 import android.widget.RelativeLayout;
 import android.widget.SeekBar;
 import android.widget.Toast;
@@ -27,6 +28,7 @@ public class TestPlayerActivity extends Activity {
     private SurfaceView  mView      = null;
     private Surface      mSurface   = null;
     private SeekBar      mSeek      = null;
+    private ProgressBar  mBuffering = null;
     private ImageView    mPause     = null;
     private boolean      mIsPlaying = false;
     private boolean      mIsLive    = false;
@@ -159,6 +161,8 @@ public class TestPlayerActivity extends Activity {
             }
         });
 
+        mBuffering = (ProgressBar)findViewById(R.id.buffering);
+
         // show buttons with auto hide
         showUIControls(true, true);
     }
@@ -229,12 +233,14 @@ public class TestPlayerActivity extends Activity {
             switch (msg.what) {
             case MSG_UPDATE_PROGRESS: {
                     mHandler.sendEmptyMessageDelayed(MSG_UPDATE_PROGRESS, 200);
+                    int progress = (int)mPlayer.getParam(player.PARAM_MEDIA_POSITION);
                     if (!mIsLive) {
-                        int progress = (int)mPlayer.getParam(player.PARAM_MEDIA_POSITION);
                         switch (progress) {
                         case -1: finish(); break;
                         default: mSeek.setProgress(progress); break;
                         }
+                    } else {
+                        mBuffering.setVisibility(progress == -1 ? View.VISIBLE : View.INVISIBLE);
                     }
                 }
                 break;
