@@ -533,6 +533,7 @@ void* player_open(char *file, void *win)
     av_register_all();
     avdevice_register_all();
     avfilter_register_all();
+    avformat_network_init();
 
     // setup log
     av_log_set_level(AV_LOG_WARNING);
