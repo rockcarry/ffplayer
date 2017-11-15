@@ -230,16 +230,16 @@ void CplayerDlg::OnTimer(UINT_PTR nIDEvent)
 
 void CplayerDlg::OnLButtonDown(UINT nFlags, CPoint point)
 {
-    if (point.y > m_rtClient.bottom - 8) {
-        if (!m_bLiveStream) {
+    if (!m_bLiveStream) {
+        if (point.y > m_rtClient.bottom - 8) {
             LONGLONG total = 1;
             player_getparam(m_ffPlayer, PARAM_MEDIA_DURATION, &total);
             player_seek(m_ffPlayer, total * point.x / m_rtClient.right, SEEK_PRECISELY);
+        } else {
+            if (!m_bPlayPause) player_pause(m_ffPlayer);
+            else player_play(m_ffPlayer);
+            m_bPlayPause = !m_bPlayPause;
         }
-    } else {
-        if (!m_bPlayPause) player_pause(m_ffPlayer);
-        else player_play(m_ffPlayer);
-        m_bPlayPause = !m_bPlayPause;
     }
 
     CDialog::OnLButtonDown(nFlags, point);
