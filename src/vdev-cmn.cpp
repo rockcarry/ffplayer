@@ -146,8 +146,10 @@ void vdev_handle_event_frate(void *ctxt)
         if (tickdiff - c->tickframe >  2) c->ticksleep--;
         if (tickdiff - c->tickframe < -2) c->ticksleep++;
         if (c->apts != -1 && c->vpts != -1) {
-            if (avdiff > 100) c->ticksleep-=3;
-            if (avdiff <-100) c->ticksleep+=3;
+            if      (avdiff >  100) c->ticksleep -= 5;
+            else if (avdiff >  10 ) c->ticksleep -= 1;
+            else if (avdiff < -100) c->ticksleep -= 5;
+            else if (avdiff < -10 ) c->ticksleep += 1;
         }
         if (c->ticksleep < 0) c->ticksleep = 0;
         if (c->ticksleep > 0) usleep(c->ticksleep * 1000);
