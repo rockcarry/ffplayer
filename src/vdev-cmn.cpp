@@ -121,6 +121,7 @@ void vdev_refresh_background(void *ctxt)
 void vdev_handle_event_frate(void *ctxt)
 {
     VDEV_COMMON_CTXT *c = (VDEV_COMMON_CTXT*)ctxt;
+    int tickcur, tickdiff, avdiff;
 
     if (!(c->status & VDEV_PAUSE)) {
         // send play progress event
@@ -139,25 +140,26 @@ void vdev_handle_event_frate(void *ctxt)
         //-- play completed --//
 
         //++ frame rate & av sync control ++//
-        int     tickcur  = get_tick_count();
-        int     tickdiff = tickcur - c->ticklast;
-        int64_t avdiff   = c->apts - c->vpts - c->tickavdiff;
-        c->ticklast = tickcur;
+        tickcur      = get_tick_count();
+        tickdiff     = tickcur - c->ticklast;
+        avdiff       = (int)(c->apts - c->vpts - c->tickavdiff);
+        c->ticklast  = tickcur;
         if (tickdiff - c->tickframe >  2) c->ticksleep--;
         if (tickdiff - c->tickframe < -2) c->ticksleep++;
         if (c->apts != -1 && c->vpts != -1) {
-            if      (avdiff >  100) c->ticksleep -= 5;
+            if      (avdiff >  200) c->ticksleep -= 5;
             else if (avdiff >  10 ) c->ticksleep -= 1;
-            else if (avdiff < -100) c->ticksleep -= 5;
+            else if (avdiff < -200) c->ticksleep -= 5;
             else if (avdiff < -10 ) c->ticksleep += 1;
         }
         if (c->ticksleep < 0) c->ticksleep = 0;
-        if (c->ticksleep > 0) usleep(c->ticksleep * 1000);
-        av_log(NULL, AV_LOG_INFO, "d: %3lld, s: %d\n", avdiff, c->ticksleep);
         //-- frame rate & av sync control --//
     } else {
-        usleep(c->ticksleep * 1000);
+        c->ticksleep = c->tickframe;
     }
+
+    if (c->ticksleep > 0) usleep(c->ticksleep * 1000);
+    av_log(NULL, AV_LOG_INFO, "d: %3lld, s: %d\n", avdiff, c->ticksleep);
 }
 
 void* vdev_create(int type, void *surface, int bufnum, int w, int h, int frate, void *params)
