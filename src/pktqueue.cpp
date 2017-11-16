@@ -24,6 +24,7 @@ typedef struct {
     AVPacket **fpkts; // free packets
     AVPacket **apkts; // audio packets
     AVPacket **vpkts; // video packets
+    pthread_mutex_t lock;
 } PKTQUEUE;
 
 // º¯ÊıÊµÏÖ
@@ -43,9 +44,10 @@ void* pktqueue_create(int size)
     ppq->fpkts = (AVPacket**)calloc(ppq->fsize, sizeof(AVPacket*));
     ppq->apkts = (AVPacket**)calloc(ppq->asize, sizeof(AVPacket*));
     ppq->vpkts = (AVPacket**)calloc(ppq->vsize, sizeof(AVPacket*));
-    sem_init(&ppq->fsem, 0, ppq->fsize);
-    sem_init(&ppq->asem, 0, 0         );
-    sem_init(&ppq->vsem, 0, 0         );
+    sem_init(&ppq->fsem, 0, ppq->fsize );
+    sem_init(&ppq->asem, 0, 0          );
+    sem_init(&ppq->vsem, 0, 0          );
+    pthread_mutex_init(&ppq->lock, NULL);
 
     // check invalid
     if (!ppq->bpkts || !ppq->fpkts || !ppq->apkts || !ppq->vpkts) {
@@ -122,7 +124,9 @@ void pktqueue_write_post_v(void *ctxt, AVPacket *pkt)
 void pktqueue_write_post_i(void *ctxt, AVPacket *pkt)
 {
     PKTQUEUE *ppq = (PKTQUEUE*)ctxt;
+    pthread_mutex_lock  (&ppq->lock);
     ppq->fpkts[ppq->ftail++ & (ppq->fsize - 1)] = pkt;
+    pthread_mutex_unlock(&ppq->lock);
     sem_post(&ppq->fsem);
 }
 
@@ -136,7 +140,9 @@ AVPacket* pktqueue_read_request_a(void *ctxt)
 void pktqueue_read_done_a(void *ctxt, AVPacket *pkt)
 {
     PKTQUEUE *ppq = (PKTQUEUE*)ctxt;
+    pthread_mutex_lock  (&ppq->lock);
     ppq->fpkts[ppq->ftail++ & (ppq->fsize - 1)] = pkt;
+    pthread_mutex_unlock(&ppq->lock);
     sem_post(&ppq->fsem);
 }
 
@@ -150,7 +156,9 @@ AVPacket* pktqueue_read_request_v(void *ctxt)
 void pktqueue_read_done_v(void *ctxt, AVPacket *pkt)
 {
     PKTQUEUE *ppq = (PKTQUEUE*)ctxt;
+    pthread_mutex_lock  (&ppq->lock);
     ppq->fpkts[ppq->ftail++ & (ppq->fsize - 1)] = pkt;
+    pthread_mutex_unlock(&ppq->lock);
     sem_post(&ppq->fsem);
 }
 
