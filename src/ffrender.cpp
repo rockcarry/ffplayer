@@ -425,24 +425,18 @@ void render_setparam(void *hrender, int id, void *param)
     case PARAM_VDEV_RENDER_TYPE:
         {
             VDEV_COMMON_CTXT *vdev = (VDEV_COMMON_CTXT*)render->vdev;
-            int               type = *(int*)param;
-            if (type == -1) {
-                type = vdev->type;
-                vdev->type = -1;
-            }
-            if (type != vdev->type) {
-                //++ re-create vdev
-                int64_t *papts = NULL;
-                render->vdev   = (VDEV_COMMON_CTXT*)vdev_create(type, NULL, 0, 0, 0, 0, vdev);
-                vdev_getavpts(render->vdev, &papts, NULL);
-                adev_syncapts(render->adev,  papts);
-                vdev_destroy(vdev);
-                //-- re-create vdev
+            int               type = *(int*)param == -1 ? vdev->type : *(int*)param;
+            //++ re-create vdev
+            int64_t *papts = NULL;
+            render->vdev   = (VDEV_COMMON_CTXT*)vdev_create(type, NULL, 0, 0, 0, 0, vdev);
+            vdev_getavpts(render->vdev, &papts, NULL);
+            adev_syncapts(render->adev,  papts);
+            vdev_destroy(vdev);
+            //-- re-create vdev
 
-                // set render_wcur & render_hcur to triger sws_context re-create
-                render->render_wcur = 0;
-                render->render_hcur = 0;
-            }
+            // set render_wcur & render_hcur to triger sws_context re-create
+            render->render_wcur = 0;
+            render->render_hcur = 0;
         }
         break;
     case PARAM_RENDER_UPDATE:
