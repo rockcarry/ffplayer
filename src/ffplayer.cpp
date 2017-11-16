@@ -153,26 +153,24 @@ static void* av_demux_thread_proc(void *param)
         retv = av_read_frame(player->avformat_context, packet);
         //++ play completed ++//
         if (retv < 0) {
+            av_packet_unref(packet); // free packet
             pktqueue_write_post_i(player->pktqueue, packet);
             usleep(20*1000); continue;
         }
         //-- play completed --//
 
         // audio
-        if (packet->stream_index == player->astream_index)
-        {
+        if (packet->stream_index == player->astream_index) {
             pktqueue_write_post_a(player->pktqueue, packet);
         }
 
         // video
-        if (packet->stream_index == player->vstream_index)
-        {
+        if (packet->stream_index == player->vstream_index) {
             pktqueue_write_post_v(player->pktqueue, packet);
         }
 
         if (  packet->stream_index != player->astream_index
-           && packet->stream_index != player->vstream_index)
-        {
+           && packet->stream_index != player->vstream_index) {
             av_packet_unref(packet); // free packet
             pktqueue_write_post_i(player->pktqueue, packet);
         }
@@ -773,13 +771,7 @@ int player_snapshot(void *hplayer, char *file, int w, int h, int waitt)
 {
     if (!hplayer) return -1;
     PLAYER *player = (PLAYER*)hplayer;
-
-    // check video stream exsits
-    if (player->vstream_index == -1) {
-        return -1;
-    }
-
-    return render_snapshot(player->render, file, w, h, waitt);
+    return player->vstream_index == -1 ? -1 : render_snapshot(player->render, file, w, h, waitt);
 }
 
 void player_setparam(void *hplayer, int id, void *param)
