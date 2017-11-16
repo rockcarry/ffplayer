@@ -152,7 +152,7 @@ static void* av_demux_thread_proc(void *param)
 
         retv = av_read_frame(player->avformat_context, packet);
         //++ play completed ++//
-        if (retv < 0) {
+        if (retv < 0 || !packet->buf) {
             av_packet_unref(packet); // free packet
             pktqueue_write_post_i(player->pktqueue, packet);
             usleep(20*1000); continue;
