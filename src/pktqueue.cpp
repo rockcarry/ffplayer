@@ -71,6 +71,7 @@ void pktqueue_destroy(void *ctxt)
     sem_destroy(&ppq->fsem);
     sem_destroy(&ppq->asem);
     sem_destroy(&ppq->vsem);
+    pthread_mutex_destroy(&ppq->lock);
 
     // free
     free(ppq->bpkts);
