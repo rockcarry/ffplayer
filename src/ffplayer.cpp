@@ -202,6 +202,7 @@ static void* audio_decode_thread_proc(void *param)
         // read packet
         packet = pktqueue_read_request_a(player->pktqueue);
         if (packet == NULL) {
+            player->player_status &= ~PS_A_SEEK;
 //          render_audio(player->render, aframe);
             usleep(20*1000); continue;
         }
@@ -273,6 +274,7 @@ static void* video_decode_thread_proc(void *param)
         // read packet
         packet = pktqueue_read_request_v(player->pktqueue);
         if (packet == NULL) {
+            player->player_status &= ~PS_V_SEEK;
             render_video(player->render, vframe);
             usleep(20*1000); continue;
         }
@@ -745,7 +747,7 @@ void player_seek(void *hplayer, int64_t ms, int type)
     if (player->vstream_index != -1) avcodec_flush_buffers(player->vcodec_context);
 
     pktqueue_reset(player->pktqueue); // reset pktqueue
-    render_reset  (player->render);   // reset render
+    render_reset  (player->render  ); // reset render
 
     //++ seek to dest pts
     if (type) {

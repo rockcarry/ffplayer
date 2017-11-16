@@ -54,7 +54,7 @@ void vdev_reset(void *ctxt)
     }
     c->head   = c->tail =  0;
 #endif//-- no need to reset vdev buffer queue
-//  c->apts   = c->vpts = -1; // no need to reset to -1
+    c->apts   = c->vpts = -1; // fix seek issue
     c->status = 0;
 }
 
