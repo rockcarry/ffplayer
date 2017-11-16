@@ -235,7 +235,9 @@ void CplayerDlg::OnLButtonDown(UINT nFlags, CPoint point)
         if (point.y > m_rtClient.bottom - 8) {
             LONGLONG total = 1;
             player_getparam(m_ffPlayer, PARAM_MEDIA_DURATION, &total);
+            KillTimer(TIMER_ID_PROGRESS);
             player_seek(m_ffPlayer, total * point.x / m_rtClient.right, SEEK_PRECISELY);
+            SetTimer (TIMER_ID_PROGRESS, 100, NULL);
         } else {
             if (!m_bPlayPause) player_pause(m_ffPlayer);
             else player_play(m_ffPlayer);

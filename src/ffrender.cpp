@@ -385,6 +385,13 @@ void render_setparam(void *hrender, int id, void *param)
     if (!render) return;
     switch (id)
     {
+    case PARAM_MEDIA_POSITION:
+        {
+            int64_t *papts, *pvpts;
+            vdev_getavpts(render->vdev, &papts, &pvpts);
+            *papts = *pvpts = *(int64_t*)param;
+        }
+        break;
     case PARAM_VIDEO_MODE:
         render->video_mode = *(int*)param;
         break;

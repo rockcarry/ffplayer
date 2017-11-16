@@ -760,6 +760,9 @@ void player_seek(void *hplayer, int64_t ms, int type)
         //++ if render paused, we need wait util seek done
         if (player->player_status & PS_R_PAUSE) {
             while (player->player_status & SEEK_REQ) usleep(20*1000);
+            //++ fix progress display issue
+            render_setparam(player->render, PARAM_MEDIA_POSITION, &player->seek_dest_pts);
+            //-- fix progress display issue
         }
         //-- if render paused, we need wait util seek done
     }
