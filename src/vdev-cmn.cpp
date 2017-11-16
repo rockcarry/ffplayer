@@ -121,7 +121,7 @@ void vdev_refresh_background(void *ctxt)
 void vdev_handle_event_frate(void *ctxt)
 {
     VDEV_COMMON_CTXT *c = (VDEV_COMMON_CTXT*)ctxt;
-    int tickcur, tickdiff, avdiff;
+    int tickcur, tickdiff, avdiff = -1;
 
     if (!(c->status & VDEV_PAUSE)) {
         // send play progress event
@@ -159,7 +159,7 @@ void vdev_handle_event_frate(void *ctxt)
     }
 
     if (c->ticksleep > 0) usleep(c->ticksleep * 1000);
-    av_log(NULL, AV_LOG_INFO, "d: %3lld, s: %d\n", avdiff, c->ticksleep);
+    av_log(NULL, AV_LOG_INFO, "d: %3d, s: %3d\n", avdiff, c->ticksleep);
 }
 
 void* vdev_create(int type, void *surface, int bufnum, int w, int h, int frate, void *params)
