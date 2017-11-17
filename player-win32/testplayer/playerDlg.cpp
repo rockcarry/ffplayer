@@ -65,8 +65,6 @@ void CplayerDlg::PlayerOpenFile(TCHAR *file)
     if (m_ffPlayer) {
         int param = 0;
         //++ set player params
-//      param = 6;                    player_setparam(m_ffPlayer, PARAM_DECODE_THREAD_COUNT, &param);
-        param = VDEV_RENDER_TYPE_D3D; player_setparam(m_ffPlayer, PARAM_VDEV_RENDER_TYPE   , &param);
 //      param = 150;                  player_setparam(m_ffPlayer, PARAM_PLAY_SPEED         , &param);
 
         // software volume scale -30dB to 12dB
@@ -74,15 +72,6 @@ void CplayerDlg::PlayerOpenFile(TCHAR *file)
         // -255 - mute, +255 - max volume, 0 - 0dB
         param = -0;                   player_setparam(m_ffPlayer, PARAM_AUDIO_VOLUME       , &param);
         //-- set player params
-
-        //++ get player params
-        player_getparam(m_ffPlayer, PARAM_AUDIO_STREAM_TOTAL   , &param);
-        player_getparam(m_ffPlayer, PARAM_VIDEO_STREAM_TOTAL   , &param);
-        player_getparam(m_ffPlayer, PARAM_SUBTITLE_STREAM_TOTAL, &param);
-        player_getparam(m_ffPlayer, PARAM_AUDIO_STREAM_CUR     , &param);
-        player_getparam(m_ffPlayer, PARAM_VIDEO_STREAM_CUR     , &param);
-        player_getparam(m_ffPlayer, PARAM_SUBTITLE_STREAM_CUR  , &param);
-        //-- get player params
 
 #if 0
         param = 1; player_setparam(m_ffPlayer, PARAM_VFILTER_ENABLE  , &param);
@@ -310,30 +299,14 @@ void CplayerDlg::OnEffectMode()
 
 void CplayerDlg::OnRenderMode()
 {
-    int mode = 0;
-    player_getparam(m_ffPlayer, PARAM_VDEV_RENDER_TYPE, &mode);
-    mode++; mode %= VDEV_RENDER_TYPE_MAX_NUM;
-    player_setparam(m_ffPlayer, PARAM_VDEV_RENDER_TYPE, &mode);
 }
 
 void CplayerDlg::OnAudioStream()
 {
-    int total   = 0;
-    int current = 0;
-    player_getparam(m_ffPlayer, PARAM_AUDIO_STREAM_TOTAL, &total  );
-    player_getparam(m_ffPlayer, PARAM_AUDIO_STREAM_CUR  , &current);
-    current++; current %= total;
-    player_setparam(m_ffPlayer, PARAM_AUDIO_STREAM_CUR  , &current);
 }
 
 void CplayerDlg::OnVideoStream()
 {
-    int total   = 0;
-    int current = 0;
-    player_getparam(m_ffPlayer, PARAM_VIDEO_STREAM_TOTAL, &total  );
-    player_getparam(m_ffPlayer, PARAM_VIDEO_STREAM_CUR  , &current);
-    current++; current %= total;
-    player_setparam(m_ffPlayer, PARAM_VIDEO_STREAM_CUR  , &current);
 }
 
 void CplayerDlg::OnTakeSnapshot()

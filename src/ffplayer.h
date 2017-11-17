@@ -18,6 +18,7 @@ extern "C" {
 // adev render type
 enum {
     ADEV_RENDER_TYPE_WAVEOUT,
+    ADEV_RENDER_TYPE_MAX_NUM,
 };
 
 // vdev render type
@@ -42,13 +43,6 @@ enum {
     VISUAL_EFFECT_MAX_NUM,
 };
 
-// hwaccel type
-enum {
-    HWACCEL_TYPE_NONE,
-    HWACCEL_TYPE_DXVA2,
-    HWACCEL_TYPE_MAX_NUM,
-};
-
 // seek flags
 enum {
     SEEK_FAST,
@@ -62,10 +56,6 @@ enum {
     PARAM_MEDIA_DURATION = 0x1000,
     PARAM_MEDIA_POSITION,
 
-    // media detail info
-    PARAM_VIDEO_WIDTH,
-    PARAM_VIDEO_HEIGHT,
-
     // video display mode
     PARAM_VIDEO_MODE,
 
@@ -75,9 +65,6 @@ enum {
     // playback speed control
     PARAM_PLAY_SPEED,
 
-    // video decode thread count
-    PARAM_DECODE_THREAD_COUNT,
-
     // visual effect mode
     PARAM_VISUAL_EFFECT,
 
@@ -86,34 +73,19 @@ enum {
 
     // player event callback
     PARAM_PLAYER_CALLBACK,
-
-    // audio/video stream
-    PARAM_AUDIO_STREAM_TOTAL,
-    PARAM_VIDEO_STREAM_TOTAL,
-    PARAM_SUBTITLE_STREAM_TOTAL,
-    PARAM_AUDIO_STREAM_CUR,
-    PARAM_VIDEO_STREAM_CUR,
-    PARAM_SUBTITLE_STREAM_CUR,
-
-    // avfilter
-    PARAM_AFILTER_ENABLE,
-    PARAM_VFILTER_ENABLE,
     //-- public
 
     //++ for adev
     PARAM_ADEV_GET_CONTEXT = 0x2000,
-    PARAM_ADEV_RENDER_TYPE,
     //-- for adev
 
     //++ for vdev
     PARAM_VDEV_GET_CONTEXT = 0x3000,
-    PARAM_VDEV_RENDER_TYPE,
     PARAM_VDEV_FRAME_RATE,
     //-- for vdev
 
     //++ for render
     PARAM_RENDER_GET_CONTEXT = 0x4000,
-    PARAM_RENDER_UPDATE,
     PARAM_RENDER_START_PTS,
     //-- for render
 };

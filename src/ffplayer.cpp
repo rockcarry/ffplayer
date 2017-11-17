@@ -35,6 +35,7 @@ typedef struct
     // render
     void            *render;
     RECT             vdrect;
+    int              vdmode;
 
     // thread
     #define PS_D_PAUSE    (1 << 0)  // demux pause
@@ -344,16 +345,13 @@ static int reinit_stream(PLAYER *player, enum AVMediaType type, int sel) {
     switch (type) {
     case AVMEDIA_TYPE_AUDIO:
         // get last codec context
-        if (player->acodec_context) {
-            lastctxt = player->acodec_context;
-        }
+        if (player->acodec_context) avcodec_close(player->acodec_context);
 
         // get new acodec_context & astream_timebase
         player->acodec_context   = player->avformat_context->streams[idx]->codec;
         player->astream_timebase = player->avformat_context->streams[idx]->time_base;
 
         // reopen codec
-        if (lastctxt) avcodec_close(lastctxt);
         decoder = avcodec_find_decoder(player->acodec_context->codec_id);
         if (decoder && avcodec_open2(player->acodec_context, decoder, NULL) == 0) {
             player->astream_index = idx;
@@ -366,16 +364,13 @@ static int reinit_stream(PLAYER *player, enum AVMediaType type, int sel) {
 
     case AVMEDIA_TYPE_VIDEO:
         // get last codec context
-        if (player->vcodec_context) {
-            lastctxt = player->vcodec_context;
-        }
+        if (player->vcodec_context) avcodec_close(player->vcodec_context);
 
         // get new vcodec_context & vstream_timebase
         player->vcodec_context   = player->avformat_context->streams[idx]->codec;
         player->vstream_timebase = player->avformat_context->streams[idx]->time_base;
 
         // reopen codec
-        if (lastctxt) avcodec_close(lastctxt);
         switch (player->vcodec_context->codec_id) {
         case AV_CODEC_ID_H264      : decoder = avcodec_find_decoder_by_name("h264_mediacodec" ); break;
         case AV_CODEC_ID_HEVC      : decoder = avcodec_find_decoder_by_name("hevc_mediacodec" ); break;
@@ -457,54 +452,6 @@ static int get_stream_current(PLAYER *player, enum AVMediaType type) {
         }
     }
     return cur;
-}
-
-static void set_stream_current(PLAYER *player, enum AVMediaType type, int sel) {
-    int64_t              pos = 0;
-    RENDER_UPDATE_PARAMS params;
-    int                  mode=-1;
-
-    // get current play posistion
-    player_getparam(player, PARAM_MEDIA_POSITION, &pos);
-
-    // pause player threads
-    make_player_thread_pause(player, 1);
-
-    // reinit stream
-    reinit_stream(player, type, sel);
-
-    // update render
-    params.samprate = player->acodec_context->sample_rate;
-    params.sampfmt  = player->acodec_context->sample_fmt;
-    params.chlayout = player->acodec_context->channel_layout;
-    params.frate    = player->avformat_context->streams[player->vstream_index]->r_frame_rate;
-    if (params.frate.num / params.frate.den > 100) {
-        params.frate.num = 21;
-        params.frate.den = 1;
-    }
-    params.pixfmt   = player->vcodec_context->pix_fmt;
-    params.width    = player->vcodec_context->width;
-    params.height   = player->vcodec_context->height;
-    render_setparam(player->render, PARAM_RENDER_UPDATE, &params);
-
-    switch (type) {
-    case AVMEDIA_TYPE_AUDIO:
-        render_setparam(player->render, PARAM_ADEV_RENDER_TYPE, &mode);
-        break;
-    case AVMEDIA_TYPE_VIDEO:
-        render_setparam(player->render, PARAM_VDEV_RENDER_TYPE, &mode);
-        vfilter_graph_free(player);
-        vfilter_graph_init(player);
-        break;
-    default: break;
-    }
-
-    // seek current pos to update pktqueue
-    player_seek(player, pos, SEEK_PRECISELY);
-
-    // resume player threads
-//  make_player_thread_pause(player, 0); // no need to call this function
-                                         // player_seek already resume all player threads
 }
 
 // 函数实现
@@ -697,12 +644,9 @@ void player_setrect(void *hplayer, int type, int x, int y, int w, int h)
     }
     //-- if set visual effect rect
 
-    int vw = 0, vh = 0;
+    int vw = player->vcodec_context->width ;
+    int vh = player->vcodec_context->height;
     int rw = 0, rh = 0;
-    int mode = 0;
-    player_getparam(hplayer, PARAM_VIDEO_WIDTH , &vw  );
-    player_getparam(hplayer, PARAM_VIDEO_HEIGHT, &vh  );
-    player_getparam(hplayer, PARAM_VIDEO_MODE  , &mode);
     if (!vw || !vh) return;
 
     player->vdrect.left   = x;
@@ -710,13 +654,12 @@ void player_setrect(void *hplayer, int type, int x, int y, int w, int h)
     player->vdrect.right  = x + w;
     player->vdrect.bottom = y + h;
 
-    switch (mode)
+    switch (player->vdmode)
     {
     case VIDEO_MODE_LETTERBOX:
         if (w * vh < h * vw) { rw = w; rh = rw * vh / vw; }
         else                 { rh = h; rw = rh * vw / vh; }
         break;
-
     case VIDEO_MODE_STRETCHED: rw = w; rh = h; break;
     }
 
@@ -783,29 +726,12 @@ void player_setparam(void *hplayer, int id, void *param)
     switch (id)
     {
     case PARAM_VIDEO_MODE:
-        render_setparam(player->render, PARAM_VIDEO_MODE, param);
+        player->vdmode = *(int*)param;
         player_setrect(hplayer, 0,
             player->vdrect.left, player->vdrect.top,
             player->vdrect.right - player->vdrect.left,
             player->vdrect.bottom - player->vdrect.top);
         break;
-    case PARAM_DECODE_THREAD_COUNT:
-        make_player_thread_pause(player, 1);
-        player->vcodec_context->thread_count = *(int*)param;
-        reinit_stream(player, AVMEDIA_TYPE_VIDEO, player->vstream_index);
-        make_player_thread_pause(player, 0);
-        break;
-    case PARAM_VDEV_RENDER_TYPE:
-        render_start(player->render);
-        make_player_thread_pause(player, 1);
-        render_setparam(player->render, PARAM_VDEV_RENDER_TYPE, param);
-        make_player_thread_pause(player, 0);
-        if (player->player_status & PS_R_PAUSE) render_pause(player->render);
-        break;
-    case PARAM_AUDIO_STREAM_CUR   : set_stream_current(player, (AVMediaType)AVMEDIA_TYPE_AUDIO   , *(int*)param); break;
-    case PARAM_VIDEO_STREAM_CUR   : set_stream_current(player, (AVMediaType)AVMEDIA_TYPE_VIDEO   , *(int*)param); break;
-    case PARAM_SUBTITLE_STREAM_CUR: set_stream_current(player, (AVMediaType)AVMEDIA_TYPE_SUBTITLE, *(int*)param); break;
-    case PARAM_VFILTER_ENABLE     : player->vfilter_enable = *(int*)param; break;
     default:
         render_setparam(player->render, id, param);
         break;
@@ -819,46 +745,16 @@ void player_getparam(void *hplayer, int id, void *param)
 
     switch (id)
     {
-    case PARAM_DECODE_THREAD_COUNT:
-        if (!player->vcodec_context) *(int*)param = 0;
-        else *(int*)param = player->vcodec_context->thread_count;
+    case PARAM_VIDEO_MODE:
+        *(int*)param = player->vdmode;
         break;
     case PARAM_MEDIA_DURATION:
         if (!player->avformat_context) *(int64_t*)param = 1;
         else *(int64_t*)param = (player->avformat_context->duration * 1000 / AV_TIME_BASE);
         if (*(int64_t*)param <= 0) *(int64_t*)param = 1;
         break;
-    case PARAM_VIDEO_WIDTH:
-        if (!player->vcodec_context) *(int*)param = 0;
-        else *(int*)param = player->vcodec_context->width;
-        break;
-    case PARAM_VIDEO_HEIGHT:
-        if (!player->vcodec_context) *(int*)param = 0;
-        else *(int*)param = player->vcodec_context->height;
-        break;
-    case PARAM_AUDIO_STREAM_TOTAL:
-        *(int*)param = get_stream_total(player, AVMEDIA_TYPE_AUDIO);
-        break;
-    case PARAM_VIDEO_STREAM_TOTAL:
-        *(int*)param = get_stream_total(player, AVMEDIA_TYPE_VIDEO);
-        break;
-    case PARAM_SUBTITLE_STREAM_TOTAL:
-        *(int*)param = get_stream_total(player, AVMEDIA_TYPE_SUBTITLE);
-        break;
-    case PARAM_AUDIO_STREAM_CUR:
-        *(int*)param = get_stream_current(player, AVMEDIA_TYPE_AUDIO);
-        break;
-    case PARAM_VIDEO_STREAM_CUR:
-        *(int*)param = get_stream_current(player, AVMEDIA_TYPE_VIDEO);
-        break;
-    case PARAM_SUBTITLE_STREAM_CUR:
-        *(int*)param = get_stream_current(player, AVMEDIA_TYPE_SUBTITLE);
-        break;
     case PARAM_RENDER_GET_CONTEXT:
         *(void**)param = player->render;
-        break;
-    case PARAM_VFILTER_ENABLE:
-        *(int*)param = player->vfilter_enable;
         break;
     default:
         render_getparam(player->render, id, param);

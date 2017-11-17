@@ -31,7 +31,6 @@ typedef struct
     AVSampleFormat sample_fmt;
     int64_t        chan_layout;
 
-    int            video_mode;
     int            video_width;
     int            video_height;
     AVRational     frame_rate;
@@ -392,9 +391,6 @@ void render_setparam(void *hrender, int id, void *param)
             *papts = *pvpts = *(int64_t*)param;
         }
         break;
-    case PARAM_VIDEO_MODE:
-        render->video_mode = *(int*)param;
-        break;
     case PARAM_AUDIO_VOLUME:
         adev_setparam(render->adev, PARAM_AUDIO_VOLUME, param);
         break;
@@ -418,40 +414,6 @@ void render_setparam(void *hrender, int id, void *param)
     case PARAM_PLAYER_CALLBACK:
         vdev_setparam(render->vdev, PARAM_PLAYER_CALLBACK, param);
         break;
-    case PARAM_ADEV_RENDER_TYPE:
-        // set render_speed_cur to triger swr_context re-create
-        render->render_speed_cur = -1;
-        break;
-    case PARAM_VDEV_RENDER_TYPE:
-        {
-            VDEV_COMMON_CTXT *vdev = (VDEV_COMMON_CTXT*)render->vdev;
-            int               type = *(int*)param == -1 ? vdev->type : *(int*)param;
-            //++ re-create vdev
-            int64_t *papts = NULL;
-            render->vdev   = (VDEV_COMMON_CTXT*)vdev_create(type, NULL, 0, 0, 0, 0, vdev);
-            vdev_getavpts(render->vdev, &papts, NULL);
-            adev_syncapts(render->adev,  papts);
-            vdev_destroy(vdev);
-            //-- re-create vdev
-
-            // set render_wcur & render_hcur to triger sws_context re-create
-            render->render_wcur = 0;
-            render->render_hcur = 0;
-        }
-        break;
-    case PARAM_RENDER_UPDATE:
-        {
-            // update render context variables
-            RENDER_UPDATE_PARAMS *pru = (RENDER_UPDATE_PARAMS*)param;
-            render->sample_rate = pru->samprate;
-            render->sample_fmt  = pru->sampfmt;
-            render->chan_layout = pru->chlayout;
-            render->frame_rate  = pru->frate;
-            render->pixel_fmt   = pru->pixfmt != AV_PIX_FMT_NONE ? pru->pixfmt : AV_PIX_FMT_YUV420P;
-            render->video_width = pru->width;
-            render->video_height= pru->height;
-        }
-        break;
     case PARAM_RENDER_START_PTS:
         render->start_pts = *(int64_t*)param;
         break;
@@ -473,9 +435,6 @@ void render_getparam(void *hrender, int id, void *param)
             *(int64_t*)param  = pos > 0 ? pos : 0;
         }
         break;
-    case PARAM_VIDEO_MODE:
-        *(int*)param = render->video_mode;
-        break;
     case PARAM_AUDIO_VOLUME:
         adev_getparam(render->adev, PARAM_AUDIO_VOLUME, param);
         break;
@@ -489,12 +448,6 @@ void render_getparam(void *hrender, int id, void *param)
 #endif
     case PARAM_AVSYNC_TIME_DIFF:
         vdev_getparam(render->vdev, PARAM_AVSYNC_TIME_DIFF, param);
-        break;
-    case PARAM_ADEV_RENDER_TYPE:
-        *(int*)param = ADEV_RENDER_TYPE_WAVEOUT;
-        break;
-    case PARAM_VDEV_RENDER_TYPE:
-        *(int*)param = ((VDEV_COMMON_CTXT*)render->vdev)->type;
         break;
     case PARAM_RENDER_START_PTS:
         *(int64_t*)param = render->start_pts;
