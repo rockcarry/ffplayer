@@ -202,7 +202,6 @@ static void* audio_decode_thread_proc(void *param)
         // read packet
         packet = pktqueue_read_request_a(player->pktqueue);
         if (packet == NULL) {
-            player->player_status &= ~PS_A_SEEK;
 //          render_audio(player->render, aframe);
             usleep(20*1000); continue;
         }
@@ -231,6 +230,9 @@ static void* audio_decode_thread_proc(void *param)
                 if (player->player_status & PS_A_SEEK) {
                     if (player->seek_dest_pts - aframe->pts < 100) {
                         player->player_status &= ~PS_A_SEEK;
+                    }
+                    if ((player->player_status & PS_R_PAUSE) && player->vstream_index == -1) {
+                        render_pause(player->render);
                     }
                 }
                 //-- for seek operation
@@ -274,7 +276,6 @@ static void* video_decode_thread_proc(void *param)
         // read packet
         packet = pktqueue_read_request_v(player->pktqueue);
         if (packet == NULL) {
-            player->player_status &= ~PS_V_SEEK;
             render_video(player->render, vframe);
             usleep(20*1000); continue;
         }
@@ -299,6 +300,9 @@ static void* video_decode_thread_proc(void *param)
                     if (player->player_status & PS_V_SEEK) {
                         if (player->seek_dest_pts - vframe->pts < 100) {
                             player->player_status &= ~PS_V_SEEK;
+                            if (player->player_status & PS_R_PAUSE) {
+                                render_pause(player->render);
+                            }
                         }
                     }
                     //-- for seek operation
@@ -418,16 +422,11 @@ static void make_player_thread_pause(PLAYER *player, int pause) {
         // make player thread paused
         player->player_status |= PAUSE_REQ;
         player->player_status &=~PAUSE_ACK;
-        render_start(player->render); // render is running but player thread is paused
+        // wait pause done
         while ((player->player_status & PAUSE_ACK) != PAUSE_ACK) usleep(20*1000);
     } else {
-        if (player->player_status & PS_R_PAUSE) {
-            // pause render if needed
-            render_pause(player->render);
-        } else {
-            // make player thread run
-            player->player_status &= ~(PAUSE_REQ|PAUSE_ACK);
-        }
+        // make player thread run
+        player->player_status &= ~(PAUSE_REQ|PAUSE_ACK);
     }
 }
 
@@ -463,6 +462,7 @@ static int get_stream_current(PLAYER *player, enum AVMediaType type) {
 static void set_stream_current(PLAYER *player, enum AVMediaType type, int sel) {
     int64_t              pos = 0;
     RENDER_UPDATE_PARAMS params;
+    int                  mode=-1;
 
     // get current play posistion
     player_getparam(player, PARAM_MEDIA_POSITION, &pos);
@@ -488,21 +488,19 @@ static void set_stream_current(PLAYER *player, enum AVMediaType type, int sel) {
     render_setparam(player->render, PARAM_RENDER_UPDATE, &params);
 
     switch (type) {
-    case AVMEDIA_TYPE_AUDIO: {
-            int mode = -1; render_setparam(player->render, PARAM_ADEV_RENDER_TYPE, &mode);
-        }
+    case AVMEDIA_TYPE_AUDIO:
+        render_setparam(player->render, PARAM_ADEV_RENDER_TYPE, &mode);
         break;
-    case AVMEDIA_TYPE_VIDEO: {
-            int mode = -1; render_setparam(player->render, PARAM_VDEV_RENDER_TYPE, &mode);
-            vfilter_graph_free(player);
-            vfilter_graph_init(player);
-        }
+    case AVMEDIA_TYPE_VIDEO:
+        render_setparam(player->render, PARAM_VDEV_RENDER_TYPE, &mode);
+        vfilter_graph_free(player);
+        vfilter_graph_init(player);
         break;
     default: break;
     }
 
     // seek current pos to update pktqueue
-    player_seek(player, pos, 0);
+    player_seek(player, pos, SEEK_PRECISELY);
 
     // resume player threads
 //  make_player_thread_pause(player, 0); // no need to call this function
@@ -641,10 +639,9 @@ void player_close(void *hplayer)
     int vol = -255; player_setparam(player, PARAM_AUDIO_VOLUME, &vol);
     //-- fix noise sound issue when player_close on android platform
 
+    // set close flag
     player->player_status |= PS_CLOSE;
-    if (player->render) {
-        render_start(player->render);
-    }
+    if (player->render) render_start(player->render);
 
     // wait audio/video demuxing thread exit
     pthread_join(player->avdemux_thread, NULL);
@@ -738,6 +735,9 @@ void player_seek(void *hplayer, int64_t ms, int type)
     render_getparam(player->render, PARAM_RENDER_START_PTS, &startpts);
     ms += startpts;
 
+    // make render run first
+    render_start(player->render);
+
     // pause demuxing & decoding threads
     make_player_thread_pause(player, 1);
 
@@ -757,19 +757,15 @@ void player_seek(void *hplayer, int64_t ms, int type)
         player->seek_dest_pts  =  ms;
         player->player_status |=  SEEK_REQ;
         player->player_status &= ~(PS_D_PAUSE|PS_A_PAUSE|PS_V_PAUSE);
-        //++ if render paused, we need wait util seek done
-        if (player->player_status & PS_R_PAUSE) {
-            while (player->player_status & SEEK_REQ) usleep(20*1000);
-            //++ fix progress display issue
-            render_setparam(player->render, PARAM_MEDIA_POSITION, &player->seek_dest_pts);
-            //-- fix progress display issue
-        }
-        //-- if render paused, we need wait util seek done
     }
     //-- seek to dest pts
 
     // resume demuxing & decoding threads
     make_player_thread_pause(player, 0);
+
+    //++ fix progress display issue
+    render_setparam(player->render, PARAM_MEDIA_POSITION, &player->seek_dest_pts);
+    //-- fix progress display issue
 }
 
 int player_snapshot(void *hplayer, char *file, int w, int h, int waitt)
@@ -800,9 +796,11 @@ void player_setparam(void *hplayer, int id, void *param)
         make_player_thread_pause(player, 0);
         break;
     case PARAM_VDEV_RENDER_TYPE:
+        render_start(player->render);
         make_player_thread_pause(player, 1);
         render_setparam(player->render, PARAM_VDEV_RENDER_TYPE, param);
         make_player_thread_pause(player, 0);
+        if (player->player_status & PS_R_PAUSE) render_pause(player->render);
         break;
     case PARAM_AUDIO_STREAM_CUR   : set_stream_current(player, (AVMediaType)AVMEDIA_TYPE_AUDIO   , *(int*)param); break;
     case PARAM_VIDEO_STREAM_CUR   : set_stream_current(player, (AVMediaType)AVMEDIA_TYPE_VIDEO   , *(int*)param); break;
