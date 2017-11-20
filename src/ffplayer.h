@@ -102,15 +102,15 @@ typedef struct {
     int video_height;           // r
     int video_frame_rate;       // r
     int video_stream_total;     // r
-    int video_stream_cur;       // rw
+    int video_stream_cur;       // wr
 
     int audio_channels;         // r
     int audio_sample_rate;      // r
     int audio_stream_total;     // r
-    int audio_stream_cur;       // rw
+    int audio_stream_cur;       // wr
 
     int subtitle_stream_total;  // r
-    int subtitle_stream_cur;    // rw
+    int subtitle_stream_cur;    // wr
 
     int vdev_render_type;       // w
     int adev_render_type;       // w
@@ -132,6 +132,7 @@ void  player_getparam(void *hplayer, int id, void *param);
 player_open     创建一个 player 对象
     file        - 文件路径（可以是网络流媒体的 URL）
     win         - Win32 的窗口句柄
+    params      - 播放器初始化参数
     返回值      - void* 指针类型，指向 player 对象
 
 player_close    关闭播放器
@@ -170,19 +171,34 @@ player_getparam 获取参数
     param       - 参数指针
  */
 
-// 参数说明
+// 初始化参数说明
+/*
+PLAYER_INIT_PARAMS 为播放器初始化参数，在 player_open 时传入，并可获得视频文件打开后的一些参数信息
+    int video_width;            // r  视频宽度
+    int video_height;           // r  视频高度
+    int video_frame_rate;       // r  视频帧率
+    int video_stream_total;     // r  视频流总数
+    int video_stream_cur;       // wr 当前视频流
+
+    int audio_channels;         // r  音频通道数
+    int audio_sample_rate;      // r  音频采样率
+    int audio_stream_total;     // r  音频流总数
+    int audio_stream_cur;       // wr 当前音频流
+
+    int subtitle_stream_total;  // r  字母流总数
+    int subtitle_stream_cur;    // wr 当前字母流
+
+    int vdev_render_type;       // w  vdev 类型
+    int adev_render_type;       // w  adev 类型
+ */
+
+// 动态参数说明
 /*
 PARAM_MEDIA_DURATION 和 PARAM_MEDIA_POSITION
 用于获取多媒体文件的总长度和当前播放位置（毫秒为单位）
 LONGLONG total = 1, pos = 0;
 player_getparam(g_hplayer, PARAM_MEDIA_DURATION, &total);
 player_getparam(g_hplayer, PARAM_MEDIA_POSITION, &pos  );
-
-PARAM_VIDEO_WIDTH 和 PARAM_VIDEO_HEIGHT
-用于获取多媒体文件的视频宽度和高度（像素为单位）
-int vw = 0, vh = 0;
-player_getparam(g_hplayer, PARAM_VIDEO_WIDTH , &vw);
-player_getparam(g_hplayer, PARAM_VIDEO_HEIGHT, &vh);
 
 PARAM_VIDEO_MODE
 用于获取和设置视频显示方式，有两种方式可选：
@@ -208,15 +224,6 @@ player_setparam(g_hplayer, PARAM_PLAY_SPEED, &speed);
 参数 speed 为百分比速度，150 表示以 150% 进行播放
 速度没有上限和下限，设置为 0 没有意义，内部会处理为 1%
 播放速度的实际上限，由处理器的处理能力决定，超过处理器能力，播放会出现卡顿现象
-
-PARAM_DECODE_THREAD_COUNT
-用于设置视频解码线程数，可榨干 cpu 资源
-int count = 6;
-player_setparam(g_hplayer, PARAM_DECODE_THREAD_COUNT, &count);
-设置为 0 为将自动获取设备的 CPU 核心个数来计算和设置解码线程个数
-设置为 1 为单线解码，设置为 >= 2 的值为多线程解码
-并不是设置后一定就能运用上多线程解码，还要看对应的 decoder 是否支持多线程解码
-一般情况下设置为 4 - 10 左右的值就能充分榨取 cpu 资源，保证播放的流畅性了
 
 PARAM_VISUAL_EFFECT
 用于指定视觉效果的类型，ffplayer 支持视觉效果，主要是对音频进行视觉效果的呈现
@@ -247,23 +254,6 @@ typedef void (*PFN_PLAYER_CALLBACK)(void *vdev, __int32 msg, __int64 param);
       ffplayer 会发送 MSG_FFPLAYER 这个消息通知应用程序播放已经
       完成，而播放进度的显示，建议在窗口中使用定时器机制来查询并
       显示）
-
-PARAM_VDEV_RENDER_TYPE
-用于设置视频渲染方式，目前有 VDEV_RENDER_TYPE_GDI 和 VDEV_RENDER_TYPE_D3D 两种可选
-int mode = 0;
-player_getparam(g_hplayer, PARAM_VDEV_RENDER_TYPE, &mode);
-mode = VDEV_RENDER_TYPE_D3D;
-player_setparam(g_hplayer, PARAM_VDEV_RENDER_TYPE, &mode);
-
-PARAM_AUDIO_STREAM_TOTAL
-PARAM_VIDEO_STREAM_TOTAL
-PARAM_SUBTITLE_STREAM_TOTAL
-以上三个是只读的，分别用于获取 audio, video, subtitle 的流总数
-
-PARAM_AUDIO_STREAM_CUR
-PARAM_VIDEO_STREAM_CUR
-PARAM_SUBTITLE_STREAM_CUR
-以上三个参数，分别用于获取或设置当前播放的 audio, video, subtitle 流编号
 
 所有的参数，都是可以 get 的，但并不是所有的参数都可以 set，因为有些参数是只读的。
 
