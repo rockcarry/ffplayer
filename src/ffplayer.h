@@ -10,10 +10,10 @@ extern "C" {
 
 // 常量定义
 // message
-#define MSG_FFPLAYER    (WM_APP + 1)
-#define PLAY_PROGRESS   (('R' << 24) | ('U' << 16) | ('N' << 8) | (' ' << 0))
-#define PLAY_COMPLETED  (('E' << 24) | ('N' << 16) | ('D' << 8) | (' ' << 0))
-#define PLAY_SNAPSHOT   (('S' << 24) | ('N' << 16) | ('A' << 8) | ('P' << 0))
+#define MSG_FFPLAYER        (WM_APP + 1)
+#define MSG_INIT_DONE       (('I' << 24) | ('N' << 16) | ('I' << 8) | ('T' << 0))
+#define MSG_PLAY_COMPLETED  (('E' << 24) | ('N' << 16) | ('D' << 8) | (' ' << 0))
+#define MSG_TAKE_SNAPSHOT   (('S' << 24) | ('N' << 16) | ('A' << 8) | ('P' << 0))
 
 // adev render type
 enum {
@@ -98,22 +98,24 @@ enum {
 typedef void (*PFN_PLAYER_CALLBACK)(void *vdev, int32_t msg, int64_t param);
 
 typedef struct {
-    int video_width;            // r
-    int video_height;           // r
-    int video_frame_rate;       // r
-    int video_stream_total;     // r
-    int video_stream_cur;       // wr
+    int video_width;              // r
+    int video_height;             // r
+    int video_frame_rate;         // r
+    int video_stream_total;       // r
+    int video_stream_cur;         // wr
 
-    int audio_channels;         // r
-    int audio_sample_rate;      // r
-    int audio_stream_total;     // r
-    int audio_stream_cur;       // wr
+    int audio_channels;           // r
+    int audio_sample_rate;        // r
+    int audio_stream_total;       // r
+    int audio_stream_cur;         // wr
 
-    int subtitle_stream_total;  // r
-    int subtitle_stream_cur;    // wr
+    int subtitle_stream_total;    // r
+    int subtitle_stream_cur;      // wr
 
-    int vdev_render_type;       // w
-    int adev_render_type;       // w
+    int vdev_render_type;         // w
+    int adev_render_type;         // w
+
+    PFN_PLAYER_CALLBACK callback; // w
 } PLAYER_INIT_PARAMS;
 
 // 函数声明
@@ -174,22 +176,24 @@ player_getparam 获取参数
 // 初始化参数说明
 /*
 PLAYER_INIT_PARAMS 为播放器初始化参数，在 player_open 时传入，并可获得视频文件打开后的一些参数信息
-    int video_width;            // r  视频宽度
-    int video_height;           // r  视频高度
-    int video_frame_rate;       // r  视频帧率
-    int video_stream_total;     // r  视频流总数
-    int video_stream_cur;       // wr 当前视频流
+    int video_width;              // r  视频宽度
+    int video_height;             // r  视频高度
+    int video_frame_rate;         // r  视频帧率
+    int video_stream_total;       // r  视频流总数
+    int video_stream_cur;         // wr 当前视频流
 
-    int audio_channels;         // r  音频通道数
-    int audio_sample_rate;      // r  音频采样率
-    int audio_stream_total;     // r  音频流总数
-    int audio_stream_cur;       // wr 当前音频流
+    int audio_channels;           // r  音频通道数
+    int audio_sample_rate;        // r  音频采样率
+    int audio_stream_total;       // r  音频流总数
+    int audio_stream_cur;         // wr 当前音频流
 
-    int subtitle_stream_total;  // r  字母流总数
-    int subtitle_stream_cur;    // wr 当前字母流
+    int subtitle_stream_total;    // r  字母流总数
+    int subtitle_stream_cur;      // wr 当前字母流
 
-    int vdev_render_type;       // w  vdev 类型
-    int adev_render_type;       // w  adev 类型
+    int vdev_render_type;         // w  vdev 类型
+    int adev_render_type;         // w  adev 类型
+
+    PFN_PLAYER_CALLBACK callback; // w  播放器事件回调函数
  */
 
 // 动态参数说明

@@ -88,14 +88,16 @@ void  vdev_reset   (void *ctxt);
 void  vdev_getavpts(void *ctxt, int64_t **ppapts, int64_t **ppvpts);
 void  vdev_setparam(void *ctxt, int id, void *param);
 void  vdev_getparam(void *ctxt, int id, void *param);
-void  vdev_refresh_background(void *ctxt);
-void  vdev_handle_event_frate(void *ctxt);
 
 void* vdev_create  (int type, void *surface, int bufnum, int w, int h, int frate, void *params);
 void  vdev_destroy (void *ctxt);
 void  vdev_request (void *ctxt, uint8_t *buffer[8], int linesize[8]);
 void  vdev_post    (void *ctxt, int64_t pts);
 void  vdev_setrect (void *ctxt, int x, int y, int w, int h);
+
+void  vdev_player_event(void *ctxt, int32_t msg, int64_t param);
+void  vdev_refresh_background(void *ctxt);
+void  vdev_handle_complete_and_avsync(void *ctxt);
 
 #ifdef __cplusplus
 }

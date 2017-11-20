@@ -3,6 +3,7 @@
 #include "pktqueue.h"
 #include "ffrender.h"
 #include "ffplayer.h"
+#include "vdev.h"
 
 extern "C" {
 #include "libavcodec/avcodec.h"
@@ -581,6 +582,15 @@ void* player_open(char *file, void *win, PLAYER_INIT_PARAMS *params)
     pthread_create(&player->avdemux_thread, NULL, av_demux_thread_proc    , player);
     pthread_create(&player->adecode_thread, NULL, audio_decode_thread_proc, player);
     pthread_create(&player->vdecode_thread, NULL, video_decode_thread_proc, player);
+
+    //++ init callback, and send init done message
+    if (1) {
+        void *vdev = NULL;
+        player_setparam(player, PARAM_PLAYER_CALLBACK , params ? params->callback : NULL);
+        player_getparam(player, PARAM_VDEV_GET_CONTEXT, &vdev);
+        vdev_player_event(vdev, MSG_INIT_DONE, 0);
+    }
+    //-- init callback, and send init done message
 
     // return
     return player;

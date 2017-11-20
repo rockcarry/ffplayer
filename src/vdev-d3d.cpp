@@ -65,8 +65,8 @@ static void* video_render_thread_proc(void *param)
         if (++c->head == c->bufnum) c->head = 0;
         sem_post(&c->semw);
 
-        // handle vdev event, frame rate & av-sync
-        vdev_handle_event_frate(c);
+        // handle complete, av-sync & frame rate control
+        vdev_handle_complete_and_avsync(c);
     }
 
     return NULL;

@@ -20,19 +20,6 @@ static inline int get_tick_count(void)
 #endif
 }
 
-static inline void vdev_player_event(void *ctxt, int32_t msg, int64_t param)
-{
-    VDEV_COMMON_CTXT *c = (VDEV_COMMON_CTXT*)ctxt;
-    if (c->fpcb) c->fpcb(c, msg, param);
-#ifdef WIN32
-    else {
-        if (msg == PLAY_COMPLETED) {
-            PostMessage((HWND)c->hwnd, MSG_FFPLAYER, PLAY_COMPLETED, 0);
-        }
-    }
-#endif
-}
-
 // º¯ÊýÊµÏÖ
 void vdev_pause(void *ctxt, int pause)
 {
@@ -96,70 +83,6 @@ void vdev_getparam(void *ctxt, int id, void *param)
         *(int*)param = c->tickavdiff;
         break;
     }
-}
-
-void vdev_refresh_background(void *ctxt)
-{
-    VDEV_COMMON_CTXT *c = (VDEV_COMMON_CTXT*)ctxt;
-    RECT rtwin, rect1, rect2, rect3, rect4;
-    int  x = c->x, y = c->y, w = c->w, h = c->h;
-
-#ifdef WIN32
-    HWND hwnd = (HWND)c->hwnd;
-    GetClientRect(hwnd, &rtwin);
-    rect1.left = 0;   rect1.top = 0;   rect1.right = rtwin.right; rect1.bottom = y;
-    rect2.left = 0;   rect2.top = y;   rect2.right = x;           rect2.bottom = y+h;
-    rect3.left = x+w; rect3.top = y;   rect3.right = rtwin.right; rect3.bottom = y+h;
-    rect4.left = 0;   rect4.top = y+h; rect4.right = rtwin.right; rect4.bottom = rtwin.bottom;
-    InvalidateRect(hwnd, &rect1, TRUE);
-    InvalidateRect(hwnd, &rect2, TRUE);
-    InvalidateRect(hwnd, &rect3, TRUE);
-    InvalidateRect(hwnd, &rect4, TRUE);
-#endif
-}
-
-void vdev_handle_event_frate(void *ctxt)
-{
-    VDEV_COMMON_CTXT *c = (VDEV_COMMON_CTXT*)ctxt;
-    int tickcur, tickdiff, avdiff = -1;
-
-    if (!(c->status & VDEV_PAUSE)) {
-        // send play progress event
-        vdev_player_event(c, PLAY_PROGRESS, c->vpts > c->apts ? c->vpts : c->apts);
-
-        //++ play completed ++//
-        if (c->completed_apts != c->apts || c->completed_vpts != c->vpts) {
-            c->completed_apts = c->apts;
-            c->completed_vpts = c->vpts;
-            c->completed_counter = 0;
-            c->status &=~VDEV_COMPLETED;
-        } else if (++c->completed_counter == COMPLETE_COUNTER) {
-            c->status |= VDEV_COMPLETED;
-            vdev_player_event(c, PLAY_COMPLETED, 0);
-        }
-        //-- play completed --//
-
-        //++ frame rate & av sync control ++//
-        tickcur      = get_tick_count();
-        tickdiff     = tickcur - c->ticklast;
-        avdiff       = (int)(c->apts - c->vpts - c->tickavdiff);
-        c->ticklast  = tickcur;
-        if (tickdiff - c->tickframe >  2) c->ticksleep--;
-        if (tickdiff - c->tickframe < -2) c->ticksleep++;
-        if (c->apts != -1 && c->vpts != -1) {
-            if      (avdiff >  200) c->ticksleep -= 5;
-            else if (avdiff >  10 ) c->ticksleep -= 1;
-            else if (avdiff < -200) c->ticksleep -= 5;
-            else if (avdiff < -10 ) c->ticksleep += 1;
-        }
-        if (c->ticksleep < 0) c->ticksleep = 0;
-        //-- frame rate & av sync control --//
-    } else {
-        c->ticksleep = c->tickframe;
-    }
-
-    if (c->ticksleep > 0) usleep(c->ticksleep * 1000);
-    av_log(NULL, AV_LOG_INFO, "d: %3d, s: %3d\n", avdiff, c->ticksleep);
 }
 
 void* vdev_create(int type, void *surface, int bufnum, int w, int h, int frate, void *params)
@@ -256,3 +179,74 @@ void vdev_setrect(void *ctxt, int x, int y, int w, int h)
 #endif
 }
 
+void vdev_player_event(void *ctxt, int32_t msg, int64_t param)
+{
+    VDEV_COMMON_CTXT *c = (VDEV_COMMON_CTXT*)ctxt;
+    if (c->fpcb) c->fpcb(c, msg, param);
+#ifdef WIN32
+    else {
+        PostMessage((HWND)c->hwnd, MSG_FFPLAYER, msg, 0);
+    }
+#endif
+}
+
+void vdev_refresh_background(void *ctxt)
+{
+    VDEV_COMMON_CTXT *c = (VDEV_COMMON_CTXT*)ctxt;
+    RECT rtwin, rect1, rect2, rect3, rect4;
+    int  x = c->x, y = c->y, w = c->w, h = c->h;
+
+#ifdef WIN32
+    HWND hwnd = (HWND)c->hwnd;
+    GetClientRect(hwnd, &rtwin);
+    rect1.left = 0;   rect1.top = 0;   rect1.right = rtwin.right; rect1.bottom = y;
+    rect2.left = 0;   rect2.top = y;   rect2.right = x;           rect2.bottom = y+h;
+    rect3.left = x+w; rect3.top = y;   rect3.right = rtwin.right; rect3.bottom = y+h;
+    rect4.left = 0;   rect4.top = y+h; rect4.right = rtwin.right; rect4.bottom = rtwin.bottom;
+    InvalidateRect(hwnd, &rect1, TRUE);
+    InvalidateRect(hwnd, &rect2, TRUE);
+    InvalidateRect(hwnd, &rect3, TRUE);
+    InvalidateRect(hwnd, &rect4, TRUE);
+#endif
+}
+
+void vdev_handle_complete_and_avsync(void *ctxt)
+{
+    VDEV_COMMON_CTXT *c = (VDEV_COMMON_CTXT*)ctxt;
+    int tickcur, tickdiff, avdiff = -1;
+
+    if (!(c->status & VDEV_PAUSE)) {
+        //++ play completed ++//
+        if (c->completed_apts != c->apts || c->completed_vpts != c->vpts) {
+            c->completed_apts = c->apts;
+            c->completed_vpts = c->vpts;
+            c->completed_counter = 0;
+            c->status &=~VDEV_COMPLETED;
+        } else if (++c->completed_counter == COMPLETE_COUNTER) {
+            c->status |= VDEV_COMPLETED;
+            vdev_player_event(c, MSG_PLAY_COMPLETED, 0);
+        }
+        //-- play completed --//
+
+        //++ frame rate & av sync control ++//
+        tickcur      = get_tick_count();
+        tickdiff     = tickcur - c->ticklast;
+        avdiff       = (int)(c->apts - c->vpts - c->tickavdiff);
+        c->ticklast  = tickcur;
+        if (tickdiff - c->tickframe >  2) c->ticksleep--;
+        if (tickdiff - c->tickframe < -2) c->ticksleep++;
+        if (c->apts != -1 && c->vpts != -1) {
+            if      (avdiff >  200) c->ticksleep -= 5;
+            else if (avdiff >  10 ) c->ticksleep -= 1;
+            else if (avdiff < -200) c->ticksleep -= 5;
+            else if (avdiff < -10 ) c->ticksleep += 1;
+        }
+        if (c->ticksleep < 0) c->ticksleep = 0;
+        //-- frame rate & av sync control --//
+    } else {
+        c->ticksleep = c->tickframe;
+    }
+
+    if (c->ticksleep > 0) usleep(c->ticksleep * 1000);
+    av_log(NULL, AV_LOG_INFO, "d: %3d, s: %3d\n", avdiff, c->ticksleep);
+}

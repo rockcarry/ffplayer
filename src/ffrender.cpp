@@ -289,7 +289,7 @@ void render_video(void *hrender, AVFrame *video)
         if (render->render_status & RENDER_SNAPSHOT) {
             HWND hwnd = (HWND)((VDEV_COMMON_CTXT*)render->vdev)->hwnd;
             int  ret  = take_snapshot(render->snapfile, render->snapwidth, render->snapheight, video);
-            PostMessage(hwnd, MSG_FFPLAYER, RENDER_SNAPSHOT, ret);
+            vdev_player_event(render->vdev, MSG_TAKE_SNAPSHOT, 0);
             render->render_status &= ~RENDER_SNAPSHOT;
         }
 #endif
