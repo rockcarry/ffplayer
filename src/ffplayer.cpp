@@ -586,7 +586,7 @@ void* player_open(char *file, void *win, PLAYER_INIT_PARAMS *params)
     //++ init callback, and send init done message
     if (1) {
         void *vdev = NULL;
-        player_setparam(player, PARAM_PLAYER_CALLBACK , params ? params->callback : NULL);
+        player_setparam(player, PARAM_PLAYER_CALLBACK , (void*)(params ? params->callback : NULL));
         player_getparam(player, PARAM_VDEV_GET_CONTEXT, &vdev);
         vdev_player_event(vdev, MSG_INIT_DONE, 0);
     }
