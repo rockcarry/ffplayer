@@ -236,10 +236,10 @@ void vdev_handle_complete_and_avsync(void *ctxt)
         if (tickdiff - c->tickframe >  2) c->ticksleep--;
         if (tickdiff - c->tickframe < -2) c->ticksleep++;
         if (c->apts != -1 && c->vpts != -1) {
-            if      (avdiff >  200) c->ticksleep -= 5;
-            else if (avdiff >  10 ) c->ticksleep -= 1;
-            else if (avdiff < -200) c->ticksleep -= 5;
-            else if (avdiff < -10 ) c->ticksleep += 1;
+            if      (avdiff >  500) c->ticksleep -= 5;
+            else if (avdiff >  50 ) c->ticksleep -= 1;
+            else if (avdiff < -500) c->ticksleep -= 5;
+            else if (avdiff < -50 ) c->ticksleep += 1;
         }
         if (c->ticksleep < 0) c->ticksleep = 0;
         //-- frame rate & av sync control --//
