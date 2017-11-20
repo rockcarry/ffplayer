@@ -9,7 +9,7 @@ Currently, this player can smoothly play many video files, with low cpu and memo
 
 The ffmpeg share library (dlls, libs & headers) are customized and built by myself, and I will regularly update it if ffmpeg has a major release. I write a simple guide for how to build ffmpeg on mingw64 platform, you can find it on ffplayer's wiki.
 
-The windows version become stable, and the android version is coming. The android verion ffplayer is working now, but lots of work need to be done, to make it better.
+The windows version becomes stable, and the android version is coming. The android verion ffplayer is working now, but lots of work need to be done, to make it better.
 
 
 features
@@ -34,6 +34,7 @@ ctrl+E - switch visual effect
 ctrl+M - switch between letter box and stretch rect
 ctrl+R - switch between gdi and d3d
 ctrl+A - switch audio stream
+ctrl+V - switch video stream
 
 
 want to learn more?
