@@ -4,7 +4,6 @@
 #include "stdafx.h"
 #include "player.h"
 #include "playerDlg.h"
-#include "ffplayer.h"
 
 #ifdef _DEBUG
 #define new DEBUG_NEW
@@ -20,6 +19,11 @@ CplayerDlg::CplayerDlg(CWnd* pParent /*=NULL*/)
     m_hIcon = AfxGetApp()->LoadIcon(IDR_MAINFRAME);
     m_ffPlayer    = NULL;
     m_bLiveStream = FALSE;
+
+    // set player init params
+    memset(&m_Params, 0, sizeof(m_Params));
+    m_Params.adev_render_type = ADEV_RENDER_TYPE_WAVEOUT;
+    m_Params.vdev_render_type = VDEV_RENDER_TYPE_D3D;
 }
 
 void CplayerDlg::DoDataExchange(CDataExchange* pDX)
@@ -43,17 +47,16 @@ void CplayerDlg::PlayerOpenFile(TCHAR *file)
 
     // open file dialog
     if (!file) {
-        TCHAR temp[MAX_PATH];
         if (dlg.DoModal() == IDOK) {
-            wcscpy_s(temp, dlg.GetPathName());
-            WideCharToMultiByte(CP_ACP, 0, temp, -1, str, MAX_PATH, NULL, NULL);
+            wcscpy_s(m_strUrl, dlg.GetPathName());
         } else {
             OnOK();
             return;
         }
     } else {
-        WideCharToMultiByte(CP_ACP, 0, file, -1, str, MAX_PATH, NULL, NULL);
+        wcscpy_s(m_strUrl, file);
     }
+    WideCharToMultiByte(CP_ACP, 0, m_strUrl, -1, str, MAX_PATH, NULL, NULL);
 
     // player open file
     if (strstr(str, "rtmp://") == str || strstr(str, "http://") == str && strstr(str, ".m3u8")) {
@@ -61,23 +64,20 @@ void CplayerDlg::PlayerOpenFile(TCHAR *file)
     } else {
         m_bLiveStream = FALSE;
     }
-    m_ffPlayer = player_open(str, GetSafeHwnd());
+
+    m_ffPlayer = player_open(str, GetSafeHwnd(), &m_Params);
     if (m_ffPlayer) {
         int param = 0;
-        //++ set player params
-//      param = 150;                  player_setparam(m_ffPlayer, PARAM_PLAY_SPEED         , &param);
+        //++ set dynamic player params
+//      param = 150; player_setparam(m_ffPlayer, PARAM_PLAY_SPEED    , &param);
 
         // software volume scale -30dB to 12dB
         // range for volume is [-182, 73]
         // -255 - mute, +255 - max volume, 0 - 0dB
-        param = -0;                   player_setparam(m_ffPlayer, PARAM_AUDIO_VOLUME       , &param);
-        //-- set player params
+        param = -0;  player_setparam(m_ffPlayer, PARAM_AUDIO_VOLUME  , &param);
 
-#if 0
-        param = 1; player_setparam(m_ffPlayer, PARAM_VFILTER_ENABLE  , &param);
-        param = 1; player_setparam(m_ffPlayer, PARAM_AUDIO_STREAM_CUR, &param);
-        param = 1; player_setparam(m_ffPlayer, PARAM_VIDEO_STREAM_CUR, &param);
-#endif
+//      param = 1;   player_setparam(m_ffPlayer, PARAM_VFILTER_ENABLE, &param);
+        //-- set dynamic player params
 
         player_setrect(m_ffPlayer, 0, 0, 0, m_rtClient.right, m_rtClient.bottom - 2);
         player_setrect(m_ffPlayer, 1, 0, 0, m_rtClient.right, m_rtClient.bottom - 2);
@@ -98,7 +98,7 @@ BEGIN_MESSAGE_MAP(CplayerDlg, CDialog)
     ON_COMMAND(ID_OPEN_FILE    , &CplayerDlg::OnOpenFile    )
     ON_COMMAND(ID_VIDEO_MODE   , &CplayerDlg::OnVideoMode   )
     ON_COMMAND(ID_EFFECT_MODE  , &CplayerDlg::OnEffectMode  )
-    ON_COMMAND(ID_RENDER_MODE  , &CplayerDlg::OnRenderMode  )
+    ON_COMMAND(ID_VRENDER_TYPE , &CplayerDlg::OnVRenderType )
     ON_COMMAND(ID_AUDIO_STREAM , &CplayerDlg::OnAudioStream )
     ON_COMMAND(ID_VIDEO_STREAM , &CplayerDlg::OnVideoStream )
     ON_COMMAND(ID_TAKE_SNAPSHOT, &CplayerDlg::OnTakeSnapshot)
@@ -272,13 +272,30 @@ BOOL CplayerDlg::PreTranslateMessage(MSG *pMsg)
             break;
         }
         return TRUE;
-    }
-    else return CDialog::PreTranslateMessage(pMsg);
+    } else return CDialog::PreTranslateMessage(pMsg);
 }
 
 void CplayerDlg::OnOpenFile()
 {
     PlayerOpenFile(NULL);
+}
+
+void CplayerDlg::OnAudioStream()
+{
+    LONGLONG pos = 0;
+    player_getparam(m_ffPlayer, PARAM_MEDIA_POSITION, &pos);
+    m_Params.audio_stream_cur++; m_Params.audio_stream_cur %= m_Params.audio_stream_total;
+    PlayerOpenFile(m_strUrl);
+    player_seek(m_ffPlayer, pos, SEEK_PRECISELY);
+}
+
+void CplayerDlg::OnVideoStream()
+{
+    LONGLONG pos = 0;
+    player_getparam(m_ffPlayer, PARAM_MEDIA_POSITION, &pos);
+    m_Params.video_stream_cur++; m_Params.video_stream_cur %= m_Params.video_stream_total;
+    PlayerOpenFile(m_strUrl);
+    player_seek(m_ffPlayer, pos, SEEK_PRECISELY);
 }
 
 void CplayerDlg::OnVideoMode()
@@ -297,16 +314,13 @@ void CplayerDlg::OnEffectMode()
     player_setparam(m_ffPlayer, PARAM_VISUAL_EFFECT, &mode);
 }
 
-void CplayerDlg::OnRenderMode()
+void CplayerDlg::OnVRenderType()
 {
-}
-
-void CplayerDlg::OnAudioStream()
-{
-}
-
-void CplayerDlg::OnVideoStream()
-{
+    LONGLONG pos = 0;
+    player_getparam(m_ffPlayer, PARAM_MEDIA_POSITION, &pos);
+    m_Params.vdev_render_type++; m_Params.vdev_render_type %= VDEV_RENDER_TYPE_MAX_NUM;
+    PlayerOpenFile(m_strUrl);
+    player_seek(m_ffPlayer, pos, SEEK_PRECISELY);
 }
 
 void CplayerDlg::OnTakeSnapshot()

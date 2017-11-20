@@ -73,6 +73,10 @@ enum {
 
     // player event callback
     PARAM_PLAYER_CALLBACK,
+
+    // avfilter
+    PARAM_AFILTER_ENABLE,
+    PARAM_VFILTER_ENABLE,
     //-- public
 
     //++ for adev
@@ -93,8 +97,27 @@ enum {
 // player event callback
 typedef void (*PFN_PLAYER_CALLBACK)(void *vdev, int32_t msg, int64_t param);
 
+typedef struct {
+    int video_width;            // r
+    int video_height;           // r
+    int video_frame_rate;       // r
+    int video_stream_total;     // r
+    int video_stream_cur;       // rw
+
+    int audio_channels;         // r
+    int audio_sample_rate;      // r
+    int audio_stream_total;     // r
+    int audio_stream_cur;       // rw
+
+    int subtitle_stream_total;  // r
+    int subtitle_stream_cur;    // rw
+
+    int vdev_render_type;       // w
+    int adev_render_type;       // w
+} PLAYER_INIT_PARAMS;
+
 // 函数声明
-void* player_open    (char *file, void *win);
+void* player_open    (char *file, void *win, PLAYER_INIT_PARAMS *params);
 void  player_close   (void *hplayer);
 void  player_play    (void *hplayer);
 void  player_pause   (void *hplayer);

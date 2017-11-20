@@ -82,7 +82,7 @@ JNIEXPORT jlong JNICALL Java_com_rockcarry_ffplayer_player_nativeOpen
     DO_USE_VAR(w);
     DO_USE_VAR(h);
     const char *str = env->GetStringUTFChars(url, NULL);
-    jlong hplayer = (jlong)player_open((char*)str, NULL);
+    jlong hplayer = (jlong)player_open((char*)str, NULL, NULL);
     env->ReleaseStringUTFChars(url, str);
     return hplayer;
 }

@@ -329,15 +329,11 @@ static void* video_decode_thread_proc(void *param)
 static int reinit_stream(PLAYER *player, enum AVMediaType type, int sel) {
     AVCodecContext *lastctxt = NULL;
     AVCodec        *decoder  = NULL;
-    int             idx, cur, i;
+    int             idx = -1, cur = -1;
 
-    for (i=0,idx=-1,cur=-1; i<(int)player->avformat_context->nb_streams; i++) {
+    for (int i=0; i<(int)player->avformat_context->nb_streams; i++) {
         if (player->avformat_context->streams[i]->codec->codec_type == type) {
-            cur++;
-        }
-        if (cur == sel) {
-            idx = i;
-            break;
+            idx = i; if (++cur == sel) break;
         }
     }
     if (idx == -1) return -1;
@@ -355,10 +351,8 @@ static int reinit_stream(PLAYER *player, enum AVMediaType type, int sel) {
         decoder = avcodec_find_decoder(player->acodec_context->codec_id);
         if (decoder && avcodec_open2(player->acodec_context, decoder, NULL) == 0) {
             player->astream_index = idx;
-        }
-        else {
+        } else {
             av_log(NULL, AV_LOG_WARNING, "failed to find or open decoder for audio !\n");
-            player->astream_index = -1;
         }
         break;
 
@@ -370,7 +364,8 @@ static int reinit_stream(PLAYER *player, enum AVMediaType type, int sel) {
         player->vcodec_context   = player->avformat_context->streams[idx]->codec;
         player->vstream_timebase = player->avformat_context->streams[idx]->time_base;
 
-        // reopen codec
+        //++ reopen codec
+        //+ try android mediacodec hardware decoder
         switch (player->vcodec_context->codec_id) {
         case AV_CODEC_ID_H264      : decoder = avcodec_find_decoder_by_name("h264_mediacodec" ); break;
         case AV_CODEC_ID_HEVC      : decoder = avcodec_find_decoder_by_name("hevc_mediacodec" ); break;
@@ -380,22 +375,24 @@ static int reinit_stream(PLAYER *player, enum AVMediaType type, int sel) {
         case AV_CODEC_ID_MPEG4     : decoder = avcodec_find_decoder_by_name("mpeg4_mediacodec"); break;
         default: break;
         }
-        if (!decoder) decoder = avcodec_find_decoder(player->vcodec_context->codec_id);
-        if (decoder) {
-            int decoder_ok = 1;
-            if (avcodec_open2(player->vcodec_context, decoder, NULL) < 0) {
-                avcodec_close(player->vcodec_context);
-                decoder = avcodec_find_decoder(player->vcodec_context->codec_id);
-                if (avcodec_open2(player->vcodec_context, decoder, NULL) < 0) {
-                    decoder_ok = 0;
-                }
+        if (decoder && avcodec_open2(player->vcodec_context, decoder, NULL) == 0) {
+            player->vstream_index = idx;
+            av_log(NULL, AV_LOG_WARNING, "using android mediacodec hardware decoder %s !\n", decoder->name);
+        } else {
+            avcodec_close(player->vcodec_context);
+            decoder = NULL;
+        }
+        //- try android mediacodec hardware decoder
+
+        if (!decoder) {
+            decoder = avcodec_find_decoder(player->vcodec_context->codec_id);
+            if (decoder && avcodec_open2(player->vcodec_context, decoder, NULL) == 0) {
+                player->vstream_index = idx;
+            } else {
+                av_log(NULL, AV_LOG_WARNING, "failed to find or open decoder for video !\n");
             }
-            if (decoder_ok) player->vstream_index = idx;
         }
-        else {
-            av_log(NULL, AV_LOG_WARNING, "failed to find or open decoder for video !\n");
-            player->vstream_index = -1;
-        }
+        //-- reopen codec
         break;
 
     case AVMEDIA_TYPE_SUBTITLE:
@@ -455,7 +452,7 @@ static int get_stream_current(PLAYER *player, enum AVMediaType type) {
 }
 
 // 函数实现
-void* player_open(char *file, void *win)
+void* player_open(char *file, void *win, PLAYER_INIT_PARAMS *params)
 {
     PLAYER       *player  = NULL;
     int           arate   = 0;
@@ -494,12 +491,10 @@ void* player_open(char *file, void *win)
     if (strstr(file, AVDEV_DSHOW) == file) {
         fmt = av_find_input_format(AVDEV_DSHOW);
         url = file + strlen(AVDEV_DSHOW) + 3;
-    }
-    else if (strstr(file, AVDEV_GDIGRAB) == file) {
+    } else if (strstr(file, AVDEV_GDIGRAB) == file) {
         fmt = av_find_input_format(AVDEV_GDIGRAB);
         url = file + strlen(AVDEV_GDIGRAB) + 3;
-    }
-    else if (strstr(file, AVDEV_VFWCAP) == file) {
+    } else if (strstr(file, AVDEV_VFWCAP) == file) {
         fmt = av_find_input_format(AVDEV_VFWCAP);
         url = NULL;
     }
@@ -518,8 +513,8 @@ void* player_open(char *file, void *win)
     }
 
     // set current audio & video stream
-    player->astream_index = -1; reinit_stream(player, AVMEDIA_TYPE_AUDIO, 0);
-    player->vstream_index = -1; reinit_stream(player, AVMEDIA_TYPE_VIDEO, 0);
+    player->astream_index = -1; reinit_stream(player, AVMEDIA_TYPE_AUDIO, params ? params->audio_stream_cur : 0);
+    player->vstream_index = -1; reinit_stream(player, AVMEDIA_TYPE_VIDEO, params ? params->video_stream_cur : 0);
 
     // for audio
     if (player->astream_index != -1)
@@ -550,8 +545,9 @@ void* player_open(char *file, void *win)
     vfilter_graph_init(player);
 
     // open render
-    player->render = render_open(ADEV_RENDER_TYPE_WAVEOUT, arate, (AVSampleFormat)aformat, alayout,
-                                 VDEV_RENDER_TYPE_GDI, win, vrate, vformat, width, height);
+    player->render = render_open(
+        params ? params->adev_render_type : 0, arate, (AVSampleFormat)aformat, alayout,
+        params ? params->vdev_render_type : 0, win, vrate, vformat, width, height);
 
     if (player->vstream_index == -1) {
         int effect = VISUAL_EFFECT_WAVEFORM;
@@ -561,6 +557,23 @@ void* player_open(char *file, void *win)
     if (player->avformat_context->start_time > 0) {
         int64_t startpts = player->avformat_context->start_time * 1000 / AV_TIME_BASE;
         render_setparam(player->render, PARAM_RENDER_START_PTS, &startpts);
+    }
+
+    // for player params
+    if (params) {
+        params->video_width          = width;
+        params->video_width          = height;
+        params->video_frame_rate     = vrate.num / vrate.den;
+        params->video_stream_total   = get_stream_total(player, AVMEDIA_TYPE_VIDEO);
+        params->video_stream_cur     = player->vstream_index;
+
+        params->audio_channels       = av_get_channel_layout_nb_channels(alayout);
+        params->audio_sample_rate    = arate;
+        params->audio_stream_total   = get_stream_total(player, AVMEDIA_TYPE_AUDIO);
+        params->audio_stream_cur     = player->astream_index;
+
+        params->subtitle_stream_total= get_stream_total(player, AVMEDIA_TYPE_SUBTITLE);
+        params->subtitle_stream_cur  = -1;
     }
 
     // make sure player status paused
@@ -755,6 +768,9 @@ void player_getparam(void *hplayer, int id, void *param)
         break;
     case PARAM_RENDER_GET_CONTEXT:
         *(void**)param = player->render;
+        break;
+    case PARAM_VFILTER_ENABLE:
+        *(int*)param = player->vfilter_enable;
         break;
     default:
         render_getparam(player->render, id, param);

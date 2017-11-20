@@ -1,8 +1,8 @@
 // playerDlg.h : header file
 //
-
 #pragma once
 
+#include "ffplayer.h"
 
 // CplayerDlg dialog
 class CplayerDlg : public CDialog
@@ -30,9 +30,11 @@ protected:
     DECLARE_MESSAGE_MAP()
 
 private:
-    void *m_ffPlayer;
-    BOOL  m_bLiveStream;
-    void  PlayerOpenFile(TCHAR *file);
+    PLAYER_INIT_PARAMS m_Params;
+    TCHAR              m_strUrl[MAX_PATH];
+    void              *m_ffPlayer;
+    BOOL               m_bLiveStream;
+    void PlayerOpenFile(TCHAR *file);
 
 private:
     CDC  *m_pDrawDC;
@@ -46,10 +48,10 @@ public:
     afx_msg HBRUSH OnCtlColor(CDC* pDC, CWnd* pWnd, UINT nCtlColor);
     afx_msg void   OnSize(UINT nType, int cx, int cy);
     afx_msg void   OnOpenFile();
-    afx_msg void   OnVideoMode();
-    afx_msg void   OnEffectMode();
-    afx_msg void   OnRenderMode();
     afx_msg void   OnAudioStream();
     afx_msg void   OnVideoStream();
+    afx_msg void   OnVideoMode();
+    afx_msg void   OnEffectMode();
+    afx_msg void   OnVRenderType();
     afx_msg void   OnTakeSnapshot();
 };
