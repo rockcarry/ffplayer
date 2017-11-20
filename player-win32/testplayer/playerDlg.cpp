@@ -286,7 +286,9 @@ void CplayerDlg::OnAudioStream()
     player_getparam(m_ffPlayer, PARAM_MEDIA_POSITION, &pos);
     m_Params.audio_stream_cur++; m_Params.audio_stream_cur %= m_Params.audio_stream_total;
     PlayerOpenFile(m_strUrl);
-    player_seek(m_ffPlayer, pos, SEEK_PRECISELY);
+    if (!m_bLiveStream) {
+        player_seek(m_ffPlayer, pos, SEEK_PRECISELY);
+    }
 }
 
 void CplayerDlg::OnVideoStream()
@@ -295,7 +297,9 @@ void CplayerDlg::OnVideoStream()
     player_getparam(m_ffPlayer, PARAM_MEDIA_POSITION, &pos);
     m_Params.video_stream_cur++; m_Params.video_stream_cur %= m_Params.video_stream_total;
     PlayerOpenFile(m_strUrl);
-    player_seek(m_ffPlayer, pos, SEEK_PRECISELY);
+    if (!m_bLiveStream) {
+        player_seek(m_ffPlayer, pos, SEEK_PRECISELY);
+    }
 }
 
 void CplayerDlg::OnVideoMode()
@@ -320,7 +324,9 @@ void CplayerDlg::OnVRenderType()
     player_getparam(m_ffPlayer, PARAM_MEDIA_POSITION, &pos);
     m_Params.vdev_render_type++; m_Params.vdev_render_type %= VDEV_RENDER_TYPE_MAX_NUM;
     PlayerOpenFile(m_strUrl);
-    player_seek(m_ffPlayer, pos, SEEK_PRECISELY);
+    if (!m_bLiveStream) {
+        player_seek(m_ffPlayer, pos, SEEK_PRECISELY);
+    }
 }
 
 void CplayerDlg::OnTakeSnapshot()
