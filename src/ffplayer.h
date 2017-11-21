@@ -56,6 +56,10 @@ enum {
     PARAM_MEDIA_DURATION = 0x1000,
     PARAM_MEDIA_POSITION,
 
+    // media detail info
+    PARAM_VIDEO_WIDTH,
+    PARAM_VIDEO_HEIGHT,
+
     // video display mode
     PARAM_VIDEO_MODE,
 
@@ -203,6 +207,12 @@ PARAM_MEDIA_DURATION 和 PARAM_MEDIA_POSITION
 LONGLONG total = 1, pos = 0;
 player_getparam(g_hplayer, PARAM_MEDIA_DURATION, &total);
 player_getparam(g_hplayer, PARAM_MEDIA_POSITION, &pos  );
+
+PARAM_VIDEO_WIDTH 和 PARAM_VIDEO_HEIGHT
+用于获取多媒体文件的视频宽度和高度（像素为单位）
+int vw = 0, vh = 0;
+player_getparam(g_hplayer, PARAM_VIDEO_WIDTH , &vw);
+player_getparam(g_hplayer, PARAM_VIDEO_HEIGHT, &vh);
 
 PARAM_VIDEO_MODE
 用于获取和设置视频显示方式，有两种方式可选：
