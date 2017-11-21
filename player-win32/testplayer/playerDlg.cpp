@@ -86,6 +86,9 @@ void CplayerDlg::PlayerOpenFile(TCHAR *file)
     }
     WideCharToMultiByte(CP_ACP, 0, str, -1, m_strUrl, MAX_PATH, NULL, NULL);
 
+    // set window title
+    SetWindowText(TEXT("testplayer - loading"));
+
     // player open file
     if (strstr(m_strUrl, "rtmp://") == m_strUrl || strstr(m_strUrl, "http://") == m_strUrl && strstr(m_strUrl, ".m3u8")) {
         m_bLiveStream = TRUE;
@@ -287,6 +290,7 @@ BOOL CplayerDlg::PreTranslateMessage(MSG *pMsg)
         switch (pMsg->wParam)
         {
         case MSG_INIT_DONE:
+            SetWindowText(TEXT("testplayer"));
             player_setrect(m_ffPlayer, 0, 0, 0, m_rtClient.right, m_rtClient.bottom - 2);
             player_setrect(m_ffPlayer, 1, 0, 0, m_rtClient.right, m_rtClient.bottom - 2);
             if (m_bResetPlayer) {
