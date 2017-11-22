@@ -539,8 +539,7 @@ void* player_open(char *file, void *win, PLAYER_INIT_PARAMS *params)
     //-- for player init timeout
 
     // open input file
-    AVDictionary *options = NULL;
-    if (avformat_open_input(&player->avformat_context, url, fmt, &options) != 0) {
+    if (avformat_open_input(&player->avformat_context, url, fmt, NULL) != 0) {
         goto error_handler;
     } else {
         player->init_timeout = -1;
