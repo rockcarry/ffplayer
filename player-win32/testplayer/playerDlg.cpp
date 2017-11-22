@@ -15,13 +15,13 @@ static DWORD WINAPI PlayerOpenThreadProc(LPVOID lpParam)
 
     while (1) {
         WaitForSingleObject(dlg->m_hEvent, -1);
-        if (dlg->m_bClose) break;
 
         // stop player first
         if (dlg->m_ffPlayer) {
             player_close(dlg->m_ffPlayer);
             dlg->m_ffPlayer = NULL;
         }
+        if (dlg->m_bClose) break;
 
         dlg->m_ffPlayer = player_open(dlg->m_strUrl, dlg->GetSafeHwnd(), &dlg->m_Params);
         if (dlg->m_ffPlayer) {
@@ -204,17 +204,13 @@ void CplayerDlg::OnDestroy()
     CDialog::OnDestroy();
     ReleaseDC(m_pDrawDC);
 
+    // set flag and event
+    // to make player close
     m_bClose = TRUE;
     SetEvent(m_hEvent);
     WaitForSingleObject(m_hThread, -1);
     CloseHandle(m_hEvent );
     CloseHandle(m_hThread);
-
-    // close player
-    if (m_ffPlayer) {
-        player_close(m_ffPlayer);
-        m_ffPlayer = NULL;
-    }
 }
 
 void CplayerDlg::OnTimer(UINT_PTR nIDEvent)
