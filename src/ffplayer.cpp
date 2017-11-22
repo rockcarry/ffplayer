@@ -62,7 +62,6 @@ typedef struct
     AVFilterContext *vfilter_sink_ctx;
     int              vfilter_enable;
 
-    #define DEF_INIT_TIMEOUT 10000000
     int64_t          init_timetick;
     int64_t          init_timeout;
 } PLAYER;
@@ -193,13 +192,11 @@ static void* av_demux_thread_proc(void *param)
         if (packet == NULL) { usleep(20*1000); continue; }
 
         retv = av_read_frame(player->avformat_context, packet);
-        //++ play completed ++//
         if (retv < 0 || !packet->buf) {
             av_packet_unref(packet); // free packet
             pktqueue_write_post_i(player->pktqueue, packet);
             usleep(20*1000); continue;
         }
-        //-- play completed --//
 
         // audio
         if (packet->stream_index == player->astream_index) {
@@ -477,7 +474,8 @@ static int get_stream_current(PLAYER *player, enum AVMediaType type) {
 static int interrupt_callback(void *param)
 {
     PLAYER *player = (PLAYER*)param;
-    return av_gettime() - player->init_timetick > player->init_timeout ? AVERROR_EOF : 0;
+    if (player->init_timeout == -1) return 0;
+    else return av_gettime() - player->init_timetick > player->init_timeout ? AVERROR_EOF : 0;
 }
 
 // 函数实现
@@ -529,17 +527,23 @@ void* player_open(char *file, void *win, PLAYER_INIT_PARAMS *params)
     }
     //-- for avdevice
 
+    //++ for player init timeout
+    if (params && params->init_timeout > 0) {
+        player->avformat_context = avformat_alloc_context();
+        if (!player->avformat_context) goto error_handler;
+        player->avformat_context->interrupt_callback.callback = interrupt_callback;
+        player->avformat_context->interrupt_callback.opaque   = player;
+        player->init_timetick = av_gettime();
+        player->init_timeout  = params->init_timeout * 1000;
+    }
+    //-- for player init timeout
+
     // open input file
     AVDictionary *options = NULL;
-    AVIOInterruptCB    cb = { interrupt_callback, player };
-    player->avformat_context = avformat_alloc_context();
-    if (!player->avformat_context) goto error_handler;
-    player->avformat_context->interrupt_callback = cb;
-    player->init_timetick = av_gettime();
-    player->init_timeout  = params ? params->init_timeout * 1000 : DEF_INIT_TIMEOUT;
-    player->init_timeout  = player->init_timeout > 0 ? player->init_timeout : DEF_INIT_TIMEOUT;
     if (avformat_open_input(&player->avformat_context, url, fmt, &options) != 0) {
         goto error_handler;
+    } else {
+        player->init_timeout = -1;
     }
 
     // find stream info
