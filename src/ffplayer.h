@@ -47,6 +47,7 @@ enum {
 enum {
     SEEK_FAST,
     SEEK_PRECISELY,
+    SEEK_STEP,
 };
 
 // param
@@ -94,7 +95,6 @@ enum {
 
     //++ for render
     PARAM_RENDER_GET_CONTEXT = 0x4000,
-    PARAM_RENDER_START_PTS,
     //-- for render
 };
 

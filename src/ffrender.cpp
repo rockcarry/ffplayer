@@ -77,9 +77,6 @@ typedef struct
     int            snapwidth;
     int            snapheight;
 #endif
-
-    // fix play progress issue
-    int64_t        start_pts;
 } RENDER;
 
 // 内部函数实现
@@ -384,13 +381,6 @@ void render_setparam(void *hrender, int id, void *param)
     if (!render) return;
     switch (id)
     {
-    case PARAM_MEDIA_POSITION:
-        {
-            int64_t *papts, *pvpts;
-            vdev_getavpts(render->vdev, &papts, &pvpts);
-            *papts = *pvpts = *(int64_t*)param;
-        }
-        break;
     case PARAM_AUDIO_VOLUME:
         adev_setparam(render->adev, PARAM_AUDIO_VOLUME, param);
         break;
@@ -414,9 +404,6 @@ void render_setparam(void *hrender, int id, void *param)
     case PARAM_PLAYER_CALLBACK:
         vdev_setparam(render->vdev, PARAM_PLAYER_CALLBACK, param);
         break;
-    case PARAM_RENDER_START_PTS:
-        render->start_pts = *(int64_t*)param;
-        break;
     }
 }
 
@@ -431,7 +418,7 @@ void render_getparam(void *hrender, int id, void *param)
         } else {
             int64_t *papts, *pvpts, pos;
             vdev_getavpts(render->vdev, &papts, &pvpts);
-            pos = (*papts > *pvpts ? *papts : *pvpts) - render->start_pts;
+            pos = (*papts > *pvpts ? *papts : *pvpts);
             *(int64_t*)param  = pos > 0 ? pos : 0;
         }
         break;
@@ -448,9 +435,6 @@ void render_getparam(void *hrender, int id, void *param)
 #endif
     case PARAM_AVSYNC_TIME_DIFF:
         vdev_getparam(render->vdev, PARAM_AVSYNC_TIME_DIFF, param);
-        break;
-    case PARAM_RENDER_START_PTS:
-        *(int64_t*)param = render->start_pts;
         break;
     case PARAM_ADEV_GET_CONTEXT:
         *(void**)param = render->adev;
