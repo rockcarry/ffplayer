@@ -40,7 +40,7 @@ extern "C" {
     int       tickavdiff;                     \
     int       tickframe;                      \
     int       ticksleep;                      \
-    int       ticklast;                       \
+    int64_t   ticklast;                       \
                                               \
     int       status;                         \
     pthread_t thread;                         \

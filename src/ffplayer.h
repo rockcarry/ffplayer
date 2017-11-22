@@ -120,6 +120,7 @@ typedef struct {
     int adev_render_type;         // w
 
     PFN_PLAYER_CALLBACK callback; // w
+    int init_timeout;             // w
 } PLAYER_INIT_PARAMS;
 
 // 函数声明

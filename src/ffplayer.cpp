@@ -6,6 +6,7 @@
 #include "vdev.h"
 
 extern "C" {
+#include "libavutil/time.h"
 #include "libavcodec/avcodec.h"
 #include "libavdevice/avdevice.h"
 #include "libavformat/avformat.h"
@@ -60,6 +61,10 @@ typedef struct
     AVFilterContext *vfilter_yadif_ctx;
     AVFilterContext *vfilter_sink_ctx;
     int              vfilter_enable;
+
+    #define DEF_INIT_TIMEOUT 10000
+    int64_t          init_timetick;
+    int              init_timeout;
 } PLAYER;
 
 // 内部常量定义
@@ -469,6 +474,12 @@ static int get_stream_current(PLAYER *player, enum AVMediaType type) {
     return cur;
 }
 
+static int interrupt_callback(void *param)
+{
+    PLAYER *player = (PLAYER*)param;
+    return av_gettime() - player->init_timetick > player->init_timeout ? AVERROR_EOF : 0;
+}
+
 // 函数实现
 void* player_open(char *file, void *win, PLAYER_INIT_PARAMS *params)
 {
@@ -520,7 +531,13 @@ void* player_open(char *file, void *win, PLAYER_INIT_PARAMS *params)
 
     // open input file
     AVDictionary *options = NULL;
-//  av_dict_set(&options, "rtsp_transport", "tcp", 0);
+    AVIOInterruptCB    cb = { interrupt_callback, player };
+    player->avformat_context = avformat_alloc_context();
+    if (!player->avformat_context) goto error_handler;
+    player->avformat_context->interrupt_callback = cb;
+    player->init_timetick = av_gettime();
+    player->init_timeout  = params ? params->init_timeout : DEF_INIT_TIMEOUT;
+    player->init_timeout  = player->init_timeout > 0 ? player->init_timeout : DEF_INIT_TIMEOUT;
     if (avformat_open_input(&player->avformat_context, url, fmt, &options) != 0) {
         goto error_handler;
     }

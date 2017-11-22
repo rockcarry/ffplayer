@@ -3,22 +3,11 @@
 
 extern "C" {
 #include "libavutil/log.h"
+#include "libavutil/time.h"
 }
 
 // 内部常量定义
 #define COMPLETE_COUNTER  30
-
-// 内部函数实现
-static inline int get_tick_count(void)
-{
-#ifdef WIN32
-    return GetTickCount();
-#else
-    struct timespec ts;
-    clock_gettime(CLOCK_MONOTONIC, &ts);
-    return (ts.tv_sec * 1000 + ts.tv_nsec / 1000000);
-#endif
-}
 
 // 函数实现
 void vdev_pause(void *ctxt, int pause)
@@ -213,7 +202,8 @@ void vdev_refresh_background(void *ctxt)
 void vdev_handle_complete_and_avsync(void *ctxt)
 {
     VDEV_COMMON_CTXT *c = (VDEV_COMMON_CTXT*)ctxt;
-    int tickcur, tickdiff, avdiff = -1;
+    int     tickdiff, avdiff = -1;
+    int64_t tickcur;
 
     if (!(c->status & VDEV_PAUSE)) {
         //++ play completed ++//
@@ -229,8 +219,8 @@ void vdev_handle_complete_and_avsync(void *ctxt)
         //-- play completed --//
 
         //++ frame rate & av sync control ++//
-        tickcur      = get_tick_count();
-        tickdiff     = tickcur - c->ticklast;
+        tickcur      = av_gettime();
+        tickdiff     = (int)(tickcur - c->ticklast);
         avdiff       = (int)(c->apts - c->vpts - c->tickavdiff);
         c->ticklast  = tickcur;
         if (tickdiff - c->tickframe >  2) c->ticksleep--;
