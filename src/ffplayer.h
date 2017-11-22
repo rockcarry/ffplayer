@@ -199,6 +199,7 @@ PLAYER_INIT_PARAMS 为播放器初始化参数，在 player_open 时传入，并
     int adev_render_type;         // w  adev 类型
 
     PFN_PLAYER_CALLBACK callback; // w  播放器事件回调函数
+    int init_timeout;             // w  播放器初始化超时
  */
 
 // 动态参数说明
