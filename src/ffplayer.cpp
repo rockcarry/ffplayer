@@ -62,9 +62,9 @@ typedef struct
     AVFilterContext *vfilter_sink_ctx;
     int              vfilter_enable;
 
-    #define DEF_INIT_TIMEOUT 10000
+    #define DEF_INIT_TIMEOUT 10000000
     int64_t          init_timetick;
-    int              init_timeout;
+    int64_t          init_timeout;
 } PLAYER;
 
 // 内部常量定义
@@ -536,7 +536,7 @@ void* player_open(char *file, void *win, PLAYER_INIT_PARAMS *params)
     if (!player->avformat_context) goto error_handler;
     player->avformat_context->interrupt_callback = cb;
     player->init_timetick = av_gettime();
-    player->init_timeout  = params ? params->init_timeout : DEF_INIT_TIMEOUT;
+    player->init_timeout  = params ? params->init_timeout * 1000 : DEF_INIT_TIMEOUT;
     player->init_timeout  = player->init_timeout > 0 ? player->init_timeout : DEF_INIT_TIMEOUT;
     if (avformat_open_input(&player->avformat_context, url, fmt, &options) != 0) {
         goto error_handler;
