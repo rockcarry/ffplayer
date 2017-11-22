@@ -23,6 +23,7 @@ features
 7. support network media stream playback
 8. support dshow, gdigrab and vfwcap (avdevice of ffmpeg)
 9. take video snapshot, support save into jpeg and png
+10.very fast seek (async) operation taking 0ms delay
 
 
 testplayer
@@ -35,6 +36,7 @@ ctrl+M - switch between letter box and stretch rect
 ctrl+R - switch between gdi and d3d
 ctrl+A - switch audio stream
 ctrl+V - switch video stream
+ctrl+S - take a snapshot of video
 
 
 want to learn more?
