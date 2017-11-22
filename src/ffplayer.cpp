@@ -273,7 +273,7 @@ static void* audio_decode_thread_proc(void *param)
                     }
                 }
                 //-- for seek operation
-                else render_audio(player->render, aframe);
+                if (!(player->player_status & PS_A_SEEK)) render_audio(player->render, aframe);
             }
 
             packet->data += consumed;
@@ -343,7 +343,7 @@ static void* video_decode_thread_proc(void *param)
                         }
                     }
                     //-- for seek operation
-                    else render_video(player->render, vframe);
+                    if (!(player->player_status & PS_V_SEEK)) render_video(player->render, vframe);
                 } while (player->vfilter_graph && player->vfilter_enable);
             }
 
