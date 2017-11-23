@@ -68,6 +68,7 @@ public class TestPlayerActivity extends Activity {
         mRoot.setOnSizeChangedListener(new playerView.OnSizeChangedListener() {
             @Override
             public void onSizeChanged(int w, int h, int oldw, int oldh) {
+                mVideo.setVisibility(View.INVISIBLE);
                 Message msg = new Message();
                 msg.arg1 = w;
                 msg.arg2 = h;
@@ -129,6 +130,7 @@ public class TestPlayerActivity extends Activity {
         });
 
         mBuffering = (ProgressBar)findViewById(R.id.buffering);
+        mBuffering.setVisibility(mIsLive ? View.VISIBLE : View.INVISIBLE);
 
         // show buttons with auto hide
         showUIControls(true, true);
@@ -137,6 +139,8 @@ public class TestPlayerActivity extends Activity {
     @Override
     public void onDestroy() {
         super.onDestroy();
+        mHandler.removeMessages(MSG_UPDATE_PROGRESS);
+        mHandler.removeMessages(MSG_INIT_VIDEO_SIZE);
         mPlayer.close();
     }
 
@@ -144,13 +148,13 @@ public class TestPlayerActivity extends Activity {
     public void onResume() {
         super.onResume();
         mPlayer.setDisplaySurface(mSurface);
-        testPlayerPlay(true);
+        if (!mIsLive) testPlayerPlay(true);
     }
 
     @Override
     public void onPause() {
         mPlayer.setDisplaySurface(null);
-        testPlayerPlay(false);
+        if (!mIsLive) testPlayerPlay(false);
         super.onPause();
     }
 
@@ -231,8 +235,6 @@ public class TestPlayerActivity extends Activity {
 //                  mPlayer.setParam(player.PARAM_VIDEO_STREAM_CUR, 1);
 //                  mPlayer.setParam(player.PARAM_VFILTER_ENABLE  , 1);
                     mSeek.setMax((int)mPlayer.getParam(player.PARAM_MEDIA_DURATION));
-                    mVideo    .setVisibility(View.INVISIBLE);
-                    mBuffering.setVisibility(View.INVISIBLE);
                     testPlayerPlay(true);
                 }
                 break;
