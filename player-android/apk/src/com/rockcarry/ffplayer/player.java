@@ -42,10 +42,8 @@ public final class player
             m_hPlayer = nativeOpen(m_strUrl, null, 0, 0);
             nativeInitJniObject (m_hPlayer);
             nativeEnableCallback(m_hPlayer, mPlayerMsgHandler != null ? 1 : 0);
-            if (m_hPlayer != 0) {
-                if (mPlayerMsgHandler != null) {
-                    mPlayerMsgHandler.sendEmptyMessage(m_hPlayer != 0 ? MSG_OPEN_DONE : MSG_OPEN_FAILED);
-                }
+            if (mPlayerMsgHandler != null) {
+                mPlayerMsgHandler.sendEmptyMessage(m_hPlayer != 0 ? MSG_OPEN_DONE : MSG_OPEN_FAILED);
             }
             return m_hPlayer != 0 ? true : false;
         } else {
@@ -126,10 +124,8 @@ public final class player
                 m_hPlayer = nativeOpen(m_strUrl, null, 0, 0);
                 nativeInitJniObject (m_hPlayer);
                 nativeEnableCallback(m_hPlayer, mPlayerMsgHandler != null ? 1 : 0);
-                if (m_hPlayer != 0) {
-                    if (mPlayerMsgHandler != null) {
-                        mPlayerMsgHandler.sendEmptyMessage(m_hPlayer != 0 ? MSG_OPEN_DONE : MSG_OPEN_FAILED);
-                    }
+                if (mPlayerMsgHandler != null) {
+                    mPlayerMsgHandler.sendEmptyMessage(m_hPlayer != 0 ? MSG_OPEN_DONE : MSG_OPEN_FAILED);
                 }
 
                 synchronized (mPlayerInitEvent) {
