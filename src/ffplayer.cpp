@@ -646,6 +646,9 @@ void player_close(void *hplayer)
     int vol = -255; player_setparam(player, PARAM_AUDIO_VOLUME, &vol);
     //-- fix noise sound issue when player_close on android platform
 
+    // set init_timeout to 0
+    player->init_timeout = 0;
+
     // set close flag
     player->player_status |= PS_CLOSE;
     if (player->render) render_start(player->render);

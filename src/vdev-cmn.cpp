@@ -219,7 +219,7 @@ void vdev_handle_complete_and_avsync(void *ctxt)
         //-- play completed --//
 
         //++ frame rate & av sync control ++//
-        tickcur      = av_gettime();
+        tickcur      = av_gettime() / 1000;
         tickdiff     = (int)(tickcur - c->ticklast);
         avdiff       = (int)(c->apts - c->vpts - c->tickavdiff);
         c->ticklast  = tickcur;
