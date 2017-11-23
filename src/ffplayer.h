@@ -11,7 +11,8 @@ extern "C" {
 // 常量定义
 // message
 #define MSG_FFPLAYER        (WM_APP + 1)
-#define MSG_INIT_DONE       (('I' << 24) | ('N' << 16) | ('I' << 8) | ('T' << 0))
+#define MSG_OPEN_DONE       (('O' << 24) | ('P' << 16) | ('E' << 8) | ('N' << 0))
+#define MSG_OPEN_FAILED     (('F' << 24) | ('A' << 16) | ('I' << 8) | ('L' << 0))
 #define MSG_PLAY_COMPLETED  (('E' << 24) | ('N' << 16) | ('D' << 8) | (' ' << 0))
 #define MSG_TAKE_SNAPSHOT   (('S' << 24) | ('N' << 16) | ('A' << 8) | ('P' << 0))
 

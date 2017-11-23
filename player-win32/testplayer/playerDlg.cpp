@@ -37,6 +37,7 @@ static DWORD WINAPI PlayerOpenThreadProc(LPVOID lpParam)
 //          param = 1;   player_setparam(dlg->m_ffPlayer, PARAM_VFILTER_ENABLE, &param);
             //-- set dynamic player params
         }
+        dlg->PostMessageW(MSG_FFPLAYER, dlg->m_ffPlayer ? MSG_OPEN_DONE : MSG_OPEN_FAILED);
     }
 
     return 0;
@@ -285,7 +286,7 @@ BOOL CplayerDlg::PreTranslateMessage(MSG *pMsg)
     if (pMsg->message == MSG_FFPLAYER) {
         switch (pMsg->wParam)
         {
-        case MSG_INIT_DONE:
+        case MSG_OPEN_DONE:
             SetWindowText(TEXT("testplayer"));
             player_setrect(m_ffPlayer, 0, 0, 0, m_rtClient.right, m_rtClient.bottom - 2);
             player_setrect(m_ffPlayer, 1, 0, 0, m_rtClient.right, m_rtClient.bottom - 2);
