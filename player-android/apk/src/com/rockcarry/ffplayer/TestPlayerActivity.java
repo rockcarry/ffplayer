@@ -25,7 +25,7 @@ import android.util.Log;
 public class TestPlayerActivity extends Activity {
     private player       mPlayer    = null;
     private playerView   mRoot      = null;
-    private SurfaceView  mView      = null;
+    private SurfaceView  mVideo     = null;
     private Surface      mSurface   = null;
     private SeekBar      mSeek      = null;
     private ProgressBar  mBuffering = null;
@@ -76,8 +76,8 @@ public class TestPlayerActivity extends Activity {
             }
         });
 
-        mView = (SurfaceView)findViewById(R.id.video_view  );
-        mView.getHolder().addCallback(
+        mVideo = (SurfaceView)findViewById(R.id.video_view);
+        mVideo.getHolder().addCallback(
             new Callback() {
                 @Override
                 public void surfaceChanged(SurfaceHolder holder, int format, int width, int height) {
@@ -109,9 +109,7 @@ public class TestPlayerActivity extends Activity {
             @Override
             public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
                 if (fromUser) {
-                    mHandler.removeMessages(MSG_UPDATE_PROGRESS);
                     mPlayer.seek(progress);
-                    mHandler.sendEmptyMessageDelayed(MSG_UPDATE_PROGRESS, 200);
                 }
             }
             @Override
@@ -217,12 +215,14 @@ public class TestPlayerActivity extends Activity {
                 }
                 break;
             case MSG_INIT_VIDEO_SIZE: {
-                    if (!mPlayer.initVideoSize(msg.arg1, msg.arg2, mView)) {
+                    if (!mPlayer.initVideoSize(msg.arg1, msg.arg2, mVideo)) {
                         Message m = new Message();
                         m.arg1 = msg.arg1;
                         m.arg2 = msg.arg2;
                         m.what = MSG_INIT_VIDEO_SIZE;
                         mHandler.sendMessageDelayed(m, 200);
+                    } else {
+                        mVideo.setVisibility(View.VISIBLE);
                     }
                 }
                 break;
@@ -231,6 +231,7 @@ public class TestPlayerActivity extends Activity {
 //                  mPlayer.setParam(player.PARAM_VIDEO_STREAM_CUR, 1);
 //                  mPlayer.setParam(player.PARAM_VFILTER_ENABLE  , 1);
                     mSeek.setMax((int)mPlayer.getParam(player.PARAM_MEDIA_DURATION));
+                    mVideo    .setVisibility(View.INVISIBLE);
                     mBuffering.setVisibility(View.INVISIBLE);
                     testPlayerPlay(true);
                 }
