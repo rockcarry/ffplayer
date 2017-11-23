@@ -1,10 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="fill_parent"
     android:layout_height="fill_parent"
     android:orientation="vertical" >
 
-    <com.rockcarry.ffplayer.playerRoot
+    <com.rockcarry.ffplayer.playerView
         android:id="@+id/player_root"
         android:layout_width="fill_parent"
         android:layout_height="fill_parent" >
@@ -35,6 +35,7 @@
             android:layout_centerInParent="true"
             android:alpha="0.8"
             />
-    </com.rockcarry.ffplayer.playerRoot>
+    </com.rockcarry.ffplayer.playerView>
 
-</LinearLayout>
+</RelativeLayout>
+

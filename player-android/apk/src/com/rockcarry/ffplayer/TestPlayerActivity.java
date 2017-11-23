@@ -24,7 +24,7 @@ import android.util.Log;
 
 public class TestPlayerActivity extends Activity {
     private player       mPlayer    = null;
-    private playerRoot   mRoot      = null;
+    private playerView   mRoot      = null;
     private SurfaceView  mView      = null;
     private Surface      mSurface   = null;
     private SeekBar      mSeek      = null;
@@ -64,35 +64,15 @@ public class TestPlayerActivity extends Activity {
         mIsLive = mURL.startsWith("http://") && mURL.endsWith(".m3u8") || mURL.startsWith("rtmp://");
         mPlayer = new player(mURL, mHandler);
 
-        mRoot = (playerRoot )findViewById(R.id.player_root);
-        mRoot.setOnSizeChangedListener(new playerRoot.OnSizeChangedListener() {
+        mRoot = (playerView)findViewById(R.id.player_root);
+        mRoot.setOnSizeChangedListener(new playerView.OnSizeChangedListener() {
             @Override
             public void onSizeChanged(int w, int h, int oldw, int oldh) {
-                int rw = w; // root width
-                int rh = h; // root height
-
-                int vw = (int)mPlayer.getParam(player.PARAM_VIDEO_WIDTH ); // video width
-                int vh = (int)mPlayer.getParam(player.PARAM_VIDEO_HEIGHT); // video height
-                if (vw == 0 || vh == 0) return;
-
-                int sw, sh; // scale width & height
-                if (rw * vh < vw * rh) {
-                    sw = rw; sh = sw * vh / vw;
-                } else {
-                    sh = rh; sw = sh * vw / vh;
-                }
-
-                final int fw = sw;
-                final int fh = sh;
-                mHandler.post(new Runnable() {
-                    @Override
-                    public void run() {
-                        RelativeLayout.LayoutParams lp = (RelativeLayout.LayoutParams)mView.getLayoutParams();
-                        lp.width  = fw;
-                        lp.height = fh;
-                        mView.setLayoutParams(lp);
-                    }
-                });
+                Message msg = new Message();
+                msg.arg1 = w;
+                msg.arg2 = h;
+                msg.what = MSG_INIT_VIDEO_SIZE;
+                mHandler.sendMessage(msg);
             }
         });
 
@@ -105,7 +85,6 @@ public class TestPlayerActivity extends Activity {
 
                 @Override
                 public void surfaceCreated(SurfaceHolder holder) {
-//                  mPlayer.setDisplaySurface(holder.getSurface());
                     mSurface = holder.getSurface();
                     //++ fix crash issue
                     mHandler.post(new Runnable() {
@@ -166,7 +145,7 @@ public class TestPlayerActivity extends Activity {
     @Override
     public void onResume() {
         super.onResume();
-        if (mSurface != null) mPlayer.setDisplaySurface(mSurface);
+        mPlayer.setDisplaySurface(mSurface);
         testPlayerPlay(true);
     }
 
@@ -217,6 +196,7 @@ public class TestPlayerActivity extends Activity {
 
     private static final int MSG_UPDATE_PROGRESS = 1;
     private static final int MSG_HIDE_BUTTONS    = 2;
+    private static final int MSG_INIT_VIDEO_SIZE = 3;
     private Handler mHandler = new Handler() {
         @Override
         public void handleMessage(Message msg) {
@@ -227,7 +207,7 @@ public class TestPlayerActivity extends Activity {
                     if (!mIsLive) {
                         if (progress >= 0) mSeek.setProgress(progress);
                     } else {
-                        mBuffering.setVisibility(progress == -1 ? View.VISIBLE : View.INVISIBLE);
+                        mBuffering.setVisibility(progress <= 0 ? View.VISIBLE : View.INVISIBLE);
                     }
                 }
                 break;
@@ -236,12 +216,22 @@ public class TestPlayerActivity extends Activity {
                     mPause.setVisibility(View.INVISIBLE);
                 }
                 break;
+            case MSG_INIT_VIDEO_SIZE: {
+                    if (!mPlayer.initVideoSize(msg.arg1, msg.arg2, mView)) {
+                        Message m = new Message();
+                        m.arg1 = msg.arg1;
+                        m.arg2 = msg.arg2;
+                        m.what = MSG_INIT_VIDEO_SIZE;
+                        mHandler.sendMessageDelayed(m, 200);
+                    }
+                }
+                break;
             case player.MSG_OPEN_DONE: {
 //                  mPlayer.setParam(player.PARAM_AUDIO_STREAM_CUR, 1);
 //                  mPlayer.setParam(player.PARAM_VIDEO_STREAM_CUR, 1);
 //                  mPlayer.setParam(player.PARAM_VFILTER_ENABLE  , 1);
-			        mSeek.setMax((int)mPlayer.getParam(player.PARAM_MEDIA_DURATION));
-					mBuffering.setVisibility(View.INVISIBLE);
+                    mSeek.setMax((int)mPlayer.getParam(player.PARAM_MEDIA_DURATION));
+                    mBuffering.setVisibility(View.INVISIBLE);
                     testPlayerPlay(true);
                 }
                 break;

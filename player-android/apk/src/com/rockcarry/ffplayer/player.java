@@ -2,6 +2,8 @@ package com.rockcarry.ffplayer;
 
 import android.os.Handler;
 import android.os.Message;
+import android.view.View;
+import android.widget.RelativeLayout;
 
 public final class player
 {
@@ -72,12 +74,41 @@ public final class player
     public void seek (long ms)               { nativeSeek (m_hPlayer, ms); }
     public void setParam(int id, long value) { nativeSetParam(m_hPlayer, id, value); }
     public long getParam(int id)             { return nativeGetParam(m_hPlayer, id); }
-    public void setDisplaySurface(Object surface) { nativeSetDisplaySurface(m_hPlayer, surface); }
-    public void setDisplayTexture(Object texture) { nativeSetDisplayTexture(m_hPlayer, texture); }
+
+    public void setDisplaySurface(Object surface) {
+        mSurface = surface;
+        mTexture = null;
+        nativeSetDisplaySurface(m_hPlayer, surface);
+    }
+
+    public void setDisplayTexture(Object texture) {
+        mTexture = texture;
+        mSurface = null;
+        nativeSetDisplayTexture(m_hPlayer, texture);
+    }
 
     public void setPlayerMsgHandler(Handler h) {
         mPlayerMsgHandler = h;
         nativeEnableCallback(m_hPlayer, mPlayerMsgHandler != null ? 1 : 0);
+    }
+
+    public boolean initVideoSize(int rw, int rh, View v) {
+        int vw = (int)getParam(player.PARAM_VIDEO_WIDTH ); // video width
+        int vh = (int)getParam(player.PARAM_VIDEO_HEIGHT); // video height
+        if (rw <= 0 || rh <= 0 || vw <= 0 || vh <= 0 || v == null) return false;
+
+        int sw, sh; // scale width & height
+        if (rw * vh < vw * rh) {
+            sw = rw; sh = sw * vh / vw;
+        } else {
+            sh = rh; sw = sh * vw / vh;
+        }
+
+        RelativeLayout.LayoutParams lp = (RelativeLayout.LayoutParams)v.getLayoutParams();
+        lp.width  = sw;
+        lp.height = sh;
+        v.setLayoutParams(lp);
+        return true;
     }
 
     //++ for player event callback
@@ -113,6 +144,8 @@ public final class player
     private String           m_strUrl          = "";
     private Object           mPlayerInitEvent  = new Object();
     private PlayerInitThread mPlayerInitThread = null;
+    private Object           mSurface          = null;
+    private Object           mTexture          = null;
     class PlayerInitThread extends Thread {
         @Override
         public void run() {
@@ -124,6 +157,8 @@ public final class player
                 m_hPlayer = nativeOpen(m_strUrl, null, 0, 0);
                 nativeInitJniObject (m_hPlayer);
                 nativeEnableCallback(m_hPlayer, mPlayerMsgHandler != null ? 1 : 0);
+                if (mSurface != null) nativeSetDisplaySurface(m_hPlayer, mSurface);
+                if (mTexture != null) nativeSetDisplayTexture(m_hPlayer, mTexture);
                 if (mPlayerMsgHandler != null) {
                     mPlayerMsgHandler.sendEmptyMessage(m_hPlayer != 0 ? MSG_OPEN_DONE : MSG_OPEN_FAILED);
                 }
