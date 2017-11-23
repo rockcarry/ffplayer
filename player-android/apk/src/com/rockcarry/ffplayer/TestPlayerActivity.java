@@ -32,6 +32,7 @@ public class TestPlayerActivity extends Activity {
     private ImageView    mPause     = null;
     private boolean      mIsPlaying = false;
     private boolean      mIsLive    = false;
+    private String       mURL       = "/sdcard/test.mp4";
 
     /** Called when the activity is first created. */
     @Override
@@ -39,39 +40,29 @@ public class TestPlayerActivity extends Activity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.main);
 
-        String url    = "/sdcard/test.mp4";
         Intent intent = getIntent();
         String action = intent.getAction();
         if (intent.ACTION_VIEW.equals(action)) {
             Uri    uri    = (Uri) intent.getData();
             String scheme = uri.getScheme();
             if (scheme.equals("file")) {
-                url = uri.getPath();
+                mURL = uri.getPath();
             } else if (  scheme.equals("http" )
                       || scheme.equals("https")
                       || scheme.equals("rtsp" )
                       || scheme.equals("rtmp" ) ) {
-                url = uri.toString();
+                mURL = uri.toString();
             } else if (scheme.equals("content")) {
                 String[] proj = { MediaStore.Images.Media.DATA };
                 Cursor cursor = managedQuery(uri, proj, null, null, null);
                 int    colidx = cursor.getColumnIndexOrThrow(MediaStore.Images.Media.DATA);
                 cursor.moveToFirst();
-                url = cursor.getString(colidx);
+                mURL = cursor.getString(colidx);
             }
         }
 
-        mIsLive = url.startsWith("http://") && url.endsWith(".m3u8") || url.startsWith("rtmp://");
-        mPlayer = new player();
-        if (!mPlayer.open(url)) {
-            String str = String.format(getString(R.string.open_video_failed), url);
-            Toast.makeText(this, str, Toast.LENGTH_LONG).show();
-//          finish(); return;
-        }
-
-//      mPlayer.setParam(player.PARAM_AUDIO_STREAM_CUR, 1);
-//      mPlayer.setParam(player.PARAM_VIDEO_STREAM_CUR, 1);
-//      mPlayer.setParam(player.PARAM_VFILTER_ENABLE  , 1);
+        mIsLive = mURL.startsWith("http://") && mURL.endsWith(".m3u8") || mURL.startsWith("rtmp://");
+        mPlayer = new player(mURL, mHandler);
 
         mRoot = (playerRoot )findViewById(R.id.player_root);
         mRoot.setOnSizeChangedListener(new playerRoot.OnSizeChangedListener() {
@@ -135,14 +126,13 @@ public class TestPlayerActivity extends Activity {
         );
 
         mSeek = (SeekBar)findViewById(R.id.seek_bar);
-        mSeek.setMax((int)mPlayer.getParam(player.PARAM_MEDIA_DURATION));
         mSeek.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
             @Override
             public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
                 if (fromUser) {
                     mHandler.removeMessages(MSG_UPDATE_PROGRESS);
                     mPlayer.seek(progress);
-                    mHandler.sendEmptyMessageDelayed(MSG_UPDATE_PROGRESS, 600);
+                    mHandler.sendEmptyMessageDelayed(MSG_UPDATE_PROGRESS, 200);
                 }
             }
             @Override
@@ -235,10 +225,7 @@ public class TestPlayerActivity extends Activity {
                     mHandler.sendEmptyMessageDelayed(MSG_UPDATE_PROGRESS, 200);
                     int progress = (int)mPlayer.getParam(player.PARAM_MEDIA_POSITION);
                     if (!mIsLive) {
-                        switch (progress) {
-                        case -1: finish(); break;
-                        default: mSeek.setProgress(progress); break;
-                        }
+                        if (progress >= 0) mSeek.setProgress(progress);
                     } else {
                         mBuffering.setVisibility(progress == -1 ? View.VISIBLE : View.INVISIBLE);
                     }
@@ -247,6 +234,24 @@ public class TestPlayerActivity extends Activity {
             case MSG_HIDE_BUTTONS: {
                     mSeek .setVisibility(View.INVISIBLE);
                     mPause.setVisibility(View.INVISIBLE);
+                }
+                break;
+            case player.MSG_OPEN_DONE: {
+//                  mPlayer.setParam(player.PARAM_AUDIO_STREAM_CUR, 1);
+//                  mPlayer.setParam(player.PARAM_VIDEO_STREAM_CUR, 1);
+//                  mPlayer.setParam(player.PARAM_VFILTER_ENABLE  , 1);
+			        mSeek.setMax((int)mPlayer.getParam(player.PARAM_MEDIA_DURATION));
+					mBuffering.setVisibility(View.INVISIBLE);
+                    testPlayerPlay(true);
+                }
+                break;
+            case player.MSG_OPEN_FAILED: {
+                    String str = String.format(getString(R.string.open_video_failed), mURL);
+                    Toast.makeText(TestPlayerActivity.this, str, Toast.LENGTH_LONG).show();
+                }
+                break;
+            case player.MSG_PLAY_COMPLETED: {
+                    finish();
                 }
                 break;
             }

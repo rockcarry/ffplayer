@@ -5,8 +5,10 @@ import android.os.Message;
 
 public final class player
 {
-    public static final int MSG_INIT_DONE           = (('I' << 24) | ('N' << 16) | ('I' << 8) | ('T' << 0));
+    public static final int MSG_OPEN_DONE           = (('O' << 24) | ('P' << 16) | ('E' << 8) | ('N' << 0));
+    public static final int MSG_OPEN_FAILED         = (('F' << 24) | ('A' << 16) | ('I' << 8) | ('L' << 0));
     public static final int MSG_PLAY_PROGRESS       = (('R' << 24) | ('U' << 16) | ('N' << 8) | (' ' << 0));
+    public static final int MSG_PLAY_COMPLETED      = (('E' << 24) | ('N' << 16) | ('D' << 8) | (' ' << 0));
 
     public static final int PARAM_MEDIA_DURATION    = 0x1000 + 0;
     public static final int PARAM_MEDIA_POSITION    = 0x1000 + 1;
@@ -21,14 +23,52 @@ public final class player
     public static final int PARAM_AFILTER_ENABLE    = 0x1000 +10;
     public static final int PARAM_VFILTER_ENABLE    = 0x1000 +11;
 
-    private long m_hPlayer = 0;
-    public boolean open(String url) {
-        m_hPlayer = nativeOpen(url, null, 0, 0);
-        nativeInitJniObject(m_hPlayer);
-        return (m_hPlayer != 0);
+    public player() {
     }
 
-    public void close()                      { nativeClose(m_hPlayer);     }
+    public player(String url, Handler h) {
+        mPlayerMsgHandler = h;
+        open(url, false);
+    }
+
+    protected void finalize() {
+        close();
+    }
+
+    public boolean open(String url, boolean sync) {
+        if (sync) {
+            nativeClose(m_hPlayer);
+            m_hPlayer = 0;
+            m_hPlayer = nativeOpen(m_strUrl, null, 0, 0);
+            nativeInitJniObject (m_hPlayer);
+            nativeEnableCallback(m_hPlayer, mPlayerMsgHandler != null ? 1 : 0);
+            if (m_hPlayer != 0) {
+                if (mPlayerMsgHandler != null) {
+                    mPlayerMsgHandler.sendEmptyMessage(m_hPlayer != 0 ? MSG_OPEN_DONE : MSG_OPEN_FAILED);
+                }
+            }
+            return m_hPlayer != 0 ? true : false;
+        } else {
+            m_strUrl = url;
+            m_bClose = false;
+            if (mPlayerInitThread == null) {
+                mPlayerInitThread = new PlayerInitThread();
+                mPlayerInitThread.start();
+            }
+            synchronized (mPlayerInitEvent) {
+                mPlayerInitEvent.notify();
+            }
+            return true;
+        }
+    }
+
+    public void close() {
+        m_bClose = true;
+        synchronized (mPlayerInitEvent) {
+            mPlayerInitEvent.notify();
+        }
+    }
+
     public void play ()                      { nativePlay (m_hPlayer);     }
     public void pause()                      { nativePause(m_hPlayer);     }
     public void seek (long ms)               { nativeSeek (m_hPlayer, ms); }
@@ -68,6 +108,38 @@ public final class player
 
     static {
         System.loadLibrary("ffplayer_jni");
+    }
+
+    private volatile boolean m_bClose          = false;
+    private volatile long    m_hPlayer         = 0;
+    private String           m_strUrl          = "";
+    private Object           mPlayerInitEvent  = new Object();
+    private PlayerInitThread mPlayerInitThread = null;
+    class PlayerInitThread extends Thread {
+        @Override
+        public void run() {
+            while (true) {
+                nativeClose(m_hPlayer);
+                m_hPlayer = 0;
+                if (m_bClose) break;
+
+                m_hPlayer = nativeOpen(m_strUrl, null, 0, 0);
+                nativeInitJniObject (m_hPlayer);
+                nativeEnableCallback(m_hPlayer, mPlayerMsgHandler != null ? 1 : 0);
+                if (m_hPlayer != 0) {
+                    if (mPlayerMsgHandler != null) {
+                        mPlayerMsgHandler.sendEmptyMessage(m_hPlayer != 0 ? MSG_OPEN_DONE : MSG_OPEN_FAILED);
+                    }
+                }
+
+                synchronized (mPlayerInitEvent) {
+                    try {
+                        mPlayerInitEvent.wait();
+                    } catch (InterruptedException e) {}
+                }
+            }
+            mPlayerInitThread = null;
+        }
     }
 };
 
