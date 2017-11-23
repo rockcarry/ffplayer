@@ -244,7 +244,7 @@ public class TestPlayerActivity extends Activity {
                 }
                 break;
             case player.MSG_PLAY_COMPLETED: {
-                    finish();
+                    if (!mIsLive) finish();
                 }
                 break;
             }
