@@ -42,8 +42,7 @@ public final class player
             nativeClose(m_hPlayer);
             m_hPlayer = 0;
             m_hPlayer = nativeOpen(m_strUrl, null, 0, 0);
-            nativeInitJniObject (m_hPlayer);
-            nativeEnableCallback(m_hPlayer, mPlayerMsgHandler != null ? 1 : 0);
+            nativeInitJniObject(m_hPlayer);
             if (mPlayerMsgHandler != null) {
                 mPlayerMsgHandler.sendEmptyMessage(m_hPlayer != 0 ? MSG_OPEN_DONE : MSG_OPEN_FAILED);
             }
@@ -89,7 +88,6 @@ public final class player
 
     public void setPlayerMsgHandler(Handler h) {
         mPlayerMsgHandler = h;
-        nativeEnableCallback(m_hPlayer, mPlayerMsgHandler != null ? 1 : 0);
     }
 
     public boolean initVideoSize(int rw, int rh, View v) {
@@ -133,7 +131,6 @@ public final class player
     private static native long nativeGetParam(long hplayer, int id);
     private static native void nativeSetDisplaySurface(long hplayer, Object surf);
     private static native void nativeSetDisplayTexture(long hplayer, Object text);
-    private static native void nativeEnableCallback   (long hplayer, int enable );
 
     static {
         System.loadLibrary("ffplayer_jni");
@@ -155,8 +152,7 @@ public final class player
                 if (m_bClose) break;
 
                 m_hPlayer = nativeOpen(m_strUrl, null, 0, 0);
-                nativeInitJniObject (m_hPlayer);
-                nativeEnableCallback(m_hPlayer, mPlayerMsgHandler != null ? 1 : 0);
+                nativeInitJniObject(m_hPlayer);
                 if (mSurface != null) nativeSetDisplaySurface(m_hPlayer, mSurface);
                 if (mTexture != null) nativeSetDisplayTexture(m_hPlayer, mTexture);
                 if (mPlayerMsgHandler != null) {

@@ -72,6 +72,8 @@ void  vdev_d3d_destroy(void *ctxt);
 void  vdev_d3d_request(void *ctxt, uint8_t *buffer[8], int linesize[8]);
 void  vdev_d3d_post   (void *ctxt, int64_t pts);
 void  vdev_d3d_setrect(void *ctxt, int x, int y, int w, int h);
+
+void  DEF_PLAYER_CALLBACK_WINDOWS(void *vdev, int32_t msg, int64_t param);
 #endif
 
 #ifdef ANDROID
@@ -80,6 +82,8 @@ void  vdev_android_destroy(void *ctxt);
 void  vdev_android_request(void *ctxt, uint8_t *buffer[8], int linesize[8]);
 void  vdev_android_post   (void *ctxt, int64_t pts);
 void  vdev_android_setrect(void *ctxt, int x, int y, int w, int h);
+
+void  DEF_PLAYER_CALLBACK_ANDROID(void *vdev, int32_t msg, int64_t param);
 #endif
 
 // º¯ÊýÉùÃ÷

@@ -222,7 +222,7 @@ void vdev_android_setrect(void *ctxt, int x, int y, int w, int h)
     DO_USE_VAR(h   );
 }
 
-void vdev_android_default_player_callback(void *ctxt, int32_t msg, int64_t param)
+void DEF_PLAYER_CALLBACK_ANDROID(void *ctxt, int32_t msg, int64_t param)
 {
     if (!ctxt) return;
     VDEVCTXT *c = (VDEVCTXT*)ctxt;

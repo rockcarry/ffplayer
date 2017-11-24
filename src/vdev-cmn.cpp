@@ -10,6 +10,13 @@ extern "C" {
 #define COMPLETE_COUNTER  30
 
 // º¯ÊýÊµÏÖ
+#ifdef WIN32
+void DEF_PLAYER_CALLBACK_WINDOWS(void *vdev, int32_t msg, int64_t param) {
+    VDEV_COMMON_CTXT *c = (VDEV_COMMON_CTXT*)vdev;
+    PostMessage((HWND)c->hwnd, MSG_FFPLAYER, msg, 0);
+}
+#endif
+
 void vdev_pause(void *ctxt, int pause)
 {
     VDEV_COMMON_CTXT *c = (VDEV_COMMON_CTXT*)ctxt;
@@ -92,9 +99,11 @@ void* vdev_create(int type, void *surface, int bufnum, int w, int h, int frate, 
     case VDEV_RENDER_TYPE_GDI: c = (VDEV_COMMON_CTXT*)vdev_gdi_create(surface, bufnum, w, h, frate); break;
     case VDEV_RENDER_TYPE_D3D: c = (VDEV_COMMON_CTXT*)vdev_d3d_create(surface, bufnum, w, h, frate); break;
     }
+    c->fpcb = DEF_PLAYER_CALLBACK_WINDOWS;
 #endif
 #ifdef ANDROID
     c = (VDEV_COMMON_CTXT*)vdev_android_create(surface, bufnum, w, h, frate);
+    c->fpcb = DEF_PLAYER_CALLBACK_ANDROID;
 #endif
     if (c) c->type = type;
 
@@ -172,11 +181,6 @@ void vdev_player_event(void *ctxt, int32_t msg, int64_t param)
 {
     VDEV_COMMON_CTXT *c = (VDEV_COMMON_CTXT*)ctxt;
     if (c->fpcb) c->fpcb(c, msg, param);
-#ifdef WIN32
-    else {
-        PostMessage((HWND)c->hwnd, MSG_FFPLAYER, msg, 0);
-    }
-#endif
 }
 
 void vdev_refresh_background(void *ctxt)

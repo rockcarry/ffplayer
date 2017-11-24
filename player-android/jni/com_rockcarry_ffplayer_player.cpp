@@ -211,15 +211,3 @@ JNIEXPORT void JNICALL Java_com_rockcarry_ffplayer_player_nativeSetDisplayTextur
     vdev_android_setwindow(vdev, gbp);
 }
 
-/*
- * Class:     com_rockcarry_ffplayer_player
- * Method:    nativeEnableCallback
- * Signature: (JI)V
- */
-JNIEXPORT void JNICALL Java_com_rockcarry_ffplayer_player_nativeEnableCallback
-  (JNIEnv *env, jclass clazz, jlong hplayer, jint enable)
-{
-    DO_USE_VAR(env);
-    DO_USE_VAR(clazz);
-    player_setparam((void*)hplayer, PARAM_PLAYER_CALLBACK, (void*)(enable ? vdev_android_default_player_callback : NULL));
-}
