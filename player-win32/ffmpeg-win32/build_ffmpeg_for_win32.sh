@@ -3,7 +3,7 @@ set -e
 
 #++ build ffmpeg ++#
 if [ ! -d ffmpeg ]; then
-git clone git://source.ffmpeg.org/ffmpeg.git
+  git clone git://source.ffmpeg.org/ffmpeg.git
 fi
 
 #+ patch for mingw32 compile error
