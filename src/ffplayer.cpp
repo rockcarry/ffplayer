@@ -759,6 +759,9 @@ void player_setparam(void *hplayer, int id, void *param)
             player->vdrect.right - player->vdrect.left,
             player->vdrect.bottom - player->vdrect.top);
         break;
+    case PARAM_VFILTER_ENABLE:
+        player->vfilter_enable = *(int*)param;
+        break;
     default:
         render_setparam(player->render, id, param);
         break;
