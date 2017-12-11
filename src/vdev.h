@@ -62,15 +62,15 @@ typedef struct {
 // vdev-gdi
 void* vdev_gdi_create (void *surface, int bufnum, int w, int h, int frate);
 void  vdev_gdi_destroy(void *ctxt);
-void  vdev_gdi_request(void *ctxt, uint8_t *buffer[8], int linesize[8]);
-void  vdev_gdi_post   (void *ctxt, int64_t pts);
+void  vdev_gdi_dequeue(void *ctxt, uint8_t *buffer[8], int linesize[8]);
+void  vdev_gdi_enqueue(void *ctxt, int64_t pts);
 void  vdev_gdi_setrect(void *ctxt, int x, int y, int w, int h);
 
 // vdev-d3d
 void* vdev_d3d_create (void *surface, int bufnum, int w, int h, int frate);
 void  vdev_d3d_destroy(void *ctxt);
-void  vdev_d3d_request(void *ctxt, uint8_t *buffer[8], int linesize[8]);
-void  vdev_d3d_post   (void *ctxt, int64_t pts);
+void  vdev_d3d_dequeue(void *ctxt, uint8_t *buffer[8], int linesize[8]);
+void  vdev_d3d_enqueue(void *ctxt, int64_t pts);
 void  vdev_d3d_setrect(void *ctxt, int x, int y, int w, int h);
 
 void  DEF_PLAYER_CALLBACK_WINDOWS(void *vdev, int32_t msg, int64_t param);
@@ -79,8 +79,8 @@ void  DEF_PLAYER_CALLBACK_WINDOWS(void *vdev, int32_t msg, int64_t param);
 #ifdef ANDROID
 void* vdev_android_create (void *surface, int bufnum, int w, int h, int frate);
 void  vdev_android_destroy(void *ctxt);
-void  vdev_android_request(void *ctxt, uint8_t *buffer[8], int linesize[8]);
-void  vdev_android_post   (void *ctxt, int64_t pts);
+void  vdev_android_dequeue(void *ctxt, uint8_t *buffer[8], int linesize[8]);
+void  vdev_android_enqueue(void *ctxt, int64_t pts);
 void  vdev_android_setrect(void *ctxt, int x, int y, int w, int h);
 
 void  DEF_PLAYER_CALLBACK_ANDROID(void *vdev, int32_t msg, int64_t param);
@@ -95,8 +95,8 @@ void  vdev_getparam(void *ctxt, int id, void *param);
 
 void* vdev_create  (int type, void *surface, int bufnum, int w, int h, int frate, void *params);
 void  vdev_destroy (void *ctxt);
-void  vdev_request (void *ctxt, uint8_t *buffer[8], int linesize[8]);
-void  vdev_post    (void *ctxt, int64_t pts);
+void  vdev_dequeue (void *ctxt, uint8_t *buffer[8], int linesize[8]);
+void  vdev_enqueue (void *ctxt, int64_t pts);
 void  vdev_setrect (void *ctxt, int x, int y, int w, int h);
 
 void  vdev_player_event(void *ctxt, int32_t msg, int64_t param);

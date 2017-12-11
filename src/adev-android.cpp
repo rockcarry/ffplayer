@@ -174,7 +174,7 @@ void adev_destroy(void *ctxt)
     free(c);
 }
 
-void adev_request(void *ctxt, AUDIOBUF **ppab)
+void adev_dequeue(void *ctxt, AUDIOBUF **ppab)
 {
     if (!ctxt) return;
     ADEV_CONTEXT *c = (ADEV_CONTEXT*)ctxt;
@@ -183,7 +183,7 @@ void adev_request(void *ctxt, AUDIOBUF **ppab)
     (*ppab)->size = c->buflen;
 }
 
-void adev_post(void *ctxt, int64_t pts)
+void adev_enqueue(void *ctxt, int64_t pts)
 {
     if (!ctxt) return;
     ADEV_CONTEXT *c = (ADEV_CONTEXT*)ctxt;

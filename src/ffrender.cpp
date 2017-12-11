@@ -207,7 +207,7 @@ void render_audio(void *hrender, AVFrame *audio)
     if (!render->adev) return;
     do {
         if (render->adev_buf_avail == 0) {
-            adev_request(render->adev, &render->adev_hdr_cur);
+            adev_dequeue(render->adev, &render->adev_hdr_cur);
             apts += 10 * render->render_speed_cur * render->frame_rate.den / render->frame_rate.num;
             render->adev_buf_avail = (int     )render->adev_hdr_cur->size;
             render->adev_buf_cur   = (uint8_t*)render->adev_hdr_cur->data;
@@ -237,7 +237,7 @@ void render_audio(void *hrender, AVFrame *audio)
         //-- do resample audio data --//
 
         if (render->adev_buf_avail == 0) {
-            adev_post(render->adev, apts);
+            adev_enqueue(render->adev, apts);
         }
     } while (sampnum > 0);
 }
@@ -276,11 +276,11 @@ void render_video(void *hrender, AVFrame *video)
                 SWS_FAST_BILINEAR, 0, 0, 0);
         }
 
-        vdev_request(render->vdev, picture.data, picture.linesize);
+        vdev_dequeue(render->vdev, picture.data, picture.linesize);
         if (picture.data[0] && video->pts != -1) {
             sws_scale(render->sws_context, video->data, video->linesize, 0, render->video_height, picture.data, picture.linesize);
         }
-        vdev_post(render->vdev, video->pts);
+        vdev_enqueue(render->vdev, video->pts);
 
 #if CONFIG_ENABLE_SNAPSHOT
         if (render->render_status & RENDER_SNAPSHOT) {

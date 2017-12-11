@@ -185,7 +185,7 @@ void vdev_d3d_destroy(void *ctxt)
     free(c);
 }
 
-void vdev_d3d_request(void *ctxt, uint8_t *buffer[8], int linesize[8])
+void vdev_d3d_dequeue(void *ctxt, uint8_t *buffer[8], int linesize[8])
 {
     VDEVD3DCTXT *c = (VDEVD3DCTXT*)ctxt;
 
@@ -210,7 +210,7 @@ void vdev_d3d_request(void *ctxt, uint8_t *buffer[8], int linesize[8])
 }
 
 
-void vdev_d3d_post(void *ctxt, int64_t pts)
+void vdev_d3d_enqueue(void *ctxt, int64_t pts)
 {
     VDEVD3DCTXT *c = (VDEVD3DCTXT*)ctxt;
     c->pSurfs[c->tail]->UnlockRect();
