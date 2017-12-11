@@ -61,8 +61,11 @@ typedef struct
     AVFilterContext *vfilter_sink_ctx;
     int              vfilter_enable;
 
+    // for player init timeout
     int64_t          init_timetick;
     int64_t          init_timeout;
+
+    PLAYER_INIT_PARAMS init_params;
 } PLAYER;
 
 // 内部常量定义
@@ -422,6 +425,7 @@ static int reinit_stream(PLAYER *player, enum AVMediaType type, int sel) {
         //- try android mediacodec hardware decoder
 
         if (!decoder) {
+            player->vcodec_context->thread_count = player->init_params.video_thread_count;
             decoder = avcodec_find_decoder(player->vcodec_context->codec_id);
             if (decoder && avcodec_open2(player->vcodec_context, decoder, NULL) == 0) {
                 player->vstream_index = idx;
@@ -611,6 +615,8 @@ void* player_open(char *file, void *win, PLAYER_INIT_PARAMS *params)
 
         params->subtitle_stream_total= get_stream_total(player, AVMEDIA_TYPE_SUBTITLE);
         params->subtitle_stream_cur  = -1;
+
+        memcpy(&player->init_params, params, sizeof(PLAYER_INIT_PARAMS));
     }
 
     // make sure player status paused

@@ -108,6 +108,7 @@ typedef struct {
     int video_frame_rate;         // r
     int video_stream_total;       // r
     int video_stream_cur;         // wr
+    int video_thread_count;       // w
 
     int audio_channels;           // r
     int audio_sample_rate;        // r
@@ -120,7 +121,6 @@ typedef struct {
     int vdev_render_type;         // w
     int adev_render_type;         // w
 
-    PFN_PLAYER_CALLBACK callback; // w
     int init_timeout;             // w
 } PLAYER_INIT_PARAMS;
 
@@ -199,7 +199,6 @@ PLAYER_INIT_PARAMS 为播放器初始化参数，在 player_open 时传入，并
     int vdev_render_type;         // w  vdev 类型
     int adev_render_type;         // w  adev 类型
 
-    PFN_PLAYER_CALLBACK callback; // w  播放器事件回调函数
     int init_timeout;             // w  播放器初始化超时
  */
 
