@@ -149,15 +149,6 @@ public class TestPlayerActivity extends Activity {
         super.onResume();
         mPlayer.setDisplaySurface(mSurface);
         if (!mIsLive) testPlayerPlay(true);
-
-        View decorView = getWindow().getDecorView();
-        int  uiOptions = decorView.getSystemUiVisibility();
-        uiOptions     |=  ( View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION
-                          | View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
-                          | View.SYSTEM_UI_FLAG_HIDE_NAVIGATION
-                          | View.SYSTEM_UI_FLAG_FULLSCREEN
-                          | View.SYSTEM_UI_FLAG_IMMERSIVE);
-        decorView.setSystemUiVisibility(uiOptions);
     }
 
     @Override
