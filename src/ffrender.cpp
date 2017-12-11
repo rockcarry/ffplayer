@@ -227,9 +227,9 @@ void render_audio(void *hrender, AVFrame *audio)
         }
 
         //++ do resample audio data ++//
-        sampnum = swr_convert(render->swr_context, (uint8_t**)&render->adev_buf_cur,
-            render->adev_buf_avail / 4, (const uint8_t**)audio->extended_data,
-            audio->nb_samples);
+        sampnum = swr_convert(render->swr_context,
+            (uint8_t**)&render->adev_buf_cur, render->adev_buf_avail / 4,
+            (const uint8_t**)audio->extended_data, audio->nb_samples);
         audio->extended_data    = NULL;
         audio->nb_samples       = 0;
         render->adev_buf_avail -= sampnum * 4;

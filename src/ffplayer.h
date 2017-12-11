@@ -108,7 +108,8 @@ typedef struct {
     int video_frame_rate;         // r
     int video_stream_total;       // r
     int video_stream_cur;         // wr
-    int video_thread_count;       // w
+    int video_thread_count;       // wr
+    int video_hwaccel;            // wr
 
     int audio_channels;           // r
     int audio_sample_rate;        // r
