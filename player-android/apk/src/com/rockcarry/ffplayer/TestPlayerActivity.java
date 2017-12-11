@@ -231,9 +231,7 @@ public class TestPlayerActivity extends Activity {
                 }
                 break;
             case player.MSG_OPEN_DONE: {
-//                  mPlayer.setParam(player.PARAM_AUDIO_STREAM_CUR, 1);
-//                  mPlayer.setParam(player.PARAM_VIDEO_STREAM_CUR, 1);
-//                  mPlayer.setParam(player.PARAM_VFILTER_ENABLE  , 1);
+//                  mPlayer.setParam(player.PARAM_VFILTER_ENABLE, 1);
                     mSeek.setMax((int)mPlayer.getParam(player.PARAM_MEDIA_DURATION));
                     testPlayerPlay(true);
                 }
