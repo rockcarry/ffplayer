@@ -187,30 +187,30 @@ static void* av_demux_thread_proc(void *param)
         }
         //-- when demux pause --//
 
-        packet = pktqueue_write_request(player->pktqueue);
+        packet = pktqueue_write_dequeue(player->pktqueue);
         if (packet == NULL) { usleep(20*1000); continue; }
 
         retv = av_read_frame(player->avformat_context, packet);
         if (retv < 0 || !packet->buf) {
             av_packet_unref(packet); // free packet
-            pktqueue_write_post_i(player->pktqueue, packet);
+            pktqueue_write_cancel(player->pktqueue, packet);
             usleep(20*1000); continue;
         }
 
         // audio
         if (packet->stream_index == player->astream_index) {
-            pktqueue_write_post_a(player->pktqueue, packet);
+            pktqueue_write_enqueue_a(player->pktqueue, packet);
         }
 
         // video
         if (packet->stream_index == player->vstream_index) {
-            pktqueue_write_post_v(player->pktqueue, packet);
+            pktqueue_write_enqueue_v(player->pktqueue, packet);
         }
 
         if (  packet->stream_index != player->astream_index
            && packet->stream_index != player->vstream_index) {
             av_packet_unref(packet); // free packet
-            pktqueue_write_post_i(player->pktqueue, packet);
+            pktqueue_write_cancel(player->pktqueue, packet);
         }
     }
 
@@ -238,7 +238,7 @@ static void* audio_decode_thread_proc(void *param)
         //-- when audio decode pause --//
 
         // read packet
-        packet = pktqueue_read_request_a(player->pktqueue);
+        packet = pktqueue_read_dequeue_a(player->pktqueue);
         if (packet == NULL) {
 //          render_audio(player->render, aframe);
             usleep(20*1000); continue;
@@ -285,7 +285,7 @@ static void* audio_decode_thread_proc(void *param)
         // free packet
         av_packet_unref(packet);
 
-        pktqueue_read_done_a(player->pktqueue, packet);
+        pktqueue_read_enqueue_a(player->pktqueue, packet);
     }
 
     av_frame_free(&aframe);
@@ -312,7 +312,7 @@ static void* video_decode_thread_proc(void *param)
         //-- when video decode pause --//
 
         // read packet
-        packet = pktqueue_read_request_v(player->pktqueue);
+        packet = pktqueue_read_dequeue_v(player->pktqueue);
         if (packet == NULL) {
             render_video(player->render, vframe);
             usleep(20*1000); continue;
@@ -356,7 +356,7 @@ static void* video_decode_thread_proc(void *param)
         // free packet
         av_packet_unref(packet);
 
-        pktqueue_read_done_v(player->pktqueue, packet);
+        pktqueue_read_enqueue_v(player->pktqueue, packet);
     }
 
     av_frame_free(&vframe);

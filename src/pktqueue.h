@@ -16,15 +16,15 @@ void* pktqueue_create (int   size); // important!! size must be power of 2
 void  pktqueue_destroy(void *ctxt);
 void  pktqueue_reset  (void *ctxt);
 
-AVPacket* pktqueue_write_request (void *ctxt); // request a packet for write
-AVPacket* pktqueue_read_request_a(void *ctxt); // request a packet for read audio
-AVPacket* pktqueue_read_request_v(void *ctxt); // request a packet for read video
+AVPacket* pktqueue_write_dequeue  (void *ctxt); // dequeue a packet for writing
+void      pktqueue_write_enqueue_a(void *ctxt, AVPacket *pkt); // enqueue a packet as audio
+void      pktqueue_write_enqueue_v(void *ctxt, AVPacket *pkt); // enqueue a packet as video
+void      pktqueue_write_cancel   (void *ctxt, AVPacket *pkt); // cancel current packet writing
 
-void  pktqueue_write_post_a(void *ctxt, AVPacket *pkt); // post a packet for write as audio
-void  pktqueue_write_post_v(void *ctxt, AVPacket *pkt); // post a packet for write as video
-void  pktqueue_write_post_i(void *ctxt, AVPacket *pkt); // post a packet for write as invalid
-void  pktqueue_read_done_a (void *ctxt, AVPacket *pkt); // audio packet read done
-void  pktqueue_read_done_v (void *ctxt, AVPacket *pkt); // video packet read done
+AVPacket* pktqueue_read_dequeue_a (void *ctxt); // dequeue a audio packet for reading
+void      pktqueue_read_enqueue_a (void *ctxt, AVPacket *pkt); // enqueue a audio packet for reading
+AVPacket* pktqueue_read_dequeue_v (void *ctxt); // dequeue a video packet for reading
+void      pktqueue_read_enqueue_v (void *ctxt, AVPacket *pkt); // enqueue a video packet for reading
 
 #ifdef __cplusplus
 }

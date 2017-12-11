@@ -86,14 +86,14 @@ void pktqueue_reset(void *ctxt)
     PKTQUEUE *ppq    = (PKTQUEUE*)ctxt;
     AVPacket *packet = NULL;
 
-    while (NULL != (packet = pktqueue_read_request_a(ctxt))) {
+    while (NULL != (packet = pktqueue_read_dequeue_a(ctxt))) {
         av_packet_unref(packet);
-        pktqueue_read_done_a(ctxt, packet);
+        pktqueue_read_enqueue_a(ctxt, packet);
     }
 
-    while (NULL != (packet = pktqueue_read_request_v(ctxt))) {
+    while (NULL != (packet = pktqueue_read_dequeue_v(ctxt))) {
         av_packet_unref(packet);
-        pktqueue_read_done_v(ctxt, packet);
+        pktqueue_read_enqueue_v(ctxt, packet);
     }
 
     ppq->fhead = ppq->ftail = 0;
@@ -101,28 +101,28 @@ void pktqueue_reset(void *ctxt)
     ppq->vhead = ppq->vtail = 0;
 }
 
-AVPacket* pktqueue_write_request(void *ctxt)
+AVPacket* pktqueue_write_dequeue(void *ctxt)
 {
     PKTQUEUE *ppq = (PKTQUEUE*)ctxt;
     if (0 != sem_trywait(&ppq->fsem)) return NULL;
     return ppq->fpkts[ppq->fhead++ & (ppq->fsize - 1)];
 }
 
-void pktqueue_write_post_a(void *ctxt, AVPacket *pkt)
+void pktqueue_write_enqueue_a(void *ctxt, AVPacket *pkt)
 {
     PKTQUEUE *ppq = (PKTQUEUE*)ctxt;
     ppq->apkts[ppq->atail++ & (ppq->asize - 1)] = pkt;
     sem_post(&ppq->asem);
 }
 
-void pktqueue_write_post_v(void *ctxt, AVPacket *pkt)
+void pktqueue_write_enqueue_v(void *ctxt, AVPacket *pkt)
 {
     PKTQUEUE *ppq = (PKTQUEUE*)ctxt;
     ppq->vpkts[ppq->vtail++ & (ppq->vsize - 1)] = pkt;
     sem_post(&ppq->vsem);
 }
 
-void pktqueue_write_post_i(void *ctxt, AVPacket *pkt)
+void pktqueue_write_cancel(void *ctxt, AVPacket *pkt)
 {
     PKTQUEUE *ppq = (PKTQUEUE*)ctxt;
     pthread_mutex_lock  (&ppq->lock);
@@ -131,14 +131,14 @@ void pktqueue_write_post_i(void *ctxt, AVPacket *pkt)
     sem_post(&ppq->fsem);
 }
 
-AVPacket* pktqueue_read_request_a(void *ctxt)
+AVPacket* pktqueue_read_dequeue_a(void *ctxt)
 {
     PKTQUEUE *ppq = (PKTQUEUE*)ctxt;
     if (0 != sem_trywait(&ppq->asem)) return NULL;
     return ppq->apkts[ppq->ahead++ & (ppq->asize - 1)];
 }
 
-void pktqueue_read_done_a(void *ctxt, AVPacket *pkt)
+void pktqueue_read_enqueue_a(void *ctxt, AVPacket *pkt)
 {
     PKTQUEUE *ppq = (PKTQUEUE*)ctxt;
     pthread_mutex_lock  (&ppq->lock);
@@ -147,14 +147,14 @@ void pktqueue_read_done_a(void *ctxt, AVPacket *pkt)
     sem_post(&ppq->fsem);
 }
 
-AVPacket* pktqueue_read_request_v(void *ctxt)
+AVPacket* pktqueue_read_dequeue_v(void *ctxt)
 {
     PKTQUEUE *ppq = (PKTQUEUE*)ctxt;
     if (0 != sem_trywait(&ppq->vsem)) return NULL;
     return ppq->vpkts[ppq->vhead++ & (ppq->vsize - 1)];
 }
 
-void pktqueue_read_done_v(void *ctxt, AVPacket *pkt)
+void pktqueue_read_enqueue_v(void *ctxt, AVPacket *pkt)
 {
     PKTQUEUE *ppq = (PKTQUEUE*)ctxt;
     pthread_mutex_lock  (&ppq->lock);
