@@ -23,7 +23,7 @@ features
 7. support network media stream playback
 8. support dshow, gdigrab and vfwcap (avdevice of ffmpeg)
 9. take video snapshot, support save into jpeg and png
-10.very fast seek (async) operation taking 0ms delay
+10.very fast (async) seek operation taking 0ms delay
 
 
 testplayer
