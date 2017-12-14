@@ -62,7 +62,7 @@ public class TestPlayerActivity extends Activity {
         }
 
         mIsLive = mURL.startsWith("http://") && mURL.endsWith(".m3u8") || mURL.startsWith("rtmp://");
-        mPlayer = new player(mURL, mHandler);
+        mPlayer = new player(mURL, mHandler, "video_hwaccel=1");
 
         mRoot = (playerView)findViewById(R.id.player_root);
         mRoot.setOnSizeChangedListener(new playerView.OnSizeChangedListener() {

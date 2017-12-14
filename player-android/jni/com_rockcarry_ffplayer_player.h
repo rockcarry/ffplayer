@@ -26,10 +26,10 @@ JNIEXPORT void JNICALL Java_com_rockcarry_ffplayer_player_nativeInitJniObject
 /*
  * Class:     com_rockcarry_ffplayer_player
  * Method:    nativeOpen
- * Signature: (Ljava/lang/String;Ljava/lang/Object;II)J
+ * Signature: (Ljava/lang/String;Ljava/lang/Object;IILjava/lang/String;)J
  */
 JNIEXPORT jlong JNICALL Java_com_rockcarry_ffplayer_player_nativeOpen
-  (JNIEnv *, jclass, jstring, jobject, jint, jint);
+  (JNIEnv *, jclass, jstring, jobject, jint, jint, jstring);
 
 /*
  * Class:     com_rockcarry_ffplayer_player

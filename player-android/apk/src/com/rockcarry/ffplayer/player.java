@@ -28,28 +28,29 @@ public final class player
     public player() {
     }
 
-    public player(String url, Handler h) {
+    public player(String url, Handler h, String params) {
         mPlayerMsgHandler = h;
-        open(url, false);
+        open(url, false, params);
     }
 
     protected void finalize() {
         close();
     }
 
-    public boolean open(String url, boolean sync) {
+    public boolean open(String url, boolean sync, String params) {
         if (sync) {
             nativeClose(m_hPlayer);
             m_hPlayer = 0;
-            m_hPlayer = nativeOpen(m_strUrl, null, 0, 0);
+            m_hPlayer = nativeOpen(m_strUrl, null, 0, 0, params);
             nativeInitJniObject(m_hPlayer);
             if (mPlayerMsgHandler != null) {
                 mPlayerMsgHandler.sendEmptyMessage(m_hPlayer != 0 ? MSG_OPEN_DONE : MSG_OPEN_FAILED);
             }
             return m_hPlayer != 0 ? true : false;
         } else {
-            m_strUrl = url;
-            m_bClose = false;
+            m_strUrl    = url;
+            m_strParams = params;
+            m_bClose    = false;
             if (mPlayerInitThread == null) {
                 mPlayerInitThread = new PlayerInitThread();
                 mPlayerInitThread.start();
@@ -122,7 +123,7 @@ public final class player
     private native void nativeInitJniObject(long hplayer);
     //-- for player event callback
 
-    private static native long nativeOpen (String url, Object surface, int w, int h);
+    private static native long nativeOpen (String url, Object surface, int w, int h, String params);
     private static native void nativeClose(long hplayer);
     private static native void nativePlay (long hplayer);
     private static native void nativePause(long hplayer);
@@ -139,6 +140,7 @@ public final class player
     private volatile boolean m_bClose          = false;
     private volatile long    m_hPlayer         = 0;
     private String           m_strUrl          = "";
+    private String           m_strParams       = "";
     private Object           mPlayerInitEvent  = new Object();
     private PlayerInitThread mPlayerInitThread = null;
     private Object           mSurface          = null;
@@ -151,7 +153,7 @@ public final class player
                 m_hPlayer = 0;
                 if (m_bClose) break;
 
-                m_hPlayer = nativeOpen(m_strUrl, null, 0, 0);
+                m_hPlayer = nativeOpen(m_strUrl, null, 0, 0, m_strParams);
                 nativeInitJniObject(m_hPlayer);
                 if (mSurface != null) nativeSetDisplaySurface(m_hPlayer, mSurface);
                 if (mTexture != null) nativeSetDisplayTexture(m_hPlayer, mTexture);

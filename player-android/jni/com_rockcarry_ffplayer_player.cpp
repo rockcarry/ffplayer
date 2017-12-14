@@ -12,6 +12,32 @@ using namespace android;
 // this function defined in libavcodec/jni.h
 extern "C" int av_jni_set_java_vm(void *vm, void *log_ctx);
 
+static int parse_params(const char *str, const char *key)
+{
+    char  t[12];
+    char *p = strstr(str, key);
+    int   i;
+
+    if (!p) return 0;
+    p += strlen(key);
+    if (*p == '\0') return 0;
+
+    while (1) {
+        if (*p != ' ' && *p != '=' && *p != ':') break;
+        else p++;
+    }
+
+    for (i=0; i<12; i++) {
+        if (*p == ',' || *p == ';' || *p == '\n' || *p == '\0') {
+            t[i] = '\0';
+            break;
+        } else {
+            t[i] = *p++;
+        }
+    }
+    t[11] = '\0';
+    return atoi(t);
+}
 
 JavaVM* g_jvm = NULL;
 JNIEXPORT jint JNICALL JNI_OnLoad(JavaVM* vm, void* reserved)
@@ -72,18 +98,34 @@ JNIEXPORT void JNICALL Java_com_rockcarry_ffplayer_player_nativeInitJniObject
 /*
  * Class:     com_rockcarry_ffplayer_player
  * Method:    nativeOpen
- * Signature: (Ljava/lang/String;Ljava/lang/Object;II)J
+ * Signature: (Ljava/lang/String;Ljava/lang/Object;IILjava/lang/String;)J
  */
 JNIEXPORT jlong JNICALL Java_com_rockcarry_ffplayer_player_nativeOpen
-  (JNIEnv *env, jclass clazz, jstring url, jobject jsurface, jint w, jint h)
+  (JNIEnv *env, jclass clazz, jstring url, jobject jsurface, jint w, jint h, jstring params)
 {
     DO_USE_VAR(clazz);
     DO_USE_VAR(jsurface);
     DO_USE_VAR(w);
     DO_USE_VAR(h);
-    const char *str = env->GetStringUTFChars(url, NULL);
-    jlong hplayer = (jlong)player_open((char*)str, NULL, NULL);
-    env->ReleaseStringUTFChars(url, str);
+
+    PLAYER_INIT_PARAMS playerparams;
+    memset(&playerparams, 0, sizeof(playerparams));
+    if (params != NULL) {
+        const char *strparams = env->GetStringUTFChars(params, NULL);
+        playerparams.video_stream_cur    = parse_params(strparams, "video_stream_cur");
+        playerparams.video_thread_count  = parse_params(strparams, "video_thread_count");
+        playerparams.video_hwaccel       = parse_params(strparams, "video_hwaccel");
+        playerparams.audio_stream_cur    = parse_params(strparams, "audio_stream_cur");
+        playerparams.subtitle_stream_cur = parse_params(strparams, "subtitle_stream_cur");
+        playerparams.vdev_render_type    = parse_params(strparams, "vdev_render_type");
+        playerparams.adev_render_type    = parse_params(strparams, "adev_render_type");
+        playerparams.init_timeout        = parse_params(strparams, "init_timeout");
+        env->ReleaseStringUTFChars(params, strparams);
+    }
+
+    const char *strurl = env->GetStringUTFChars(url, NULL);
+    jlong hplayer = (jlong)player_open((char*)strurl, NULL, &playerparams);
+    env->ReleaseStringUTFChars(url, strurl);
     return hplayer;
 }
 
