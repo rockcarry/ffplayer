@@ -188,6 +188,8 @@ PLAYER_INIT_PARAMS 为播放器初始化参数，在 player_open 时传入，并
     int video_frame_rate;         // r  视频帧率
     int video_stream_total;       // r  视频流总数
     int video_stream_cur;         // wr 当前视频流
+    int video_thread_count;       // wr 视频解码线程数
+    int video_hwaccel;            // wr 视频硬解码使能
 
     int audio_channels;           // r  音频通道数
     int audio_sample_rate;        // r  音频采样率
