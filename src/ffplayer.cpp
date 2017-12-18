@@ -194,7 +194,7 @@ static void* av_demux_thread_proc(void *param)
         if (packet == NULL) { usleep(20*1000); continue; }
 
         retv = av_read_frame(player->avformat_context, packet);
-        if (retv < 0 || !packet->buf) {
+        if (retv < 0) {
             av_packet_unref(packet); // free packet
             pktqueue_write_cancel(player->pktqueue, packet);
             usleep(20*1000); continue;
@@ -676,6 +676,9 @@ void player_close(void *hplayer)
     if (player->acodec_context  ) avcodec_close(player->acodec_context);
     if (player->vcodec_context  ) avcodec_close(player->vcodec_context);
     if (player->avformat_context) avformat_close_input(&player->avformat_context);
+    if (player->init_params.init_timeout > 0) {
+        avformat_free_context(player->avformat_context);
+    }
 
     free(player);
 

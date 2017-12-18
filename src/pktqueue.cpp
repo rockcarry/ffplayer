@@ -67,6 +67,9 @@ void pktqueue_destroy(void *ctxt)
 {
     PKTQUEUE *ppq = (PKTQUEUE*)ctxt;
 
+    // reset to unref packets
+    pktqueue_reset(ctxt);
+
     // close
     sem_destroy(&ppq->fsem);
     sem_destroy(&ppq->asem);
