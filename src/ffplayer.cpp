@@ -676,9 +676,6 @@ void player_close(void *hplayer)
     if (player->acodec_context  ) avcodec_close(player->acodec_context);
     if (player->vcodec_context  ) avcodec_close(player->vcodec_context);
     if (player->avformat_context) avformat_close_input(&player->avformat_context);
-    if (player->init_params.init_timeout > 0) {
-        avformat_free_context(player->avformat_context);
-    }
 
     free(player);
 
