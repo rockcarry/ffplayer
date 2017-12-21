@@ -32,7 +32,7 @@ public class TestPlayerActivity extends Activity {
     private ImageView    mPause     = null;
     private boolean      mIsPlaying = false;
     private boolean      mIsLive    = false;
-    private String       mURL       = "/sdcard/test.mp4";
+    private String       mURL       = "rtmp://live.hkstv.hk.lxdns.com/live/hks";
 
     /** Called when the activity is first created. */
     @Override
@@ -62,7 +62,7 @@ public class TestPlayerActivity extends Activity {
         }
 
         mIsLive = mURL.startsWith("http://") && mURL.endsWith(".m3u8") || mURL.startsWith("rtmp://");
-        mPlayer = new player(mURL, mHandler, "video_hwaccel=1");
+        mPlayer = new player(mURL, mHandler, "video_hwaccel=1;video_rotate=0");
 
         mRoot = (playerView)findViewById(R.id.player_root);
         mRoot.setOnSizeChangedListener(new playerView.OnSizeChangedListener() {
@@ -231,7 +231,6 @@ public class TestPlayerActivity extends Activity {
                 }
                 break;
             case player.MSG_OPEN_DONE: {
-//                  mPlayer.setParam(player.PARAM_VFILTER_ENABLE, 1);
                     mSeek.setMax((int)mPlayer.getParam(player.PARAM_MEDIA_DURATION));
                     testPlayerPlay(true);
                 }

@@ -22,8 +22,6 @@ public final class player
 //  public static final int PARAM_VISUAL_EFFECT     = 0x1000 + 7;
     public static final int PARAM_AVSYNC_TIME_DIFF  = 0x1000 + 8;
 //  public static final int PARAM_PLAYER_CALLBACK   = 0x1000 + 9;
-    public static final int PARAM_AFILTER_ENABLE    = 0x1000 +10;
-    public static final int PARAM_VFILTER_ENABLE    = 0x1000 +11;
 
     public player() {
     }

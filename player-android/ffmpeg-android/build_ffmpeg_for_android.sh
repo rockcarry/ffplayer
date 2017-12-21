@@ -34,6 +34,7 @@ cd ffmpeg
 --enable-encoder=apng \
 --enable-muxer=apng \
 --enable-filter=yadif \
+--enable-filter=rotate \
 --enable-asm \
 --enable-gpl \
 --enable-version3 \

@@ -95,8 +95,10 @@ static void vfilter_graph_init(PLAYER *player)
     AVFilter *filter_rotate  = avfilter_get_by_name("rotate");
     AVFilter *filter_sink    = avfilter_get_by_name("buffersink");
     AVCodecContext *vdec_ctx = player->vcodec_context;
-    int  ow, oh, ret, i;
+    int  ow = player->vcodec_context->width ;
+    int  oh = player->vcodec_context->height;
     char args[256];
+    int  ret, i;
 
     //++ check if no filter used
     if (  !player->init_params.video_deinterlace
@@ -142,7 +144,7 @@ static void vfilter_graph_init(PLAYER *player)
     };
     AVFilterContext *in  = filter_pins[0];
     AVFilterContext *out = NULL;
-    for (i=1; i<sizeof(filter_pins)/sizeof(filter_pins[0]); i++) {
+    for (i=1; i<(int)(sizeof(filter_pins)/sizeof(filter_pins[0])); i++) {
         out = filter_pins[i];
         if (!out) continue;
         if ( in ) avfilter_link(in, 0, out, 0);
@@ -858,11 +860,11 @@ void player_getparam(void *hplayer, int id, void *param)
         break;
     case PARAM_VIDEO_WIDTH:
         if (!player->vcodec_context) *(int*)param = 0;
-        else *(int*)param = player->vcodec_context->width;
+        else *(int*)param = player->init_params.video_owidth;
         break;
     case PARAM_VIDEO_HEIGHT:
         if (!player->vcodec_context) *(int*)param = 0;
-        else *(int*)param = player->vcodec_context->height;
+        else *(int*)param = player->init_params.video_oheight;
         break;
     case PARAM_VIDEO_MODE:
         *(int*)param = player->vdmode;
