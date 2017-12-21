@@ -58,8 +58,8 @@ typedef struct
     AVFilterGraph   *vfilter_graph;
     AVFilterContext *vfilter_source_ctx;
     AVFilterContext *vfilter_yadif_ctx;
+    AVFilterContext *vfilter_rotate_ctx;
     AVFilterContext *vfilter_sink_ctx;
-    int              vfilter_enable;
 
     // for player init timeout
     int64_t          init_timetick;
@@ -92,49 +92,105 @@ static void vfilter_graph_init(PLAYER *player)
 {
     AVFilter *filter_source  = avfilter_get_by_name("buffer");
     AVFilter *filter_yadif   = avfilter_get_by_name("yadif" );
+    AVFilter *filter_rotate  = avfilter_get_by_name("rotate");
     AVFilter *filter_sink    = avfilter_get_by_name("buffersink");
     AVCodecContext *vdec_ctx = player->vcodec_context;
-    char      args[256];
-    int       ret;
+    int  ow, oh, ret, i;
+    char args[256];
+
+    //++ check if no filter used
+    if (  !player->init_params.video_deinterlace
+       && !player->init_params.video_rotate ) {
+        return;
+    }
+    //-- check if no filter used
 
     if (!player->vcodec_context) return;
     player->vfilter_graph = avfilter_graph_alloc();
     if (!player->vfilter_graph ) return;
 
+    // in & out filter
     sprintf_s(args, "video_size=%dx%d:pix_fmt=%d:time_base=%d/%d:pixel_aspect=%d/%d",
             vdec_ctx->width, vdec_ctx->height, vdec_ctx->pix_fmt,
             vdec_ctx->time_base.num, vdec_ctx->time_base.den,
             vdec_ctx->sample_aspect_ratio.num, vdec_ctx->sample_aspect_ratio.den);
-    avfilter_graph_create_filter(&player->vfilter_source_ctx, filter_source, "in"   , args, NULL, player->vfilter_graph);
-    avfilter_graph_create_filter(&player->vfilter_yadif_ctx , filter_yadif , "yadif", "mode=send_frame:parity=auto:deint=interlaced", NULL, player->vfilter_graph);
-    avfilter_graph_create_filter(&player->vfilter_sink_ctx  , filter_sink  , "out"  , NULL, NULL, player->vfilter_graph);
-    avfilter_link(player->vfilter_source_ctx, 0, player->vfilter_yadif_ctx, 0);
-    avfilter_link(player->vfilter_yadif_ctx , 0, player->vfilter_sink_ctx , 0);
+    avfilter_graph_create_filter(&player->vfilter_source_ctx, filter_source, "in" , args, NULL, player->vfilter_graph);
+    avfilter_graph_create_filter(&player->vfilter_sink_ctx  , filter_sink  , "out", NULL, NULL, player->vfilter_graph);
 
+    // yadif filter
+    if (player->init_params.video_deinterlace) {
+        avfilter_graph_create_filter(&player->vfilter_yadif_ctx, filter_yadif,
+            "yadif", "mode=send_frame:parity=auto:deint=interlaced", NULL, player->vfilter_graph);
+    }
+
+    // rotate filter
+    if (player->init_params.video_rotate) {
+        ow = (int) ( abs(player->vcodec_context->width  * cos(player->init_params.video_rotate * M_PI / 180))
+                   + abs(player->vcodec_context->height * sin(player->init_params.video_rotate * M_PI / 180)));
+        oh = (int) ( abs(player->vcodec_context->width  * sin(player->init_params.video_rotate * M_PI / 180))
+                   + abs(player->vcodec_context->height * cos(player->init_params.video_rotate * M_PI / 180)));
+        sprintf_s(args, "angle=%d*PI/180:ow=%d:oh=%d", player->init_params.video_rotate, ow, oh);
+        avfilter_graph_create_filter(&player->vfilter_rotate_ctx, filter_rotate, "rotate", args, NULL, player->vfilter_graph);
+    }
+
+    //++ connect filters
+    AVFilterContext *filter_pins[] = {
+        player->vfilter_source_ctx,
+        player->vfilter_yadif_ctx,
+        player->vfilter_rotate_ctx,
+        player->vfilter_sink_ctx,
+    };
+    AVFilterContext *in  = filter_pins[0];
+    AVFilterContext *out = NULL;
+    for (i=1; i<sizeof(filter_pins)/sizeof(filter_pins[0]); i++) {
+        out = filter_pins[i];
+        if (!out) continue;
+        if ( in ) avfilter_link(in, 0, out, 0);
+        in = out;
+    }
+    //-- connect filters
+
+    // config filter graph
     ret = avfilter_graph_config(player->vfilter_graph, NULL);
     if (ret < 0) {
         avfilter_graph_free(&player->vfilter_graph);
-        player->vfilter_graph = NULL;
+        player->vfilter_graph      = NULL;
+        player->vfilter_source_ctx = NULL;
+        player->vfilter_sink_ctx   = NULL;
+        player->vfilter_yadif_ctx  = NULL;
+        player->vfilter_rotate_ctx = NULL;
+    }
+
+    // update init params
+    if (!player->vfilter_yadif_ctx ) player->init_params.video_deinterlace = 0;
+    if (!player->vfilter_rotate_ctx) {
+        player->init_params.video_rotate  = 0;
+    } else {
+        player->init_params.video_owidth  = ow;
+        player->init_params.video_oheight = oh;
     }
 }
 
 static void vfilter_graph_free(PLAYER *player)
 {
-    if (!player->vfilter_graph ) return;
+    if (!player->vfilter_graph) return;
     avfilter_graph_free(&player->vfilter_graph);
-    player->vfilter_graph = NULL;
+    player->vfilter_graph      = NULL;
+    player->vfilter_source_ctx = NULL;
+    player->vfilter_sink_ctx   = NULL;
+    player->vfilter_yadif_ctx  = NULL;
+    player->vfilter_rotate_ctx = NULL;
 }
 
 static void vfilter_graph_input(PLAYER *player, AVFrame *frame)
 {
-    if (!player->vfilter_graph ) return;
-    if (!player->vfilter_enable) return;
+    if (!player->vfilter_graph) return;
     av_buffersrc_add_frame_flags(player->vfilter_source_ctx, frame, AV_BUFFERSRC_FLAG_KEEP_REF);
 }
 
 static int vfilter_graph_output(PLAYER *player, AVFrame *frame)
 {
-    if (player->vfilter_graph && player->vfilter_enable) {
+    if (player->vfilter_graph) {
         return av_buffersink_get_frame(player->vfilter_sink_ctx, frame);
     } else {
         return 0;
@@ -348,7 +404,7 @@ static void* video_decode_thread_proc(void *param)
                     }
                     //-- for seek operation
                     if (!(player->player_status & PS_V_SEEK)) render_video(player->render, vframe);
-                } while (player->vfilter_graph && player->vfilter_enable);
+                } while (player->vfilter_graph);
             }
 
             packet->data += consumed;
@@ -496,8 +552,6 @@ void* player_open(char *file, void *win, PLAYER_INIT_PARAMS *params)
     uint64_t      alayout = 0;
     AVRational    vrate   = { 21, 1 };
     AVPixelFormat vformat = AV_PIX_FMT_YUV420P;
-    int           width   = 0;
-    int           height  = 0;
 
     //++ for avdevice
     #define AVDEV_DSHOW   "dshow"
@@ -594,8 +648,8 @@ void* player_open(char *file, void *win, PLAYER_INIT_PARAMS *params)
             vrate.den = 1;
         }
         vformat = player->vcodec_context->pix_fmt;
-        width   = player->vcodec_context->width;
-        height  = player->vcodec_context->height;
+        player->init_params.video_vwidth = player->init_params.video_owidth  = player->vcodec_context->width;
+        player->init_params.video_vheight= player->init_params.video_oheight = player->vcodec_context->height;
     }
 
     // init avfilter graph
@@ -604,7 +658,8 @@ void* player_open(char *file, void *win, PLAYER_INIT_PARAMS *params)
     // open render
     player->render = render_open(
         player->init_params.adev_render_type, arate, (AVSampleFormat)aformat, alayout,
-        player->init_params.vdev_render_type, win, vrate, vformat, width, height);
+        player->init_params.vdev_render_type, win, vrate, vformat,
+        player->init_params.video_owidth, player->init_params.video_oheight);
 
     if (player->vstream_index == -1) {
         int effect = VISUAL_EFFECT_WAVEFORM;
@@ -612,8 +667,6 @@ void* player_open(char *file, void *win, PLAYER_INIT_PARAMS *params)
     }
 
     // for player init params
-    player->init_params.video_width          = width;
-    player->init_params.video_height         = height;
     player->init_params.video_frame_rate     = vrate.num / vrate.den;
     player->init_params.video_stream_total   = get_stream_total(player, AVMEDIA_TYPE_VIDEO);
     player->init_params.video_stream_cur     = player->vstream_index;
@@ -711,8 +764,8 @@ void player_setrect(void *hplayer, int type, int x, int y, int w, int h)
     }
     //-- if set visual effect rect
 
-    int vw = player->vcodec_context->width ;
-    int vh = player->vcodec_context->height;
+    int vw = player->init_params.video_owidth ;
+    int vh = player->init_params.video_oheight;
     int rw = 0, rh = 0;
     if (!vw || !vh) return;
 
@@ -773,9 +826,6 @@ void player_setparam(void *hplayer, int id, void *param)
             player->vdrect.right - player->vdrect.left,
             player->vdrect.bottom - player->vdrect.top);
         break;
-    case PARAM_VFILTER_ENABLE:
-        player->vfilter_enable = *(int*)param;
-        break;
     default:
         render_setparam(player->render, id, param);
         break;
@@ -819,9 +869,6 @@ void player_getparam(void *hplayer, int id, void *param)
         break;
     case PARAM_RENDER_GET_CONTEXT:
         *(void**)param = player->render;
-        break;
-    case PARAM_VFILTER_ENABLE:
-        *(int*)param = player->vfilter_enable;
         break;
     default:
         render_getparam(player->render, id, param);

@@ -79,10 +79,6 @@ enum {
 
     // player event callback
     PARAM_PLAYER_CALLBACK,
-
-    // avfilter
-    PARAM_AFILTER_ENABLE,
-    PARAM_VFILTER_ENABLE,
     //-- public
 
     //++ for adev
@@ -102,27 +98,34 @@ enum {
 // player event callback
 typedef void (*PFN_PLAYER_CALLBACK)(void *vdev, int32_t msg, int64_t param);
 
+// 初始化参数说明
+// PLAYER_INIT_PARAMS 为播放器初始化参数，在 player_open 时传入，并可获得视频文件打开后的一些参数信息
+// r 表示参数只读，w 表示参数只写，wr 表示参数可配置，但配置是否成功可在 player_open 后读取判断
 typedef struct {
-    int video_width;              // r
-    int video_height;             // r
-    int video_frame_rate;         // r
-    int video_stream_total;       // r
-    int video_stream_cur;         // wr
-    int video_thread_count;       // wr
-    int video_hwaccel;            // wr
+    int video_vwidth;             // r  video actual width
+    int video_vheight;            // r  video actual height
+    int video_owidth;             // r  video output width  (after rotate)
+    int video_oheight;            // r  video output height (after rotate)
+    int video_frame_rate;         // r  视频帧率
+    int video_stream_total;       // r  视频流总数
+    int video_stream_cur;         // wr 当前视频流
+    int video_thread_count;       // wr 视频解码线程数
+    int video_hwaccel;            // wr 视频硬解码使能
+    int video_deinterlace;        // wr 视频反交错使能
+    int video_rotate;             // wr 视频旋转角度
 
-    int audio_channels;           // r
-    int audio_sample_rate;        // r
-    int audio_stream_total;       // r
-    int audio_stream_cur;         // wr
+    int audio_channels;           // r  音频通道数
+    int audio_sample_rate;        // r  音频采样率
+    int audio_stream_total;       // r  音频流总数
+    int audio_stream_cur;         // wr 当前音频流
 
-    int subtitle_stream_total;    // r
-    int subtitle_stream_cur;      // wr
+    int subtitle_stream_total;    // r  字幕流总数
+    int subtitle_stream_cur;      // wr 当前字幕流
 
-    int vdev_render_type;         // w
-    int adev_render_type;         // w
+    int vdev_render_type;         // w  vdev 类型
+    int adev_render_type;         // w  adev 类型
 
-    int init_timeout;             // w
+    int init_timeout;             // w  播放器初始化超时，单位 ms，打开网络流媒体时设置用来防止卡死
 } PLAYER_INIT_PARAMS;
 
 // 函数声明
@@ -178,31 +181,6 @@ player_getparam 获取参数
     hplayer     - 指向 player_open 返回的 player 对象
     id          - 参数 id
     param       - 参数指针
- */
-
-// 初始化参数说明
-/*
-PLAYER_INIT_PARAMS 为播放器初始化参数，在 player_open 时传入，并可获得视频文件打开后的一些参数信息
-    int video_width;              // r  视频宽度
-    int video_height;             // r  视频高度
-    int video_frame_rate;         // r  视频帧率
-    int video_stream_total;       // r  视频流总数
-    int video_stream_cur;         // wr 当前视频流
-    int video_thread_count;       // wr 视频解码线程数
-    int video_hwaccel;            // wr 视频硬解码使能
-
-    int audio_channels;           // r  音频通道数
-    int audio_sample_rate;        // r  音频采样率
-    int audio_stream_total;       // r  音频流总数
-    int audio_stream_cur;         // wr 当前音频流
-
-    int subtitle_stream_total;    // r  字母流总数
-    int subtitle_stream_cur;      // wr 当前字母流
-
-    int vdev_render_type;         // w  vdev 类型
-    int adev_render_type;         // w  adev 类型
-
-    int init_timeout;             // w  播放器初始化超时
  */
 
 // 动态参数说明

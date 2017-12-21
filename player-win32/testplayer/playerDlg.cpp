@@ -27,15 +27,12 @@ static DWORD WINAPI PlayerOpenThreadProc(LPVOID lpParam)
         if (dlg->m_ffPlayer) {
             int param = 0;
             //++ set dynamic player params
-//          param = 150; player_setparam(dlg->m_ffPlayer, PARAM_PLAY_SPEED    , &param);
+//          param = 150; player_setparam(dlg->m_ffPlayer, PARAM_PLAY_SPEED  , &param);
 
             // software volume scale -30dB to 12dB
             // range for volume is [-182, 73]
             // -255 - mute, +255 - max volume, 0 - 0dB
-            param = -0;  player_setparam(dlg->m_ffPlayer, PARAM_AUDIO_VOLUME  , &param);
-
-//          param = 1;   player_setparam(dlg->m_ffPlayer, PARAM_VFILTER_ENABLE, &param);
-            //-- set dynamic player params
+            param = -0;  player_setparam(dlg->m_ffPlayer, PARAM_AUDIO_VOLUME, &param);
         }
         dlg->PostMessageW(MSG_FFPLAYER, dlg->m_ffPlayer ? MSG_OPEN_DONE : MSG_OPEN_FAILED);
     }
@@ -59,6 +56,8 @@ CplayerDlg::CplayerDlg(CWnd* pParent /*=NULL*/)
     memset(&m_Params, 0, sizeof(m_Params));
     m_Params.adev_render_type = ADEV_RENDER_TYPE_WAVEOUT;
     m_Params.vdev_render_type = VDEV_RENDER_TYPE_D3D;
+//  m_Params.video_deinterlace= 1;
+//  m_Params.video_rotate     = 45;
 }
 
 void CplayerDlg::DoDataExchange(CDataExchange* pDX)
