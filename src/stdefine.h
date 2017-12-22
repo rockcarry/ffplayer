@@ -26,6 +26,7 @@
 
 #define MAX_PATH   PATH_MAX
 #define sprintf_s  sprintf
+#define strcpy_s   strcpy
 
 typedef struct {
     long left;

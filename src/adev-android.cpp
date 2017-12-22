@@ -228,10 +228,3 @@ void adev_reset(void *ctxt)
     c->status = 0;
 }
 
-void adev_android_initjni(void *ctxt, JNIEnv *env, jobject obj)
-{
-    DO_USE_VAR(ctxt);
-    DO_USE_VAR(env );
-    DO_USE_VAR(obj );
-}
-

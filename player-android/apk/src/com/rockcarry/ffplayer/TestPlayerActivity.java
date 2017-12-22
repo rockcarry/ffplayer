@@ -23,7 +23,7 @@ import android.widget.Toast;
 import android.util.Log;
 
 public class TestPlayerActivity extends Activity {
-    private player       mPlayer    = null;
+    private MediaPlayer  mPlayer    = null;
     private playerView   mRoot      = null;
     private SurfaceView  mVideo     = null;
     private Surface      mSurface   = null;
@@ -62,7 +62,7 @@ public class TestPlayerActivity extends Activity {
         }
 
         mIsLive = mURL.startsWith("http://") && mURL.endsWith(".m3u8") || mURL.startsWith("rtmp://");
-        mPlayer = new player(mURL, mHandler, "video_hwaccel=1;video_rotate=0");
+        mPlayer = new MediaPlayer(mURL, mHandler, "video_hwaccel=1;video_rotate=0");
 
         mRoot = (playerView)findViewById(R.id.player_root);
         mRoot.setOnSizeChangedListener(new playerView.OnSizeChangedListener() {
@@ -205,7 +205,7 @@ public class TestPlayerActivity extends Activity {
             switch (msg.what) {
             case MSG_UPDATE_PROGRESS: {
                     mHandler.sendEmptyMessageDelayed(MSG_UPDATE_PROGRESS, 200);
-                    int progress = (int)mPlayer.getParam(player.PARAM_MEDIA_POSITION);
+                    int progress = (int)mPlayer.getParam(MediaPlayer.PARAM_MEDIA_POSITION);
                     if (!mIsLive) {
                         if (progress >= 0) mSeek.setProgress(progress);
                     } else {
@@ -230,17 +230,17 @@ public class TestPlayerActivity extends Activity {
                     }
                 }
                 break;
-            case player.MSG_OPEN_DONE: {
-                    mSeek.setMax((int)mPlayer.getParam(player.PARAM_MEDIA_DURATION));
+            case MediaPlayer.MSG_OPEN_DONE: {
+                    mSeek.setMax((int)mPlayer.getParam(MediaPlayer.PARAM_MEDIA_DURATION));
                     testPlayerPlay(true);
                 }
                 break;
-            case player.MSG_OPEN_FAILED: {
+            case MediaPlayer.MSG_OPEN_FAILED: {
                     String str = String.format(getString(R.string.open_video_failed), mURL);
                     Toast.makeText(TestPlayerActivity.this, str, Toast.LENGTH_LONG).show();
                 }
                 break;
-            case player.MSG_PLAY_COMPLETED: {
+            case MediaPlayer.MSG_PLAY_COMPLETED: {
                     if (!mIsLive) finish();
                 }
                 break;

@@ -25,11 +25,6 @@ typedef struct
 
     // android natvie window buffer
     ANativeWindowBuffer **bufs;
-
-    // for jni
-    jobject    jobj_player;
-    jmethodID  jmid_callback;
-    JNIEnv    *thread_jni_env;
 } VDEVCTXT;
 
 // 内部函数实现
@@ -54,7 +49,6 @@ inline int android_pixfmt_to_ffmpeg_pixfmt(int srcfmt)
 static void* video_render_thread_proc(void *param)
 {
     VDEVCTXT *c = (VDEVCTXT*)param;
-    c->thread_jni_env = get_jni_env();
 
     while (1) {
         sem_wait(&c->semr);
@@ -88,7 +82,7 @@ static void* video_render_thread_proc(void *param)
 }
 
 // 接口函数实现
-void* vdev_android_create(void *win, int bufnum, int w, int h, int frate)
+void* vdev_android_create(void *surface, int bufnum, int w, int h, int frate)
 {
     VDEVCTXT *ctxt = (VDEVCTXT*)calloc(1, sizeof(VDEVCTXT));
     if (!ctxt) {
@@ -98,7 +92,7 @@ void* vdev_android_create(void *win, int bufnum, int w, int h, int frate)
 
     // init vdev context
     bufnum          = bufnum ? bufnum : DEF_VDEV_BUF_NUM;
-    ctxt->hwnd      = win;
+    ctxt->surface   = surface;
     ctxt->bufnum    = bufnum;
     ctxt->pixfmt    = android_pixfmt_to_ffmpeg_pixfmt(DEF_WIN_PIX_FMT);
     ctxt->w         = w ? w : 1;
@@ -140,9 +134,6 @@ void vdev_android_destroy(void *ctxt)
     // close semaphore
     sem_destroy(&c->semr);
     sem_destroy(&c->semw);
-
-    // for jni
-    env->DeleteGlobalRef(c->jobj_player);
 
     // free memory
     free(c->ppts);
@@ -220,22 +211,6 @@ void vdev_android_setrect(void *ctxt, int x, int y, int w, int h)
     DO_USE_VAR(y   );
     DO_USE_VAR(w   );
     DO_USE_VAR(h   );
-}
-
-void DEF_PLAYER_CALLBACK_ANDROID(void *ctxt, int32_t msg, int64_t param)
-{
-    if (!ctxt) return;
-    VDEVCTXT *c = (VDEVCTXT*)ctxt;
-    c->thread_jni_env->CallVoidMethod(c->jobj_player, c->jmid_callback, msg, param);
-}
-
-void vdev_android_initjni(void *ctxt, JNIEnv *env, jobject obj)
-{
-    if (!ctxt) return;
-    VDEVCTXT *c = (VDEVCTXT*)ctxt;
-    jclass  cls = env->GetObjectClass(obj);
-    c->jobj_player   = env->NewGlobalRef(obj);
-    c->jmid_callback = env->GetMethodID(cls, "internalPlayerEventCallback", "(IJ)V");
 }
 
 void vdev_android_setwindow(void *ctxt, const sp<IGraphicBufferProducer>& gbp)

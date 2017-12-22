@@ -10,13 +10,6 @@ extern "C" {
 #define COMPLETE_COUNTER  30
 
 // º¯ÊýÊµÏÖ
-#ifdef WIN32
-void DEF_PLAYER_CALLBACK_WINDOWS(void *vdev, int32_t msg, int64_t param) {
-    VDEV_COMMON_CTXT *c = (VDEV_COMMON_CTXT*)vdev;
-    PostMessage((HWND)c->hwnd, MSG_FFPLAYER, msg, 0);
-}
-#endif
-
 void vdev_pause(void *ctxt, int pause)
 {
     VDEV_COMMON_CTXT *c = (VDEV_COMMON_CTXT*)ctxt;
@@ -57,9 +50,6 @@ void vdev_setparam(void *ctxt, int id, void *param)
     case PARAM_VDEV_FRAME_RATE:
         c->tickframe = 1000 / (*(int*)param > 1 ? *(int*)param : 1);
         break;
-    case PARAM_PLAYER_CALLBACK:
-        c->fpcb = (PFN_PLAYER_CALLBACK)param;
-        break;
     case PARAM_AVSYNC_TIME_DIFF:
         c->tickavdiff = *(int*)param;
         break;
@@ -87,11 +77,11 @@ void* vdev_create(int type, void *surface, int bufnum, int w, int h, int frate, 
     VDEV_COMMON_CTXT *c = NULL;
 
     if (p) {
-        surface = p->hwnd;
-        bufnum  = p->bufnum;
-        w       = p->w;
-        h       = p->h;
-        frate   = 1000 / p->tickframe;
+        surface= p->surface;
+        bufnum = p->bufnum;
+        w      = p->w;
+        h      = p->h;
+        frate  = 1000 / p->tickframe;
     }
 
 #ifdef WIN32
@@ -99,11 +89,9 @@ void* vdev_create(int type, void *surface, int bufnum, int w, int h, int frate, 
     case VDEV_RENDER_TYPE_GDI: c = (VDEV_COMMON_CTXT*)vdev_gdi_create(surface, bufnum, w, h, frate); break;
     case VDEV_RENDER_TYPE_D3D: c = (VDEV_COMMON_CTXT*)vdev_d3d_create(surface, bufnum, w, h, frate); break;
     }
-    c->fpcb = DEF_PLAYER_CALLBACK_WINDOWS;
 #endif
 #ifdef ANDROID
     c = (VDEV_COMMON_CTXT*)vdev_android_create(surface, bufnum, w, h, frate);
-    c->fpcb = DEF_PLAYER_CALLBACK_ANDROID;
 #endif
     if (c) c->type = type;
 
@@ -177,12 +165,6 @@ void vdev_setrect(void *ctxt, int x, int y, int w, int h)
 #endif
 }
 
-void vdev_player_event(void *ctxt, int32_t msg, int64_t param)
-{
-    VDEV_COMMON_CTXT *c = (VDEV_COMMON_CTXT*)ctxt;
-    if (c->fpcb) c->fpcb(c, msg, param);
-}
-
 void vdev_refresh_background(void *ctxt)
 {
     VDEV_COMMON_CTXT *c = (VDEV_COMMON_CTXT*)ctxt;
@@ -190,7 +172,7 @@ void vdev_refresh_background(void *ctxt)
     int  x = c->x, y = c->y, w = c->w, h = c->h;
 
 #ifdef WIN32
-    HWND hwnd = (HWND)c->hwnd;
+    HWND hwnd = (HWND)c->surface;
     GetClientRect(hwnd, &rtwin);
     rect1.left = 0;   rect1.top = 0;   rect1.right = rtwin.right; rect1.bottom = y;
     rect2.left = 0;   rect2.top = y;   rect2.right = x;           rect2.bottom = y+h;
@@ -218,7 +200,7 @@ void vdev_handle_complete_and_avsync(void *ctxt)
             c->status &=~VDEV_COMPLETED;
         } else if (++c->completed_counter == COMPLETE_COUNTER) {
             c->status |= VDEV_COMPLETED;
-            vdev_player_event(c, MSG_PLAY_COMPLETED, 0);
+            player_send_message(c->surface, MSG_PLAY_COMPLETED, 0);
         }
         //-- play completed --//
 

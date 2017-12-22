@@ -9,37 +9,6 @@
 #define new DEBUG_NEW
 #endif
 
-static DWORD WINAPI PlayerOpenThreadProc(LPVOID lpParam)
-{
-    CplayerDlg *dlg = (CplayerDlg*)lpParam;
-
-    while (1) {
-        WaitForSingleObject(dlg->m_hEvent, -1);
-
-        // stop player first
-        if (dlg->m_ffPlayer) {
-            player_close(dlg->m_ffPlayer);
-            dlg->m_ffPlayer = NULL;
-        }
-        if (dlg->m_bClose) break;
-
-        dlg->m_ffPlayer = player_open(dlg->m_strUrl, dlg->GetSafeHwnd(), &dlg->m_Params);
-        if (dlg->m_ffPlayer) {
-            int param = 0;
-            //++ set dynamic player params
-//          param = 150; player_setparam(dlg->m_ffPlayer, PARAM_PLAY_SPEED  , &param);
-
-            // software volume scale -30dB to 12dB
-            // range for volume is [-182, 73]
-            // -255 - mute, +255 - max volume, 0 - 0dB
-            param = -0;  player_setparam(dlg->m_ffPlayer, PARAM_AUDIO_VOLUME, &param);
-        }
-        dlg->PostMessageW(MSG_FFPLAYER, dlg->m_ffPlayer ? MSG_OPEN_DONE : MSG_OPEN_FAILED);
-    }
-
-    return 0;
-}
-
 #define TIMER_ID_FIRST_DIALOG  1
 #define TIMER_ID_PROGRESS      2
 
@@ -63,6 +32,12 @@ CplayerDlg::CplayerDlg(CWnd* pParent /*=NULL*/)
 void CplayerDlg::DoDataExchange(CDataExchange* pDX)
 {
     CDialog::DoDataExchange(pDX);
+}
+
+void CplayerDlg::PlayerReset()
+{
+    player_close(m_ffPlayer);
+    m_ffPlayer = player_open(m_strUrl, GetSafeHwnd(), &m_Params);
 }
 
 void CplayerDlg::PlayerOpenFile(TCHAR *file)
@@ -96,9 +71,8 @@ void CplayerDlg::PlayerOpenFile(TCHAR *file)
         m_bLiveStream = FALSE;
     }
 
-    // init player
-    m_bResetPlayer = FALSE;
-    SetEvent(m_hEvent);
+    // reset player
+    PlayerReset();
 }
 
 BEGIN_MESSAGE_MAP(CplayerDlg, CDialog)
@@ -141,10 +115,6 @@ BOOL CplayerDlg::OnInitDialog()
 
     // setup init timer
     SetTimer(TIMER_ID_FIRST_DIALOG, 100, NULL);
-
-    m_bClose  = FALSE;
-    m_hEvent  = CreateEvent (NULL, FALSE, FALSE, NULL);
-    m_hThread = CreateThread(NULL, 0, PlayerOpenThreadProc, this, 0, NULL);
 
     return TRUE;  // return TRUE  unless you set the focus to a control
 }
@@ -204,13 +174,9 @@ void CplayerDlg::OnDestroy()
     CDialog::OnDestroy();
     ReleaseDC(m_pDrawDC);
 
-    // set flag and event
-    // to make player close
-    m_bClose = TRUE;
-    SetEvent(m_hEvent);
-    WaitForSingleObject(m_hThread, -1);
-    CloseHandle(m_hEvent );
-    CloseHandle(m_hThread);
+    // close player
+    player_close(m_ffPlayer);
+    m_ffPlayer = NULL;
 }
 
 void CplayerDlg::OnTimer(UINT_PTR nIDEvent)
@@ -287,6 +253,16 @@ BOOL CplayerDlg::PreTranslateMessage(MSG *pMsg)
         {
         case MSG_OPEN_DONE:
             SetWindowText(TEXT("testplayer"));
+            if (TRUE) { // set player dynamic params
+                int param = 0;
+                //++ set dynamic player params
+//              param = 150; player_setparam(dlg->m_ffPlayer, PARAM_PLAY_SPEED  , &param);
+
+                // software volume scale -30dB to 12dB
+                // range for volume is [-182, 73]
+                // -255 - mute, +255 - max volume, 0 - 0dB
+                param = -0;  player_setparam(m_ffPlayer, PARAM_AUDIO_VOLUME, &param);
+            }
             player_setrect(m_ffPlayer, 0, 0, 0, m_rtClient.right, m_rtClient.bottom - 2);
             player_setrect(m_ffPlayer, 1, 0, 0, m_rtClient.right, m_rtClient.bottom - 2);
             if (m_bResetPlayer) {
@@ -319,7 +295,7 @@ void CplayerDlg::OnAudioStream()
     player_getparam(m_ffPlayer, PARAM_MEDIA_POSITION, &m_llLastPos);
     m_Params.audio_stream_cur++; m_Params.audio_stream_cur %= m_Params.audio_stream_total;
     m_bResetPlayer = TRUE;
-    SetEvent(m_hEvent);
+    PlayerReset();
 }
 
 void CplayerDlg::OnVideoStream()
@@ -327,7 +303,7 @@ void CplayerDlg::OnVideoStream()
     player_getparam(m_ffPlayer, PARAM_MEDIA_POSITION, &m_llLastPos);
     m_Params.video_stream_cur++; m_Params.video_stream_cur %= m_Params.video_stream_total;
     m_bResetPlayer = TRUE;
-    SetEvent(m_hEvent);
+    PlayerReset();
 }
 
 void CplayerDlg::OnVideoMode()
@@ -351,7 +327,7 @@ void CplayerDlg::OnVRenderType()
     player_getparam(m_ffPlayer, PARAM_MEDIA_POSITION, &m_llLastPos);
     m_Params.vdev_render_type++; m_Params.vdev_render_type %= VDEV_RENDER_TYPE_MAX_NUM;
     m_bResetPlayer = TRUE;
-    SetEvent(m_hEvent);
+    PlayerReset();
 }
 
 void CplayerDlg::OnTakeSnapshot()

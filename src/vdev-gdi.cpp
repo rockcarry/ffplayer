@@ -63,7 +63,7 @@ void* vdev_gdi_create(void *surface, int bufnum, int w, int h, int frate)
 
     // init vdev context
     bufnum          = bufnum ? bufnum : DEF_VDEV_BUF_NUM;
-    ctxt->hwnd      = surface;
+    ctxt->surface   = surface;
     ctxt->bufnum    = bufnum;
     ctxt->pixfmt    = AV_PIX_FMT_RGB32;
     ctxt->w         = w;
@@ -84,7 +84,7 @@ void* vdev_gdi_create(void *surface, int bufnum, int w, int h, int frate)
     sem_init(&ctxt->semr, 0, 0     );
     sem_init(&ctxt->semw, 0, bufnum);
 
-    ctxt->hdcdst = GetDC((HWND)ctxt->hwnd);
+    ctxt->hdcdst = GetDC((HWND)ctxt->surface);
     ctxt->hdcsrc = CreateCompatibleDC(ctxt->hdcdst);
     if (!ctxt->ppts || !ctxt->hbitmaps || !ctxt->pbmpbufs || !ctxt->semr || !ctxt->semw || !ctxt->hdcdst || !ctxt->hdcsrc) {
         av_log(NULL, AV_LOG_ERROR, "failed to allocate resources for vdev-gdi !\n");
@@ -108,7 +108,7 @@ void vdev_gdi_destroy(void *ctxt)
 
     //++ for video
     DeleteDC (c->hdcsrc);
-    ReleaseDC((HWND)c->hwnd, c->hdcdst);
+    ReleaseDC((HWND)c->surface, c->hdcdst);
     for (i=0; i<c->bufnum; i++) {
         if (c->hbitmaps[i]) {
             DeleteObject(c->hbitmaps[i]);

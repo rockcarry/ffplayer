@@ -156,10 +156,11 @@ void* render_open(int adevtype, int srate, AVSampleFormat sndfmt, int64_t ch_lay
 
 #ifdef WIN32
     RECT rect; GetClientRect((HWND)surface, &rect);
-    render_setrect (render, 0, rect.left, rect.top, rect.right, rect.bottom);
-    render_setrect (render, 1, rect.left, rect.top, rect.right, rect.bottom);
+    render_setrect(render, 0, rect.left, rect.top, rect.right, rect.bottom);
+    render_setrect(render, 1, rect.left, rect.top, rect.right, rect.bottom);
 #endif
 
+    // set default playback speed
     render_setspeed(render, 100);
     return render;
 }
@@ -284,9 +285,8 @@ void render_video(void *hrender, AVFrame *video)
 
 #if CONFIG_ENABLE_SNAPSHOT
         if (render->render_status & RENDER_SNAPSHOT) {
-            HWND hwnd = (HWND)((VDEV_COMMON_CTXT*)render->vdev)->hwnd;
             int  ret  = take_snapshot(render->snapfile, render->snapwidth, render->snapheight, video);
-            vdev_player_event(render->vdev, MSG_TAKE_SNAPSHOT, 0);
+            player_send_message(((VDEV_COMMON_CTXT*)render->vdev)->surface, MSG_TAKE_SNAPSHOT, 0);
             render->render_status &= ~RENDER_SNAPSHOT;
         }
 #endif
@@ -377,8 +377,8 @@ int render_snapshot(void *hrender, char *file, int w, int h, int waitt)
 
 void render_setparam(void *hrender, int id, void *param)
 {
+    if (!hrender) return;
     RENDER *render = (RENDER*)hrender;
-    if (!render) return;
     switch (id)
     {
     case PARAM_AUDIO_VOLUME:
@@ -401,14 +401,12 @@ void render_setparam(void *hrender, int id, void *param)
     case PARAM_AVSYNC_TIME_DIFF:
         vdev_setparam(render->vdev, PARAM_AVSYNC_TIME_DIFF, param);
         break;
-    case PARAM_PLAYER_CALLBACK:
-        vdev_setparam(render->vdev, PARAM_PLAYER_CALLBACK, param);
-        break;
     }
 }
 
 void render_getparam(void *hrender, int id, void *param)
 {
+    if (!hrender) return;
     RENDER *render = (RENDER*)hrender;
     switch (id)
     {

@@ -76,9 +76,6 @@ enum {
 
     // audio/video sync diff
     PARAM_AVSYNC_TIME_DIFF,
-
-    // player event callback
-    PARAM_PLAYER_CALLBACK,
     //-- public
 
     //++ for adev
@@ -94,9 +91,6 @@ enum {
     PARAM_RENDER_GET_CONTEXT = 0x4000,
     //-- for render
 };
-
-// player event callback
-typedef void (*PFN_PLAYER_CALLBACK)(void *vdev, int32_t msg, int64_t param);
 
 // 初始化参数说明
 // PLAYER_INIT_PARAMS 为播放器初始化参数，在 player_open 时传入，并可获得视频文件打开后的一些参数信息
@@ -129,7 +123,7 @@ typedef struct {
 } PLAYER_INIT_PARAMS;
 
 // 函数声明
-void* player_open    (char *file, void *win, PLAYER_INIT_PARAMS *params);
+void* player_open    (char *file, void *appdata, PLAYER_INIT_PARAMS *params);
 void  player_close   (void *hplayer);
 void  player_play    (void *hplayer);
 void  player_pause   (void *hplayer);
@@ -139,11 +133,14 @@ int   player_snapshot(void *hplayer, char *file, int w, int h, int waitt);
 void  player_setparam(void *hplayer, int id, void *param);
 void  player_getparam(void *hplayer, int id, void *param);
 
+// internal helper function
+void  player_send_message(void *extra, int32_t msg, int64_t param);
+
 // 函数说明
 /*
 player_open     创建一个 player 对象
     file        - 文件路径（可以是网络流媒体的 URL）
-    win         - Win32 的窗口句柄
+    appdata     - win32 平台传入窗口句柄，android 平台传入 MediaPlayer 类对象
     params      - 播放器初始化参数
     返回值      - void* 指针类型，指向 player 对象
 
@@ -239,18 +236,6 @@ PARAM_AVSYNC_TIME_DIFF
 int diff = 100;
 player_setparam(g_hplayer, PARAM_AVSYNC_TIME_DIFF, &diff);
 设置为 100 后，音频将比视频快 100ms，设置为 -100 则慢 100ms
-
-PARAM_PLAYER_CALLBACK
-用于设置播放器事件回调函数，回调函数的原型定义如下：
-typedef void (*PFN_PLAYER_CALLBACK)(void *vdev, __int32 msg, __int64 param);
-回调时的参数定义如下：
-    msg   - PLAY_PROGRESS 播放进行中，PLAY_COMPLETED 播放完成
-    param - 当前播放进度，以毫秒为单位
-（注：建议使用 windows 的消息机制来处理播放器事件，更加安全稳定。
-      只要不使用 PARAM_PLAYER_CALLBACK 的接口，来注册回调函数，
-      ffplayer 会发送 MSG_FFPLAYER 这个消息通知应用程序播放已经
-      完成，而播放进度的显示，建议在窗口中使用定时器机制来查询并
-      显示）
 
 所有的参数，都是可以 get 的，但并不是所有的参数都可以 set，因为有些参数是只读的。
 

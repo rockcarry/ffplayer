@@ -62,10 +62,5 @@ void  swvol_scaler_run (int16_t *buf, int n, int multiplier);
 }
 #endif
 
-#ifdef ANDROID
-#include <jni.h>
-void adev_android_initjni(void *ctxt, JNIEnv *env, jobject obj);
-#endif
-
 #endif
 

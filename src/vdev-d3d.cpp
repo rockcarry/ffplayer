@@ -83,7 +83,7 @@ void* vdev_d3d_create(void *surface, int bufnum, int w, int h, int frate)
 
     // init vdev context
     bufnum          = bufnum ? bufnum : DEF_VDEV_BUF_NUM;
-    ctxt->hwnd      = surface;
+    ctxt->surface   = surface;
     ctxt->bufnum    = bufnum;
     ctxt->w         = w > 1 ? w : 1;
     ctxt->h         = h > 1 ? h : 1;
@@ -118,7 +118,7 @@ void* vdev_d3d_create(void *surface, int bufnum, int w, int h, int frate)
     ctxt->d3dpp.BackBufferHeight      = ctxt->sh;
     ctxt->d3dpp.MultiSampleType       = D3DMULTISAMPLE_NONE;
     ctxt->d3dpp.SwapEffect            = D3DSWAPEFFECT_DISCARD;
-    ctxt->d3dpp.hDeviceWindow         = (HWND)ctxt->hwnd;
+    ctxt->d3dpp.hDeviceWindow         = (HWND)ctxt->surface;
     ctxt->d3dpp.Windowed              = TRUE;
     ctxt->d3dpp.EnableAutoDepthStencil= FALSE;
 #if ENABLE_WAIT_D3D_VSYNC
@@ -127,7 +127,7 @@ void* vdev_d3d_create(void *surface, int bufnum, int w, int h, int frate)
     ctxt->d3dpp.PresentationInterval  = D3DPRESENT_INTERVAL_IMMEDIATE;
 #endif
 
-    if (FAILED(ctxt->pD3D9->CreateDevice(D3DADAPTER_DEFAULT, D3DDEVTYPE_HAL, (HWND)ctxt->hwnd,
+    if (FAILED(ctxt->pD3D9->CreateDevice(D3DADAPTER_DEFAULT, D3DDEVTYPE_HAL, (HWND)ctxt->surface,
                 D3DCREATE_SOFTWARE_VERTEXPROCESSING, &ctxt->d3dpp, &ctxt->pD3DDev)) )
     {
         av_log(NULL, AV_LOG_ERROR, "failed to create d3d device !\n");

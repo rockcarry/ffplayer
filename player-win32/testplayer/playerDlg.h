@@ -29,10 +29,7 @@ protected:
     afx_msg HCURSOR OnQueryDragIcon();
     DECLARE_MESSAGE_MAP()
 
-public:
-    BOOL               m_bClose;
-    HANDLE             m_hEvent;
-    HANDLE             m_hThread;
+private:
     PLAYER_INIT_PARAMS m_Params;
     char               m_strUrl[MAX_PATH];
     void              *m_ffPlayer;
@@ -41,6 +38,7 @@ private:
     LONGLONG m_llLastPos;
     BOOL     m_bResetPlayer;
     BOOL     m_bLiveStream;
+    void PlayerReset();
     void PlayerOpenFile(TCHAR *file);
 
 private:

@@ -27,7 +27,7 @@ extern "C" {
     int       sw;  /* surface width        */ \
     int       sh;  /* surface height       */ \
                                               \
-    void     *hwnd;                           \
+    void     *surface;                        \
     int64_t  *ppts;                           \
     int64_t   apts;                           \
     int64_t   vpts;                           \
@@ -48,9 +48,7 @@ extern "C" {
     int       completed_counter;              \
     int64_t   completed_apts;                 \
     int64_t   completed_vpts;                 \
-    int       refresh_flag;                   \
-                                              \
-    PFN_PLAYER_CALLBACK fpcb;
+    int       refresh_flag;
 //-- vdev context common members
 
 // 类型定义
@@ -93,13 +91,12 @@ void  vdev_getavpts(void *ctxt, int64_t **ppapts, int64_t **ppvpts);
 void  vdev_setparam(void *ctxt, int id, void *param);
 void  vdev_getparam(void *ctxt, int id, void *param);
 
-void* vdev_create  (int type, void *surface, int bufnum, int w, int h, int frate, void *params);
+void* vdev_create  (int type, void *app, int bufnum, int w, int h, int frate, void *params);
 void  vdev_destroy (void *ctxt);
 void  vdev_dequeue (void *ctxt, uint8_t *buffer[8], int linesize[8]);
 void  vdev_enqueue (void *ctxt, int64_t pts);
 void  vdev_setrect (void *ctxt, int x, int y, int w, int h);
 
-void  vdev_player_event(void *ctxt, int32_t msg, int64_t param);
 void  vdev_refresh_background(void *ctxt);
 void  vdev_handle_complete_and_avsync(void *ctxt);
 
@@ -112,8 +109,6 @@ void  vdev_handle_complete_and_avsync(void *ctxt);
 #include <gui/Surface.h>
 #include <ui/GraphicBufferMapper.h>
 using namespace android;
-void vdev_android_default_player_callback(void *ctxt, int32_t msg, int64_t param);
-void vdev_android_initjni  (void *ctxt, JNIEnv *env, jobject obj);
 void vdev_android_setwindow(void *ctxt, const sp<IGraphicBufferProducer>& gbp);
 #endif
 

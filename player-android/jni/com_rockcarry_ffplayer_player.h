@@ -2,8 +2,8 @@
 #include <jni.h>
 /* Header for class com_rockcarry_ffplayer_player */
 
-#ifndef _Included_com_rockcarry_ffplayer_player
-#define _Included_com_rockcarry_ffplayer_player
+#ifndef _Included_com_rockcarry_ffplayer_MediaPlayer
+#define _Included_com_rockcarry_ffplayer_MediaPlayer
 
 
 extern JavaVM *g_jvm;
@@ -14,98 +14,79 @@ JNIEXPORT JNIEnv* get_jni_env(void);
 #ifdef __cplusplus
 extern "C" {
 #endif
-
 /*
- * Class:     com_rockcarry_ffplayer_player
- * Method:    nativeInitJniObject
- * Signature: (J)V
- */
-JNIEXPORT void JNICALL Java_com_rockcarry_ffplayer_player_nativeInitJniObject
-  (JNIEnv *, jobject, jlong);
-
-/*
- * Class:     com_rockcarry_ffplayer_player
+ * Class:     com_rockcarry_ffplayer_MediaPlayer
  * Method:    nativeOpen
  * Signature: (Ljava/lang/String;Ljava/lang/Object;IILjava/lang/String;)J
  */
-JNIEXPORT jlong JNICALL Java_com_rockcarry_ffplayer_player_nativeOpen
-  (JNIEnv *, jclass, jstring, jobject, jint, jint, jstring);
+JNIEXPORT jlong JNICALL Java_com_rockcarry_ffplayer_MediaPlayer_nativeOpen
+  (JNIEnv *, jobject, jstring, jobject, jint, jint, jstring);
 
 /*
- * Class:     com_rockcarry_ffplayer_player
+ * Class:     com_rockcarry_ffplayer_MediaPlayer
  * Method:    nativeClose
  * Signature: (J)V
  */
-JNIEXPORT void JNICALL Java_com_rockcarry_ffplayer_player_nativeClose
-  (JNIEnv *, jclass, jlong);
+JNIEXPORT void JNICALL Java_com_rockcarry_ffplayer_MediaPlayer_nativeClose
+  (JNIEnv *, jobject, jlong);
 
 /*
- * Class:     com_rockcarry_ffplayer_player
+ * Class:     com_rockcarry_ffplayer_MediaPlayer
  * Method:    nativePlay
  * Signature: (J)V
  */
-JNIEXPORT void JNICALL Java_com_rockcarry_ffplayer_player_nativePlay
-  (JNIEnv *, jclass, jlong);
+JNIEXPORT void JNICALL Java_com_rockcarry_ffplayer_MediaPlayer_nativePlay
+  (JNIEnv *, jobject, jlong);
 
 /*
- * Class:     com_rockcarry_ffplayer_player
+ * Class:     com_rockcarry_ffplayer_MediaPlayer
  * Method:    nativePause
  * Signature: (J)V
  */
-JNIEXPORT void JNICALL Java_com_rockcarry_ffplayer_player_nativePause
-  (JNIEnv *, jclass, jlong);
+JNIEXPORT void JNICALL Java_com_rockcarry_ffplayer_MediaPlayer_nativePause
+  (JNIEnv *, jobject, jlong);
 
 /*
- * Class:     com_rockcarry_ffplayer_player
+ * Class:     com_rockcarry_ffplayer_MediaPlayer
  * Method:    nativeSeek
  * Signature: (JJ)V
  */
-JNIEXPORT void JNICALL Java_com_rockcarry_ffplayer_player_nativeSeek
-  (JNIEnv *, jclass, jlong, jlong);
+JNIEXPORT void JNICALL Java_com_rockcarry_ffplayer_MediaPlayer_nativeSeek
+  (JNIEnv *, jobject, jlong, jlong);
 
 /*
- * Class:     com_rockcarry_ffplayer_player
+ * Class:     com_rockcarry_ffplayer_MediaPlayer
  * Method:    nativeSetParam
  * Signature: (JIJ)V
  */
-JNIEXPORT void JNICALL Java_com_rockcarry_ffplayer_player_nativeSetParam
-  (JNIEnv *, jclass, jlong, jint, jlong);
+JNIEXPORT void JNICALL Java_com_rockcarry_ffplayer_MediaPlayer_nativeSetParam
+  (JNIEnv *, jobject, jlong, jint, jlong);
 
 /*
- * Class:     com_rockcarry_ffplayer_player
+ * Class:     com_rockcarry_ffplayer_MediaPlayer
  * Method:    nativeGetParam
  * Signature: (JI)J
  */
-JNIEXPORT jlong JNICALL Java_com_rockcarry_ffplayer_player_nativeGetParam
-  (JNIEnv *, jclass, jlong, jint);
+JNIEXPORT jlong JNICALL Java_com_rockcarry_ffplayer_MediaPlayer_nativeGetParam
+  (JNIEnv *, jobject, jlong, jint);
 
 /*
- * Class:     com_rockcarry_ffplayer_player
+ * Class:     com_rockcarry_ffplayer_MediaPlayer
  * Method:    nativeSetDisplaySurface
  * Signature: (JLjava/lang/Object;)V
  */
-JNIEXPORT void JNICALL Java_com_rockcarry_ffplayer_player_nativeSetDisplaySurface
-  (JNIEnv *, jclass, jlong, jobject);
+JNIEXPORT void JNICALL Java_com_rockcarry_ffplayer_MediaPlayer_nativeSetDisplaySurface
+  (JNIEnv *, jobject, jlong, jobject);
 
 /*
- * Class:     com_rockcarry_ffplayer_player
+ * Class:     com_rockcarry_ffplayer_MediaPlayer
  * Method:    nativeSetDisplayTexture
  * Signature: (JLjava/lang/Object;)V
  */
-JNIEXPORT void JNICALL Java_com_rockcarry_ffplayer_player_nativeSetDisplayTexture
-  (JNIEnv *, jclass, jlong, jobject);
-
-/*
- * Class:     com_rockcarry_ffplayer_player
- * Method:    nativeEnableCallback
- * Signature: (JI)V
- */
-JNIEXPORT void JNICALL Java_com_rockcarry_ffplayer_player_nativeEnableCallback
-  (JNIEnv *, jclass, jlong, jint);
-
+JNIEXPORT void JNICALL Java_com_rockcarry_ffplayer_MediaPlayer_nativeSetDisplayTexture
+  (JNIEnv *, jobject, jlong, jobject);
 
 #ifdef __cplusplus
 }
 #endif
-
 #endif
