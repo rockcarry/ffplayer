@@ -28,14 +28,14 @@ public final class MediaPlayer
 
     public MediaPlayer(String url, Handler h, String params) {
         mPlayerMsgHandler = h;
-        open(url, false, params);
+        open(url, params);
     }
 
     protected void finalize() {
         close();
     }
 
-    public boolean open(String url, boolean sync, String params) {
+    public boolean open(String url, String params) {
         nativeClose(m_hPlayer);
         m_hPlayer = nativeOpen(url, null, 0, 0, params);
         return m_hPlayer != 0 ? true : false;
