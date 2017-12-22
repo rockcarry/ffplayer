@@ -756,7 +756,7 @@ void player_close(void *hplayer)
 
     // set close flag
     player->player_status |= PS_CLOSE;
-    if (player->render) render_start(player->render);
+    render_start(player->render);
 
     // wait audio/video demuxing thread exit
     pthread_join(player->avdemux_thread, NULL);

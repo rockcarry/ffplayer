@@ -295,6 +295,7 @@ void render_video(void *hrender, AVFrame *video)
 
 void render_setrect(void *hrender, int type, int x, int y, int w, int h)
 {
+    if (!hrender) return;
     RENDER *render = (RENDER*)hrender;
     switch (type) {
     case 0:
@@ -316,6 +317,7 @@ void render_setrect(void *hrender, int type, int x, int y, int w, int h)
 
 void render_start(void *hrender)
 {
+    if (!hrender) return;
     RENDER *render = (RENDER*)hrender;
     render->render_status &=~RENDER_PAUSE;
     adev_pause(render->adev, 0);
@@ -324,6 +326,7 @@ void render_start(void *hrender)
 
 void render_pause(void *hrender)
 {
+    if (!hrender) return;
     RENDER *render = (RENDER*)hrender;
     render->render_status |= RENDER_PAUSE;
     adev_pause(render->adev, 1);
@@ -332,6 +335,7 @@ void render_pause(void *hrender)
 
 void render_reset(void *hrender)
 {
+    if (!hrender) return;
     RENDER *render = (RENDER*)hrender;
     adev_reset(render->adev);
     vdev_reset(render->vdev);
