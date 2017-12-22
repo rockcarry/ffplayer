@@ -79,10 +79,6 @@ typedef struct {
 // 内部常量定义
 static const AVRational TIMEBASE_MS = { 1, 1000 };
 
-// 内部函数声明
-static void* audio_decode_thread_proc(void *param);
-static void* video_decode_thread_proc(void *param);
-
 // 内部函数实现
 static void avlog_callback(void* ptr, int level, const char *fmt, va_list vl) {
     DO_USE_VAR(ptr);
@@ -435,10 +431,6 @@ static int player_prepare(PLAYER *player)
     player->init_params.audio_stream_cur     = player->astream_index;
     player->init_params.subtitle_stream_total= get_stream_total(player, AVMEDIA_TYPE_SUBTITLE);
     player->init_params.subtitle_stream_cur  = -1;
-
-    // create audio & video decode thread
-    pthread_create(&player->adecode_thread, NULL, audio_decode_thread_proc, player);
-    pthread_create(&player->vdecode_thread, NULL, video_decode_thread_proc, player);
     ret = 0; // prepare ok
 
 done:
@@ -732,10 +724,10 @@ void* player_open(char *file, void *appdata, PLAYER_INIT_PARAMS *params)
 
     // make sure player status paused
     player->player_status = (PS_A_PAUSE|PS_V_PAUSE|PS_R_PAUSE);
-    pthread_create(&player->avdemux_thread, NULL, av_demux_thread_proc, player);
-
-    // return
-    return player;
+    pthread_create(&player->avdemux_thread, NULL, av_demux_thread_proc    , player);
+    pthread_create(&player->adecode_thread, NULL, audio_decode_thread_proc, player);
+    pthread_create(&player->vdecode_thread, NULL, video_decode_thread_proc, player);
+    return player; // return
 
 error_handler:
     player_close(player);
