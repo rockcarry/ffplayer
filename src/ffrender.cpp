@@ -205,7 +205,7 @@ void render_audio(void *hrender, AVFrame *audio)
     int     sampnum = 0;
     int64_t apts    = audio->pts;
 
-    if (!render->adev) return;
+    if (!render || !render->adev) return;
     do {
         if (render->adev_buf_avail == 0) {
             adev_dequeue(render->adev, &render->adev_hdr_cur);
@@ -251,7 +251,7 @@ void render_video(void *hrender, AVFrame *video)
     // init picture
     memset(&picture, 0, sizeof(AVFrame));
 
-    if (!render->vdev) return;
+    if (!render || !render->vdev) return;
     do {
         if (  render->render_xcur != render->render_xnew
            || render->render_ycur != render->render_ynew
