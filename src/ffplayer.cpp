@@ -436,7 +436,7 @@ static int player_prepare(PLAYER *player)
 done:
     // send player init message
     player_send_message(player->appdata, ret ? MSG_OPEN_FAILED : MSG_OPEN_DONE, 0);
-    return 0;
+    return ret;
 }
 
 static void player_handle_fseek_flag(PLAYER *player)
