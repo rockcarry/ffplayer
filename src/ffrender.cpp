@@ -7,6 +7,7 @@
 #include "vdev.h"
 
 extern "C" {
+#include "libavutil/time.h"
 #include "libswresample/swresample.h"
 #include "libswscale/swscale.h"
 }
@@ -107,7 +108,7 @@ static void* render_veffect_thread(void *param)
                 render->veffect_w, render->veffect_h,
                 render->veffect_type, buf, len);
         }
-        usleep(timeus);
+        av_usleep(timeus);
     }
     return NULL;
 }
@@ -285,7 +286,7 @@ void render_video(void *hrender, AVFrame *video)
 
 #if CONFIG_ENABLE_SNAPSHOT
         if (render->render_status & RENDER_SNAPSHOT) {
-            int  ret  = take_snapshot(render->snapfile, render->snapwidth, render->snapheight, video);
+            int ret = take_snapshot(render->snapfile, render->snapwidth, render->snapheight, video);
             player_send_message(((VDEV_COMMON_CTXT*)render->vdev)->surface, MSG_TAKE_SNAPSHOT, 0);
             render->render_status &= ~RENDER_SNAPSHOT;
         }
@@ -371,7 +372,7 @@ int render_snapshot(void *hrender, char *file, int w, int h, int waitt)
     if (waitt > 0) {
         int retry = waitt / 10;
         while ((render->render_status & RENDER_SNAPSHOT) && retry--) {
-            usleep(10 * 1000);
+            av_usleep(10 * 1000);
         }
     }
 #endif

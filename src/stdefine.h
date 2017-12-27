@@ -8,9 +8,6 @@
 #include <windows.h>
 #include <inttypes.h>
 
-// usleep
-#define usleep(us)  Sleep((us)/1000)
-
 // configs
 #define CONFIG_ENABLE_VEFFECT   1
 #define CONFIG_ENABLE_SNAPSHOT  1

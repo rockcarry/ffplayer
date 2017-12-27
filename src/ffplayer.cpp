@@ -99,7 +99,7 @@ static int interrupt_callback(void *param)
 {
     PLAYER *player = (PLAYER*)param;
     if (player->init_timeout == -1) return 0;
-    return av_gettime() - player->init_timetick > player->init_timeout ? AVERROR_EOF : 0;
+    return av_gettime_relative() - player->init_timetick > player->init_timeout ? AVERROR_EOF : 0;
 }
 
 //++ for filter graph
@@ -449,7 +449,7 @@ static void player_handle_fseek_flag(PLAYER *player)
     player->player_status |= PAUSE_REQ;
     player->player_status &=~PAUSE_ACK;
     // wait for pause done
-    while ((player->player_status & PAUSE_ACK) != PAUSE_ACK) usleep(20*1000);
+    while ((player->player_status & PAUSE_ACK) != PAUSE_ACK) av_usleep(20*1000);
 
     // seek frame
     av_seek_frame(player->avformat_context, -1, player->seek_dest / 1000 * AV_TIME_BASE, AVSEEK_FLAG_BACKWARD);
@@ -491,13 +491,13 @@ static void* av_demux_thread_proc(void *param)
         //-- when demux pause --//
 
         packet = pktqueue_write_dequeue(player->pktqueue);
-        if (packet == NULL) { usleep(20*1000); continue; }
+        if (packet == NULL) { av_usleep(20*1000); continue; }
 
         retv = av_read_frame(player->avformat_context, packet);
         if (retv < 0) {
             av_packet_unref(packet); // free packet
             pktqueue_write_cancel(player->pktqueue, packet);
-            usleep(20*1000); continue;
+            av_usleep(20*1000); continue;
         }
 
         // audio
@@ -541,7 +541,7 @@ static void* audio_decode_thread_proc(void *param)
         //++ when audio decode pause ++//
         if (player->player_status & PS_A_PAUSE) {
             player->player_status |= (PS_A_PAUSE << 16);
-            usleep(20*1000); continue;
+            av_usleep(20*1000); continue;
         }
         //-- when audio decode pause --//
 
@@ -549,7 +549,7 @@ static void* audio_decode_thread_proc(void *param)
         packet = pktqueue_read_dequeue_a(player->pktqueue);
         if (packet == NULL) {
 //          render_audio(player->render, aframe);
-            usleep(20*1000); continue;
+            av_usleep(20*1000); continue;
         }
 
         //++ decode audio packet ++//
@@ -614,7 +614,7 @@ static void* video_decode_thread_proc(void *param)
         //++ when video decode pause ++//
         if (player->player_status & PS_V_PAUSE) {
             player->player_status |= (PS_V_PAUSE << 16);
-            usleep(20*1000); continue;
+            av_usleep(20*1000); continue;
         }
         //-- when video decode pause --//
 
@@ -622,7 +622,7 @@ static void* video_decode_thread_proc(void *param)
         packet = pktqueue_read_dequeue_v(player->pktqueue);
         if (packet == NULL) {
             render_video(player->render, vframe);
-            usleep(20*1000); continue;
+            av_usleep(20*1000); continue;
         }
 
         //++ decode video packet ++//
@@ -707,7 +707,7 @@ void* player_open(char *file, void *appdata, PLAYER_INIT_PARAMS *params)
         if (!player->avformat_context) goto error_handler;
         player->avformat_context->interrupt_callback.callback = interrupt_callback;
         player->avformat_context->interrupt_callback.opaque   = player;
-        player->init_timetick = av_gettime();
+        player->init_timetick = av_gettime_relative();
         player->init_timeout  = player->init_params.init_timeout * 1000;
     }
     //-- for player init timeout

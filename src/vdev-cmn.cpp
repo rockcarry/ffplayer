@@ -205,7 +205,7 @@ void vdev_handle_complete_and_avsync(void *ctxt)
         //-- play completed --//
 
         //++ frame rate & av sync control ++//
-        tickcur      = av_gettime() / 1000;
+        tickcur      = av_gettime_relative() / 1000;
         tickdiff     = (int)(tickcur - c->ticklast);
         avdiff       = (int)(c->apts - c->vpts - c->tickavdiff);
         c->ticklast  = tickcur;
@@ -223,6 +223,6 @@ void vdev_handle_complete_and_avsync(void *ctxt)
         c->ticksleep = c->tickframe;
     }
 
-    if (c->ticksleep > 0) usleep(c->ticksleep * 1000);
+    if (c->ticksleep > 0) av_usleep(c->ticksleep * 1000);
     av_log(NULL, AV_LOG_INFO, "d: %3d, s: %3d\n", avdiff, c->ticksleep);
 }
