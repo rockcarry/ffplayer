@@ -199,10 +199,6 @@
 				>
 			</File>
 			<File
-				RelativePath="..\..\src\fft.cpp"
-				>
-			</File>
-			<File
 				RelativePath="..\..\src\pktqueue.cpp"
 				>
 			</File>
@@ -242,10 +238,6 @@
 			</File>
 			<File
 				RelativePath="..\..\src\ffrender.h"
-				>
-			</File>
-			<File
-				RelativePath="..\..\src\fft.h"
 				>
 			</File>
 			<File
