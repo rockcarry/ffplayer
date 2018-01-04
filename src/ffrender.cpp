@@ -70,6 +70,7 @@ typedef struct
     #define RENDER_CLOSE    (1 << 0)
     #define RENDER_PAUSE    (1 << 1)
     #define RENDER_SNAPSHOT (1 << 2)  // take snapshot
+    #define RENDER_SEEKSTEP (1 << 3)  // seek step
     int            render_status;
 
 #if CONFIG_ENABLE_SNAPSHOT
@@ -291,6 +292,13 @@ void render_video(void *hrender, AVFrame *video)
             render->render_status &= ~RENDER_SNAPSHOT;
         }
 #endif
+
+        //++ seek step
+        if (render->render_status & RENDER_SEEKSTEP) {
+            render->render_status &= ~RENDER_SEEKSTEP;
+            break;
+        }
+        //-- seek step
     } while (render->render_status & RENDER_PAUSE);
 }
 
@@ -405,6 +413,9 @@ void render_setparam(void *hrender, int id, void *param)
 #endif
     case PARAM_AVSYNC_TIME_DIFF:
         vdev_setparam(render->vdev, PARAM_AVSYNC_TIME_DIFF, param);
+        break;
+    case PARAM_RENDER_SEEK_STEP:
+        render->render_status |= RENDER_SEEKSTEP;
         break;
     }
 }

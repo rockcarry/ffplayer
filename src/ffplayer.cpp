@@ -53,7 +53,6 @@ typedef struct {
     #define PS_CLOSE      (1 << 6)  // close player
     int              player_status; // bits[18:16] used for seek type
     int64_t          seek_dest;
-    int64_t          seek_type;
     int64_t          start_pts;
 
     pthread_t        avdemux_thread;
@@ -460,12 +459,10 @@ static void player_handle_fseek_flag(PLAYER *player)
     render_reset  (player->render  ); // reset render
 
     //++ seek to dest pts
-    if (player->seek_type) {
-        int SEEK_REQ = 0;
-        if (player->astream_index != -1) SEEK_REQ |= PS_A_SEEK;
-        if (player->vstream_index != -1) SEEK_REQ |= PS_V_SEEK;
-        player->player_status |= SEEK_REQ;
-    }
+    int SEEK_REQ = 0;
+    if (player->astream_index != -1) SEEK_REQ |= PS_A_SEEK;
+    if (player->vstream_index != -1) SEEK_REQ |= PS_V_SEEK;
+    player->player_status |= SEEK_REQ;
     //-- seek to dest pts
 
     // make audio & video decoding thread resume
@@ -835,12 +832,19 @@ void player_setrect(void *hplayer, int type, int x, int y, int w, int h)
 void player_seek(void *hplayer, int64_t ms, int type)
 {
     if (!hplayer) return;
-    PLAYER *player    = (PLAYER*)hplayer;
-    int64_t startpts  = 0;
+    PLAYER *player   = (PLAYER*)hplayer;
+    int64_t startpts = 0;
 
-    // get start pts
+    //++ seek step
+    if (type == SEEK_STEP) {
+        render_pause(player->render);
+        render_setparam(player->render, PARAM_RENDER_SEEK_STEP, NULL);
+        return;
+    }
+    //-- seek step
+
+    // set seek_dest
     player->seek_dest = player->start_pts + ms;
-    player->seek_type = type;
 
     // make render run first
     render_start(player->render);
