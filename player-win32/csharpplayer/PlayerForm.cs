@@ -12,7 +12,7 @@ namespace csharpplayer
     public partial class PlayerForm : Form
     {
         [DllImport("ffplayer.dll", EntryPoint = "player_open")]
-        static extern IntPtr player_open(string file, IntPtr hwnd);
+        static extern IntPtr player_open(string file, IntPtr hwnd, IntPtr configs);
 
         [DllImport("ffplayer.dll", EntryPoint = "player_close")]
         static extern void player_close(IntPtr player);
@@ -47,7 +47,7 @@ namespace csharpplayer
 
         private void PlayerForm_Load(object sender, EventArgs e)
         {
-            mPlayer = player_open("c:\\test.mp4", this.Handle);
+            mPlayer = player_open("c:\\test.mp4", this.Handle, (IntPtr)0);
             player_play(mPlayer);
         }
 
