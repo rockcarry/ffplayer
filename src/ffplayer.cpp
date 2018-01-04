@@ -936,4 +936,45 @@ void player_send_message(void *extra, int32_t msg, int64_t param) {
 #endif
 }
 
+//++ load player init params from string
+static int parse_params(const char *str, const char *key)
+{
+    char  t[12];
+    char *p = (char*)strstr(str, key);
+    int   i;
 
+    if (!p) return 0;
+    p += strlen(key);
+    if (*p == '\0') return 0;
+
+    while (1) {
+        if (*p != ' ' && *p != '=' && *p != ':') break;
+        else p++;
+    }
+
+    for (i=0; i<12; i++) {
+        if (*p == ',' || *p == ';' || *p == '\n' || *p == '\0') {
+            t[i] = '\0';
+            break;
+        } else {
+            t[i] = *p++;
+        }
+    }
+    t[11] = '\0';
+    return atoi(t);
+}
+
+void player_load_init_params(PLAYER_INIT_PARAMS *params, char *str)
+{
+    params->video_stream_cur    = parse_params(str, "video_stream_cur"   );
+    params->video_thread_count  = parse_params(str, "video_thread_count" );
+    params->video_hwaccel       = parse_params(str, "video_hwaccel"      );
+    params->video_deinterlace   = parse_params(str, "video_deinterlace"  );
+    params->video_rotate        = parse_params(str, "video_rotate"       );
+    params->audio_stream_cur    = parse_params(str, "audio_stream_cur"   );
+    params->subtitle_stream_cur = parse_params(str, "subtitle_stream_cur");
+    params->vdev_render_type    = parse_params(str, "vdev_render_type"   );
+    params->adev_render_type    = parse_params(str, "adev_render_type"   );
+    params->init_timeout        = parse_params(str, "init_timeout"       );
+}
+//-- load player init params from string
