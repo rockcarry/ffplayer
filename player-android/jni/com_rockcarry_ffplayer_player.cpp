@@ -96,7 +96,7 @@ JNIEXPORT jlong JNICALL Java_com_rockcarry_ffplayer_MediaPlayer_nativeOpen
     memset(&playerparams, 0, sizeof(playerparams));
     if (params != NULL) {
         const char *strparams = env->GetStringUTFChars(params, NULL);
-        player_load_init_params(&playerparams, strparams);
+        player_load_init_params(&playerparams, (char*)strparams);
         env->ReleaseStringUTFChars(params, strparams);
     }
 
