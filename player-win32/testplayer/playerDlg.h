@@ -59,4 +59,5 @@ public:
     afx_msg void   OnEffectMode();
     afx_msg void   OnVRenderType();
     afx_msg void   OnTakeSnapshot();
+    afx_msg void   OnStepForward();
 };

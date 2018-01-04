@@ -145,13 +145,14 @@ END
 
 IDR_ACCELERATOR1 ACCELERATORS 
 BEGIN
-    "O",            ID_OPEN_FILE,           VIRTKEY, CONTROL, NOINVERT
     "A",            ID_AUDIO_STREAM,        VIRTKEY, CONTROL, NOINVERT
-    "V",            ID_VIDEO_STREAM,        VIRTKEY, CONTROL, NOINVERT
-    "M",            ID_VIDEO_MODE,          VIRTKEY, CONTROL, NOINVERT
     "E",            ID_EFFECT_MODE,         VIRTKEY, CONTROL, NOINVERT
-    "R",            ID_VRENDER_TYPE,        VIRTKEY, CONTROL, NOINVERT
+    "O",            ID_OPEN_FILE,           VIRTKEY, CONTROL, NOINVERT
     "S",            ID_TAKE_SNAPSHOT,       VIRTKEY, CONTROL, NOINVERT
+    "M",            ID_VIDEO_MODE,          VIRTKEY, CONTROL, NOINVERT
+    "V",            ID_VIDEO_STREAM,        VIRTKEY, CONTROL, NOINVERT
+    "R",            ID_VRENDER_TYPE,        VIRTKEY, CONTROL, NOINVERT
+    "F",            ID_STEP_FORWARD,        VIRTKEY, CONTROL, NOINVERT
 END
 
 #endif    // Chinese (P.R.C.) resources

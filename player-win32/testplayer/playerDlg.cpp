@@ -90,6 +90,7 @@ BEGIN_MESSAGE_MAP(CplayerDlg, CDialog)
     ON_COMMAND(ID_AUDIO_STREAM , &CplayerDlg::OnAudioStream )
     ON_COMMAND(ID_VIDEO_STREAM , &CplayerDlg::OnVideoStream )
     ON_COMMAND(ID_TAKE_SNAPSHOT, &CplayerDlg::OnTakeSnapshot)
+    ON_COMMAND(ID_STEP_FORWARD , &CplayerDlg::OnStepForward )
 END_MESSAGE_MAP()
 
 
@@ -335,5 +336,10 @@ void CplayerDlg::OnTakeSnapshot()
     player_snapshot(m_ffPlayer, "snapshot.jpg", 0, 0, 1000);
 }
 
+void CplayerDlg::OnStepForward()
+{
+    player_seek(m_ffPlayer, 0, SEEK_STEP);
+    m_bPlayPause = TRUE;
+}
 
 

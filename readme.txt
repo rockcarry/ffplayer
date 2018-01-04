@@ -24,6 +24,8 @@ features
 8. support dshow, gdigrab and vfwcap (avdevice of ffmpeg)
 9. take video snapshot, support save into jpeg and png
 10.very fast (async) seek operation taking 0ms delay
+11.support video rotation by ffmpeg avfilter
+12.support step seek forward operation
 
 
 testplayer
@@ -37,6 +39,7 @@ ctrl+R - switch between gdi and d3d
 ctrl+A - switch audio stream
 ctrl+V - switch video stream
 ctrl+S - take a snapshot of video
+ctrl+F - step seek forward
 
 
 want to learn more?
