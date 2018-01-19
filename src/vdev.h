@@ -48,7 +48,11 @@ extern "C" {
     int       completed_counter;              \
     int64_t   completed_apts;                 \
     int64_t   completed_vpts;                 \
-    int       refresh_flag;
+    int       refresh_flag;                   \
+                                              \
+    /* used to sync video to system clock */  \
+    int64_t   start_pts;                      \
+    int64_t   start_tick;
 //-- vdev context common members
 
 // 类型定义

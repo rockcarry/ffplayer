@@ -15,10 +15,13 @@ void vdev_pause(void *ctxt, int pause)
     VDEV_COMMON_CTXT *c = (VDEV_COMMON_CTXT*)ctxt;
     if (pause) {
         c->status |=  VDEV_PAUSE;
-    }
-    else {
+    } else {
         c->status &= ~VDEV_PAUSE;
     }
+
+    // set AV_NOPTS_VALUE to triger re-calculating of
+    // start_pts & start_tick in video rendering thread
+    c->start_pts = AV_NOPTS_VALUE;
 }
 
 void vdev_reset(void *ctxt)
@@ -188,7 +191,7 @@ void vdev_refresh_background(void *ctxt)
 void vdev_handle_complete_and_avsync(void *ctxt)
 {
     VDEV_COMMON_CTXT *c = (VDEV_COMMON_CTXT*)ctxt;
-    int     tickdiff, avdiff = -1;
+    int     tickdiff, scdiff, avdiff = -1;
     int64_t tickcur;
 
     if (!(c->status & VDEV_PAUSE)) {
@@ -207,10 +210,20 @@ void vdev_handle_complete_and_avsync(void *ctxt)
         //++ frame rate & av sync control ++//
         tickcur      = av_gettime_relative() / 1000;
         tickdiff     = (int)(tickcur - c->ticklast);
-        avdiff       = (int)(c->apts - c->vpts - c->tickavdiff);
         c->ticklast  = tickcur;
-        if (tickdiff - c->tickframe >  2) c->ticksleep--;
-        if (tickdiff - c->tickframe < -2) c->ticksleep++;
+
+        // re-calculate start_pts & start_tick if needed
+        if (c->start_pts == AV_NOPTS_VALUE) {
+            c->start_pts = c->vpts;
+            c->start_tick= tickcur;
+        }
+
+        avdiff = (int)(c->apts - c->vpts - c->tickavdiff); // diff between audio and video pts
+        scdiff = (int)(c->start_pts + tickcur - c->start_tick - c->vpts - c->tickavdiff); // diff between system clock and video pts
+        if (abs(avdiff - scdiff) > 5000) avdiff = scdiff;
+
+        if (tickdiff - c->tickframe >  5) c->ticksleep--;
+        if (tickdiff - c->tickframe < -5) c->ticksleep++;
         if (c->apts != -1 && c->vpts != -1) {
                  if (avdiff >  500) c->ticksleep -= 3;
             else if (avdiff >  50 ) c->ticksleep -= 1;
