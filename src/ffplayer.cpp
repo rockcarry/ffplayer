@@ -51,7 +51,9 @@ typedef struct {
     #define PS_A_SEEK     (1 << 4)  // seek audio
     #define PS_V_SEEK     (1 << 5)  // seek video
     #define PS_CLOSE      (1 << 6)  // close player
-    int              player_status; // bits[18:16] used for seek type
+    #define PS_A_DISABLE  (1 << 7)  // disable audio decoding
+    #define PS_V_DISABLE  (1 << 8)  // disable video decoding
+    int              player_status;
     int64_t          seek_dest;
     int64_t          start_pts;
 
@@ -551,7 +553,7 @@ static void* audio_decode_thread_proc(void *param)
 
         //++ decode audio packet ++//
         apts = -1; // make it -1
-        while (packet->size > 0 && !(player->player_status & (PS_A_PAUSE|PS_CLOSE))) {
+        while (packet->size > 0 && !(player->player_status & (PS_A_DISABLE|PS_A_PAUSE|PS_CLOSE))) {
             int consumed = 0;
             int gotaudio = 0;
 
@@ -623,7 +625,7 @@ static void* video_decode_thread_proc(void *param)
         }
 
         //++ decode video packet ++//
-        while (packet->size > 0 && !(player->player_status & (PS_V_PAUSE|PS_CLOSE))) {
+        while (packet->size > 0 && !(player->player_status & (PS_V_DISABLE|PS_V_PAUSE|PS_CLOSE))) {
             int consumed = 0;
             int gotvideo = 0;
 
@@ -874,6 +876,14 @@ void player_setparam(void *hplayer, int id, void *param)
             player->vdrect.right - player->vdrect.left,
             player->vdrect.bottom - player->vdrect.top);
         break;
+    case PARAM_DISABLE_AUDIO_DECODE:
+        if (*(int*)param) player->player_status |= PS_A_DISABLE;
+        else player->player_status &= ~PS_A_DISABLE;
+        break;
+    case PARAM_DISABLE_VIDEO_DECODE:
+        if (*(int*)param) player->player_status |= PS_V_DISABLE;
+        else player->player_status &= ~PS_V_DISABLE;
+        break;
     default:
         render_setparam(player->render, id, param);
         break;
@@ -917,6 +927,12 @@ void player_getparam(void *hplayer, int id, void *param)
         break;
     case PARAM_RENDER_GET_CONTEXT:
         *(void**)param = player->render;
+        break;
+    case PARAM_DISABLE_AUDIO_DECODE:
+        *(int*)param = (player->player_status & PS_A_DISABLE) ? 1 : 0;
+        break;
+    case PARAM_DISABLE_VIDEO_DECODE:
+        *(int*)param = (player->player_status & PS_V_DISABLE) ? 1 : 0;
         break;
     default:
         render_getparam(player->render, id, param);

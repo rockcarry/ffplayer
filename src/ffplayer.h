@@ -76,6 +76,10 @@ enum {
 
     // audio/video sync diff
     PARAM_AVSYNC_TIME_DIFF,
+
+    // disable audio or video decoding
+    PARAM_DISABLE_AUDIO_DECODE,
+    PARAM_DISABLE_VIDEO_DECODE,
     //-- public
 
     //++ for adev
@@ -240,6 +244,12 @@ player_setparam(g_hplayer, PARAM_AVSYNC_TIME_DIFF, &diff);
 设置为 100 后，音频将比视频快 100ms，设置为 -100 则慢 100ms
 
 所有的参数，都是可以 get 的，但并不是所有的参数都可以 set，因为有些参数是只读的。
+
+
+PARAM_DISABLE_AUDIO_DECODE 和 PARAM_DISABLE_VIDEO_DECODE
+用于禁止音频和视频的解码
+应用场景，播放视频时，如果用不只想听声音，不想看视频，那么可以禁止视频解码，
+这样可以大幅减少视频解码对资源的消耗
 
 
 // 对 avdevice 输入设备的支持
