@@ -659,6 +659,13 @@ static void* video_decode_thread_proc(void *param)
         }
         //-- decode video packet --//
 
+        //++ if video decoding disabled
+        if (packet->size > 0 && (player->player_status & PS_V_DISABLE)) {
+            vframe->pts = av_rescale_q(packet->pts, player->vstream_timebase, TIMEBASE_MS);
+            render_video(player->render, vframe);
+        }
+        //-- if video decoding disabled
+
         // free packet
         av_packet_unref(packet);
 
