@@ -3,8 +3,11 @@ set -e
 
 #++ build ffmpeg ++#
 if [ ! -d ffmpeg ]; then
-  git clone git://source.ffmpeg.org/ffmpeg.git
+  git clone -b ffplayer https://github.com/rockcarry/ffmpeg
 fi
+
+SYSROOT=$NDK_HOME/platforms/android-19/arch-arm/
+CROSS_COMPILE=$NDK_HOME/toolchains/arm-linux-androideabi-4.9/prebuilt/windows/bin/arm-linux-androideabi-
 
 EXTRA_CFLAGS="-DANDROID -DNDEBUG -Os -ffast-math -mfpu=neon-vfpv4 -mfloat-abi=softfp"
 
@@ -15,8 +18,9 @@ cd ffmpeg
 --cpu=armv7-a \
 --target-os=android \
 --enable-cross-compile \
---cross-prefix=arm-linux-androideabi- \
---prefix=$PWD/.. \
+--cross-prefix=$CROSS_COMPILE \
+--sysroot=$SYSROOT \
+--prefix=$PWD/../ffmpeg-android-sdk \
 --enable-static \
 --enable-small \
 --disable-shared \

@@ -3,12 +3,10 @@ set -e
 
 #++ build ffmpeg ++#
 if [ ! -d ffmpeg ]; then
-  git clone git://source.ffmpeg.org/ffmpeg.git
+  git clone -b ffplayer https://github.com/rockcarry/ffmpeg
 fi
 
-#+ patch for mingw32 compile error
-sed -i '/check_cflags -Werror=missing-prototypes/d' ffmpeg/configure
-#- patch for mingw32 compile error
+CROSS_COMPILE=i686-w64-mingw32-
 
 cd ffmpeg
 ./configure \
@@ -16,13 +14,12 @@ cd ffmpeg
 --arch=x86 \
 --target-os=mingw32 \
 --enable-cross-compile \
---cross-prefix=i686-w64-mingw32- \
---prefix=$PWD/../ffmpeg-win-sdk \
+--cross-prefix=$CROSS_COMPILE \
+--prefix=$PWD/../ffmpeg-win32-sdk \
 --enable-static \
 --enable-shared \
 --enable-small \
 --enable-memalign-hack \
---disable-swscale-alpha \
 --disable-symver \
 --disable-debug \
 --disable-programs \
@@ -31,6 +28,7 @@ cd ffmpeg
 --disable-encoders \
 --disable-muxers   \
 --disable-filters  \
+--disable-swscale-alpha \
 --enable-encoder=mjpeg \
 --enable-muxer=mjpeg \
 --enable-encoder=apng \
