@@ -1,4 +1,4 @@
-prefix=/home/xujb/ext1/a64-518s/android/ffplayer/player-android/ffmpeg-android/ffmpeg/..
+prefix=/c/ffmpeg/../ffmpeg-android-sdk
 exec_prefix=${prefix}
 libdir=${prefix}/lib
 includedir=${prefix}/include
@@ -9,6 +9,6 @@ Version: 57.56.101
 Requires: libavcodec >= 57.64.101, libswresample >= 2.3.100, libavutil >= 55.34.101
 Requires.private: 
 Conflicts:
-Libs: -L${libdir}  -lavformat -ldl -lm -lz
+Libs: -L${libdir}  -lavformat -ldl -lm -lz -pthread
 Libs.private: 
 Cflags: -I${includedir}
