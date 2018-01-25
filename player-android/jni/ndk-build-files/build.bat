@@ -5,8 +5,8 @@
 set pwd=%~dp0
 
 rename %pwd%..\Android.mk Android.dat
-copy Android.dat %pwd%..\Android.mk
-copy Application.dat %pwd%..\Application.mk
+copy %pwd%Android.dat %pwd%..\Android.mk
+copy %pwd%Application.dat %pwd%..\Application.mk
 
 cd %pwd%..
 

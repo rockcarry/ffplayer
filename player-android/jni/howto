@@ -1,0 +1,17 @@
+how to build libffplayer_jni
+
+if you are using android source code building enviroment.
+please cd this dir, and try command:
+
+mm -B -j8
+
+
+if you are using ndk
+cd ndk-build-files dir, and try command:
+
+build.bat (windows platform)
+
+or
+
+./build.sh (linux platform)
+
