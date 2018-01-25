@@ -220,7 +220,7 @@ void vdev_handle_complete_and_avsync(void *ctxt)
 
         avdiff = (int)(c->apts - c->vpts - c->tickavdiff); // diff between audio and video pts
         scdiff = (int)(c->start_pts + tickcur - c->start_tick - c->vpts - c->tickavdiff); // diff between system clock and video pts
-        if (abs(avdiff - scdiff) > 500) avdiff = scdiff;
+        if (c->apts <= 0) avdiff = scdiff; // if apts is invalid, sync vpts to system clock
 
         if (tickdiff - c->tickframe >  5) c->ticksleep--;
         if (tickdiff - c->tickframe < -5) c->ticksleep++;
