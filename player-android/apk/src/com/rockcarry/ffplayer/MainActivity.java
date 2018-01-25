@@ -22,7 +22,7 @@ import android.widget.SeekBar;
 import android.widget.Toast;
 import android.util.Log;
 
-public class TestPlayerActivity extends Activity {
+public class MainActivity extends Activity {
     private MediaPlayer  mPlayer    = null;
     private playerView   mRoot      = null;
     private SurfaceView  mVideo     = null;
@@ -237,7 +237,7 @@ public class TestPlayerActivity extends Activity {
                 break;
             case MediaPlayer.MSG_OPEN_FAILED: {
                     String str = String.format(getString(R.string.open_video_failed), mURL);
-                    Toast.makeText(TestPlayerActivity.this, str, Toast.LENGTH_LONG).show();
+                    Toast.makeText(MainActivity.this, str, Toast.LENGTH_LONG).show();
                 }
                 break;
             case MediaPlayer.MSG_PLAY_COMPLETED: {
