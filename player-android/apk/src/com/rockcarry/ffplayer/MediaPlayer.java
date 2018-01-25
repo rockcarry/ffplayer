@@ -3,7 +3,7 @@ package com.rockcarry.ffplayer;
 import android.os.Handler;
 import android.os.Message;
 import android.view.View;
-import android.widget.RelativeLayout;
+import android.view.ViewGroup;
 
 public final class MediaPlayer
 {
@@ -76,7 +76,7 @@ public final class MediaPlayer
             sh = rh; sw = sh * vw / vh;
         }
 
-        RelativeLayout.LayoutParams lp = (RelativeLayout.LayoutParams)v.getLayoutParams();
+        ViewGroup.LayoutParams lp = v.getLayoutParams();
         lp.width  = sw;
         lp.height = sh;
         v.setLayoutParams(lp);
