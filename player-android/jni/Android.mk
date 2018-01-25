@@ -20,7 +20,8 @@ LOCAL_C_INCLUDES += \
     $(LOCAL_PATH)/../ffmpeg-android/include \
     $(LOCAL_PATH)/../../src
 
-LOCAL_CFLAGS += -Wall -DANDROID -DNDEBUG -D__STDC_CONSTANT_MACROS -Os -mfpu=neon-vfpv4 -mfloat-abi=softfp
+LOCAL_CFLAGS += -DANDROID -DNDEBUG -D__STDC_CONSTANT_MACROS -Os -mfpu=neon-vfpv4 -mfloat-abi=softfp
+LOCAL_LDLIBS += -lz
 
 LOCAL_LDFLAGS += \
     $(LOCAL_PATH)/../ffmpeg-android/lib/libavformat.a \
@@ -31,7 +32,7 @@ LOCAL_LDFLAGS += \
     $(LOCAL_PATH)/../ffmpeg-android/lib/libswscale.a \
     $(LOCAL_PATH)/../ffmpeg-android/lib/libavutil.a
 
-LOCAL_SHARED_LIBRARIES := libcutils libutils libui libgui libandroid_runtime libz
+LOCAL_SHARED_LIBRARIES += libcutils libutils libui libgui libandroid_runtime
 
 LOCAL_MULTILIB := 32
 
