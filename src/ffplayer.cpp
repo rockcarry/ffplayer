@@ -3,6 +3,7 @@
 #include "pktqueue.h"
 #include "ffrender.h"
 #include "ffplayer.h"
+#include "recorder.h"
 
 extern "C" {
 #include "libavutil/time.h"
@@ -65,14 +66,17 @@ typedef struct {
     AVFilterContext *vfilter_rotate_ctx;
     AVFilterContext *vfilter_sink_ctx;
 
-    // for player init timeout
-    int64_t          init_timetick;
-    int64_t          init_timeout;
-
+    // player init timeout, and init params
+    int64_t            init_timetick;
+    int64_t            init_timeout;
     PLAYER_INIT_PARAMS init_params;
 
+    // save url and appdata
     char             url[MAX_PATH];
     void            *appdata;
+
+    // recorder used for recording
+    void            *recorder;
 } PLAYER;
 
 // 内部常量定义
@@ -499,11 +503,13 @@ static void* av_demux_thread_proc(void *param)
 
         // audio
         if (packet->stream_index == player->astream_index) {
+            recorder_packet(player->recorder, packet);
             pktqueue_write_enqueue_a(player->pktqueue, packet);
         }
 
         // video
         if (packet->stream_index == player->vstream_index) {
+            recorder_packet(player->recorder, packet);
             pktqueue_write_enqueue_v(player->pktqueue, packet);
         }
 
@@ -766,6 +772,7 @@ void player_close(void *hplayer)
     if (player->acodec_context  ) avcodec_close(player->acodec_context);
     if (player->vcodec_context  ) avcodec_close(player->vcodec_context);
     if (player->avformat_context) avformat_close_input(&player->avformat_context);
+    if (player->recorder        ) recorder_free(player->recorder);
 
 #ifdef ANDROID
     get_jni_env()->DeleteGlobalRef((jobject)player->appdata);
@@ -858,6 +865,17 @@ int player_snapshot(void *hplayer, char *file, int w, int h, int waitt)
     if (!hplayer) return -1;
     PLAYER *player = (PLAYER*)hplayer;
     return player->vstream_index == -1 ? -1 : render_snapshot(player->render, file, w, h, waitt);
+}
+
+int player_record(void *hplayer, char *file)
+{
+    if (!hplayer) return -1;
+    PLAYER *player   = (PLAYER*)hplayer;
+    void   *recorder = player->recorder;
+    player->recorder = NULL;
+    recorder_free(recorder);
+    player->recorder = recorder_init(file, player->avformat_context);
+    return 0;
 }
 
 void player_setparam(void *hplayer, int id, void *param)

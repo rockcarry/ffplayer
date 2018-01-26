@@ -131,6 +131,7 @@ void  player_pause   (void *hplayer);
 void  player_seek    (void *hplayer, int64_t ms, int type);
 void  player_setrect (void *hplayer, int type, int x, int y, int w, int h); // type: 0 - video rect, 1 - visual effect rect
 int   player_snapshot(void *hplayer, char *file, int w, int h, int waitt);
+int   player_record  (void *hplayer, char *file);
 void  player_setparam(void *hplayer, int id, void *param);
 void  player_getparam(void *hplayer, int id, void *param);
 
@@ -170,6 +171,10 @@ player_snapshot 视频播放截图
     w, h        - 指定图片宽高，如果 <= 0 则默认使用视频宽高
     file        - 图片文件名（目前只支持 jpeg 格式）
     waitt       - 是否带动截图完成 0 - 不等待，>0 等待超时 ms 为单位
+
+player_record   将当前播放器的视频录像保存
+    hplayer     - 指向 player_open 返回的 player 对象
+    file        - 录像文件名，仅支持 .mp4 格式，传入 NULL 为停止录像
 
 player_setparam 设置参数
     hplayer     - 指向 player_open 返回的 player 对象

@@ -11,6 +11,7 @@ LOCAL_SRC_FILES := \
     ../../src/ffplayer.cpp \
     ../../src/ffrender.cpp \
     ../../src/pktqueue.cpp \
+    ../../src/recorder.cpp \
     ../../src/adev-cmn.cpp \
     ../../src/adev-android.cpp \
     ../../src/vdev-cmn.cpp \
