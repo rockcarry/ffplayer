@@ -76,10 +76,6 @@ enum {
 
     // audio/video sync diff
     PARAM_AVSYNC_TIME_DIFF,
-
-    // disable audio or video decoding
-    PARAM_DISABLE_AUDIO_DECODE,
-    PARAM_DISABLE_VIDEO_DECODE,
     //-- public
 
     //++ for adev
