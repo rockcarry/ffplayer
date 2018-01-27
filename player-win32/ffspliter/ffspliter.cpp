@@ -1,61 +1,67 @@
 // 包含头文件
+#include <windows.h>
+#include <conio.h>
 #include "ffspliter.h"
 
 extern "C" {
 #include "libavformat/avformat.h"
 }
 
-// 预编译开关
-#define FFSPLITER_TEST
-
 // 内部常量定义
-static const AVRational TIMEBASE_MS = { 1, 1000 };
+static int g_exit_remux = 0;
 
-// 函数实现
-int split_media_file(char *dst, char *src, int start, int end, PFN_SPC spc)
+// 内部函数实现
+static int split_media_file(char *dst, char *src, __int64 start, __int64 end, PFN_SPC spc)
 {
-    AVOutputFormat  *ofmt      = NULL;
-    AVFormatContext *ifmt_ctx  = NULL;
-    AVFormatContext *ofmt_ctx  = NULL;
-    int64_t         *start_dts = NULL;
-    int             *end_flags = NULL;
-    int              end_split =  0;
-    int              ret       = -1;
-    unsigned         i;
+    AVFormatContext *ifmt_ctx = NULL;
+    AVFormatContext *ofmt_ctx = NULL;
+    AVStream        *istream  = NULL;
+    AVStream        *ostream  = NULL;
+    AVRational       tbms     = { 1, 1000 };
+    AVRational       tbvs     = { 1, 1    };
+    int64_t          startpts = -1;
+    int64_t          duration = -1;
+    int64_t          total    = -1;
+    int64_t          current  = -1;
+    int              streamidx=  0;
+    int              ret      = -1;
 
     av_register_all();
+    avformat_network_init();
 
     if ((ret = avformat_open_input(&ifmt_ctx, src, 0, 0)) < 0) {
-        fprintf(stderr, "could not open input file '%s'", src);
-        goto end;
+        printf("could not open input file '%s' !", src);
+        goto done;
     }
 
     if ((ret = avformat_find_stream_info(ifmt_ctx, 0)) < 0) {
-        fprintf(stderr, "failed to retrieve input stream information");
-        goto end;
+        printf("failed to retrieve input stream information ! \n");
+        goto done;
     }
 
     avformat_alloc_output_context2(&ofmt_ctx, NULL, NULL, dst);
     if (!ofmt_ctx) {
-        fprintf(stderr, "could not create output context\n");
-        ret = AVERROR_UNKNOWN;
-        goto end;
+        printf("could not create output context !\n");
+        goto done;
     }
-    ofmt = ofmt_ctx->oformat;
 
-    for (i=0; i<ifmt_ctx->nb_streams; i++) {
-        AVStream *istream = ifmt_ctx->streams[i];
-        AVStream *ostream = avformat_new_stream(ofmt_ctx, istream->codec->codec);
+    for (unsigned i=0; i<ifmt_ctx->nb_streams; i++) {
+        istream = ifmt_ctx->streams[i];
+        if (istream->codec->codec_type == AVMEDIA_TYPE_VIDEO) {
+            streamidx = i;
+            tbvs      = ifmt_ctx->streams[i]->time_base;
+        }
+
+        ostream = avformat_new_stream(ofmt_ctx, istream->codec->codec);
         if (!ostream) {
-            fprintf(stderr, "failed allocating output stream\n");
-            ret = AVERROR_UNKNOWN;
-            goto end;
+            printf("failed allocating output stream !\n");
+            goto done;
         }
 
         ret = avcodec_copy_context(ostream->codec, istream->codec);
         if (ret < 0) {
-            fprintf(stderr, "failed to copy context from input to output stream codec context\n");
-            goto end;
+            printf("failed to copy context from input to output stream codec context !\n");
+            goto done;
         }
 
         ostream->codec->codec_tag = 0;
@@ -64,134 +70,158 @@ int split_media_file(char *dst, char *src, int start, int end, PFN_SPC spc)
         }
     }
 
-    if (!(ofmt->flags & AVFMT_NOFILE)) {
+    if (!(ofmt_ctx->oformat->flags & AVFMT_NOFILE)) {
         ret = avio_open(&ofmt_ctx->pb, dst, AVIO_FLAG_WRITE);
         if (ret < 0) {
-            fprintf(stderr, "could not open output file '%s'", dst);
-            goto end;
+            printf("could not open output file '%s' !", dst);
+            goto done;
         }
     }
 
-    // seek to start position
-    av_seek_frame(ifmt_ctx, -1, start * AV_TIME_BASE, AVSEEK_FLAG_BACKWARD);
+    // calulate pts
+    if (start >= 0) {
+        startpts = ifmt_ctx->start_time * 1000 / AV_TIME_BASE;
+        duration = ifmt_ctx->duration   * 1000 / AV_TIME_BASE;
+        total    = duration - start; if (total < 0) total = 1;
+        current  = 0;
+        start   += startpts;
+        end     += startpts;
+        start    = av_rescale_q_rnd(start, tbms, tbvs, (AVRounding)(AV_ROUND_NEAR_INF|AV_ROUND_PASS_MINMAX));
+        end      = av_rescale_q_rnd(end  , tbms, tbvs, (AVRounding)(AV_ROUND_NEAR_INF|AV_ROUND_PASS_MINMAX));
 
-    //+ init start_dts & end_flags
-    start_dts = (int64_t*)malloc(ifmt_ctx->nb_streams * sizeof(int64_t));
-    end_flags = (int    *)malloc(ifmt_ctx->nb_streams * sizeof(int    ));
-    if (!start_dts || !end_flags) {
-        fprintf(stderr, "failed to allocate memory for start_dts & end_flags !\n");
-        ret = -1;
-        goto end;
+        // seek to start position
+        av_seek_frame(ifmt_ctx, streamidx, start, AVSEEK_FLAG_BACKWARD);
+    } else {
+        startpts = ifmt_ctx->start_time * 1000 / AV_TIME_BASE;
+        duration = end;
+        total    = end;
+        current  = 0;
+        start    = startpts;
+        end     += startpts;
+        start    = av_rescale_q_rnd(start, tbms, tbvs, (AVRounding)(AV_ROUND_NEAR_INF|AV_ROUND_PASS_MINMAX));
+        end      = av_rescale_q_rnd(end  , tbms, tbvs, (AVRounding)(AV_ROUND_NEAR_INF|AV_ROUND_PASS_MINMAX));
     }
-    for (i=0; i<ifmt_ctx->nb_streams; i++) start_dts[i] = end_flags[i] = -1;
-    //- init start_dts & end_flags
 
     // write header
     ret = avformat_write_header(ofmt_ctx, NULL);
     if (ret < 0) {
-        fprintf(stderr, "error occurred when opening output file\n");
-        goto end;
+        printf("error occurred when writing output file header !\n");
+        goto done;
     }
 
-    while (1) {
-        AVStream *istream, *ostream;
-        AVPacket  pkt;
-        int64_t   dts;
-
+    while (!g_exit_remux) {
+        AVPacket pkt;
         ret = av_read_frame(ifmt_ctx, &pkt);
         if (ret < 0) {
 //          fprintf(stderr, "failed to read frame !\n");
             break;
         }
 
-        istream = ifmt_ctx->streams[pkt.stream_index];
-        ostream = ofmt_ctx->streams[pkt.stream_index];
-
-        //+ check split end
-        dts = av_rescale_q(pkt.dts, istream->time_base, TIMEBASE_MS);
-        if (dts > end * 1000) end_flags[pkt.stream_index] = 0;
-        for (i=0, end_split=0; i<ifmt_ctx->nb_streams; i++) end_split += end_flags[i];
-        if (end_split == 0) break;
-        if (spc && pkt.stream_index == 0) spc(dts);
-        //- check split end
-
-        // calculate start_dts
-        if (start_dts[pkt.stream_index] == -1) start_dts[pkt.stream_index] = pkt.dts;
-
-        // adjust pts & dts
-        if (start_dts[pkt.stream_index] != -1) {
-            pkt.pts -= start_dts[pkt.stream_index];
-            pkt.dts -= start_dts[pkt.stream_index];
+        // get start pts
+        if (pkt.stream_index == streamidx) {
+            if (pkt.pts > end) {
+                g_exit_remux = 1;
+                goto next;
+            }
+            if (spc) {
+                current = av_rescale_q_rnd(pkt.pts - start, tbvs, tbms, (AVRounding)(AV_ROUND_NEAR_INF|AV_ROUND_PASS_MINMAX));
+                if (current < 0    ) current = 0;
+                if (current > total) current = total;
+                spc(current, total);
+            }
         }
 
-        //+ copy packet
+        istream = ifmt_ctx->streams[pkt.stream_index];
+        ostream = ofmt_ctx->streams[pkt.stream_index];
         pkt.pts = av_rescale_q_rnd(pkt.pts, istream->time_base, ostream->time_base, (AVRounding)(AV_ROUND_NEAR_INF|AV_ROUND_PASS_MINMAX));
         pkt.dts = av_rescale_q_rnd(pkt.dts, istream->time_base, ostream->time_base, (AVRounding)(AV_ROUND_NEAR_INF|AV_ROUND_PASS_MINMAX));
         pkt.duration = av_rescale_q(pkt.duration, istream->time_base, ostream->time_base);
         pkt.pos = -1;
-        //- copy packet
 
-        //+ write frame
         ret = av_interleaved_write_frame(ofmt_ctx, &pkt);
         if (ret < 0) {
-            fprintf(stderr, "error muxing packet\n");
-            break;
+            printf("error muxing packet !\n");
+            g_exit_remux = 1;
+            goto next;
         }
-        //- write frame
 
+next:
         av_packet_unref(&pkt);
     }
 
     // write trailer
     av_write_trailer(ofmt_ctx);
 
-end:
-    if (start_dts) free(start_dts);
-    if (end_flags) free(end_flags);
-
+done:
     // close input
     avformat_close_input(&ifmt_ctx);
 
     // close output
-    if (ofmt_ctx && !(ofmt->flags & AVFMT_NOFILE)) {
+    if (ofmt_ctx && !(ofmt_ctx->oformat->flags & AVFMT_NOFILE)) {
         avio_closep(&ofmt_ctx->pb);
     }
-    avformat_free_context(ofmt_ctx);
 
+    avformat_free_context(ofmt_ctx);
+    avformat_network_deinit();
+
+    // done
+    printf("\n");
+    spc(total, total);
+    printf("\ndone.\n");
     return ret;
 }
 
-#ifdef FFSPLITER_TEST
-static void split_progress_callback(__int64 cur)
+static void split_progress_callback(__int64 cur, __int64 total)
 {
-    printf("\rsplit progress: %d", cur / 1000);
+    printf("\rsplit progress: %3d%", 100 * cur / total);
+}
+
+static BOOL console_ctrl_handler(DWORD type)
+{
+    switch (type) {
+    case CTRL_C_EVENT:
+        g_exit_remux = 1;
+        return TRUE;
+    }
+    return FALSE;
 }
 
 int main(int argc, char *argv[])
 {
-    char *input, *output;
-    int   start,  end;
+    char   *input, *output;
+    int64_t start,  end;
 
 #if 1
     if (argc < 5) {
-        printf("ffspliter: tools for spliter media file\n"
-               "usage: ffspliter input start end output\n"
+        printf(
+            "ffspliter: tools for spliter media file\n"
+            "usage: ffspliter input start end output\n"
+            "input support any file format a        \n"
+            "output support only flv and mp4 format \n"
+            "start and end time is in ms unit       \n"
         );
         return -1;
     }
 
     input  = argv[1];
     output = argv[4];
-    start  = atoi(argv[2]);
-    end    = atoi(argv[3]);
+    start  = _atoi64(argv[2]);
+    end    = _atoi64(argv[3]);
 #else
-    input  = "test.mpg";
-    output = "test-1min-to-2min.mpg";
-    start  = 60;
-    end    = 120;
+    input  = "rtmp://live.hkstv.hk.lxdns.com/live/hks";
+    output = "c:\\record.mp4";
+    start  = -1;
+    end    = 60000;
 #endif
 
-    return split_media_file(output, input, start, end, split_progress_callback);
+    // set console ctrl handler
+    SetConsoleCtrlHandler((PHANDLER_ROUTINE)console_ctrl_handler, TRUE);
+
+    // start split media file
+    split_media_file(output, input, start, end, split_progress_callback);
+
+    _getch();
+    return 0;
 }
-#endif
+
 
