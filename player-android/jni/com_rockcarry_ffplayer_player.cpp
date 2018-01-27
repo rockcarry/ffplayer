@@ -96,7 +96,16 @@ JNIEXPORT jlong JNICALL Java_com_rockcarry_ffplayer_MediaPlayer_nativeOpen
     memset(&playerparams, 0, sizeof(playerparams));
     if (params != NULL) {
         const char *strparams = env->GetStringUTFChars(params, NULL);
-        player_load_init_params(&playerparams, (char*)strparams);
+        playerparams.video_stream_cur    = parse_params(strparams, "video_stream_cur");
+        playerparams.video_thread_count  = parse_params(strparams, "video_thread_count");
+        playerparams.video_hwaccel       = parse_params(strparams, "video_hwaccel");
+        playerparams.video_deinterlace   = parse_params(strparams, "video_deinterlace");
+        playerparams.video_rotate        = parse_params(strparams, "video_rotate");
+        playerparams.audio_stream_cur    = parse_params(strparams, "audio_stream_cur");
+        playerparams.subtitle_stream_cur = parse_params(strparams, "subtitle_stream_cur");
+        playerparams.vdev_render_type    = parse_params(strparams, "vdev_render_type");
+        playerparams.adev_render_type    = parse_params(strparams, "adev_render_type");
+        playerparams.init_timeout        = parse_params(strparams, "init_timeout");
         env->ReleaseStringUTFChars(params, strparams);
     }
 
