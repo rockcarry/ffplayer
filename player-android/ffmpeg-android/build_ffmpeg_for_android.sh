@@ -1,16 +1,34 @@
 #!/bin/bash
 set -e
 
+PREFIX_DIR=$PWD/ffmpeg-android-sdk
+SYSROOT=$NDK_HOME/platforms/android-19/arch-arm/
+CROSS_COMPILE=$NDK_HOME/toolchains/arm-linux-androideabi-4.9/prebuilt/windows/bin/arm-linux-androideabi-
+EXTRA_CFLAGS="-DANDROID -DNDEBUG -Os -ffast-math -mfpu=neon-vfpv4 -mfloat-abi=softfp"
+EXTRA_LDFLAGS="-L$PREFIX_DIR/lib"
+
+#++ build x264 ++#
+if false; then
+if [ ! -d x264 ]; then
+  git clone git://git.videolan.org/x264.git
+fi
+cd x264
+./configure --prefix=$PREFIX_DIR \
+--enable-strip \
+--enable-static \
+--enable-pic \
+--host=arm-linux-androideabi \
+--cross-prefix=$CROSS_COMPILE \
+--sysroot=$SYSROOT
+make STRIP= -j8 && make install
+cd -
+fi
+#-- build x264 --#
+
 #++ build ffmpeg ++#
 if [ ! -d ffmpeg ]; then
   git clone -b ffplayer https://github.com/rockcarry/ffmpeg
 fi
-
-SYSROOT=$NDK_HOME/platforms/android-19/arch-arm/
-CROSS_COMPILE=$NDK_HOME/toolchains/arm-linux-androideabi-4.9/prebuilt/windows/bin/arm-linux-androideabi-
-
-EXTRA_CFLAGS="-DANDROID -DNDEBUG -Os -ffast-math -mfpu=neon-vfpv4 -mfloat-abi=softfp"
-
 cd ffmpeg
 ./configure \
 --pkg-config=pkg-config \
@@ -20,7 +38,7 @@ cd ffmpeg
 --enable-cross-compile \
 --cross-prefix=$CROSS_COMPILE \
 --sysroot=$SYSROOT \
---prefix=$PWD/../ffmpeg-android-sdk \
+--prefix=$PREFIX_DIR \
 --enable-static \
 --enable-small \
 --disable-shared \
@@ -34,15 +52,20 @@ cd ffmpeg
 --disable-filters  \
 --disable-swscale-alpha \
 --enable-encoder=mjpeg \
---enable-muxer=mjpeg \
 --enable-encoder=apng \
+--enable-encoder=libx264 \
+--enable-encoder=aac \
+--enable-muxer=mjpeg \
 --enable-muxer=apng \
+--enable-muxer=mp4 \
+--enable-muxer=flv \
 --enable-filter=yadif \
 --enable-filter=rotate \
 --enable-asm \
 --enable-gpl \
 --enable-version3 \
 --enable-nonfree \
+--enable-libx264 \
 --enable-jni \
 --enable-mediacodec \
 --enable-decoder=h264_mediacodec \
@@ -51,7 +74,8 @@ cd ffmpeg
 --enable-decoder=mpeg4_mediacodec \
 --enable-decoder=vp8_mediacodec \
 --enable-decoder=vp9_mediacodec \
---extra-cflags="$EXTRA_CFLAGS"
+--extra-cflags="$EXTRA_CFLAGS" \
+--extra-ldflags="$EXTRA_LDFLAGS"
 make -j8 && make install
 cd -
 #++ build ffmpeg ++#

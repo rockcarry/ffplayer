@@ -24,14 +24,15 @@ LOCAL_C_INCLUDES += \
 LOCAL_CFLAGS += -DANDROID -DNDEBUG -D__STDC_CONSTANT_MACROS -Os -mfpu=neon-vfpv4 -mfloat-abi=softfp
 LOCAL_LDLIBS += -lz
 
-LOCAL_LDFLAGS += \
+LOCAL_LDFLAGS += -ldl \
     $(LOCAL_PATH)/../ffmpeg-android/lib/libavformat.a \
     $(LOCAL_PATH)/../ffmpeg-android/lib/libavcodec.a \
     $(LOCAL_PATH)/../ffmpeg-android/lib/libavdevice.a \
     $(LOCAL_PATH)/../ffmpeg-android/lib/libavfilter.a \
     $(LOCAL_PATH)/../ffmpeg-android/lib/libswresample.a \
     $(LOCAL_PATH)/../ffmpeg-android/lib/libswscale.a \
-    $(LOCAL_PATH)/../ffmpeg-android/lib/libavutil.a
+    $(LOCAL_PATH)/../ffmpeg-android/lib/libavutil.a \
+    $(LOCAL_PATH)/../ffmpeg-android/lib/libx264.a
 
 LOCAL_SHARED_LIBRARIES += libcutils libutils libui libgui libandroid_runtime
 
