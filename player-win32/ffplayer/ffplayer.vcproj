@@ -203,6 +203,10 @@
 				>
 			</File>
 			<File
+				RelativePath="..\..\src\recorder.cpp"
+				>
+			</File>
+			<File
 				RelativePath="..\..\src\snapshot.cpp"
 				>
 			</File>
@@ -242,6 +246,10 @@
 			</File>
 			<File
 				RelativePath="..\..\src\pktqueue.h"
+				>
+			</File>
+			<File
+				RelativePath="..\..\src\recorder.h"
 				>
 			</File>
 			<File
