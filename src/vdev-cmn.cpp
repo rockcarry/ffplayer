@@ -224,7 +224,7 @@ void vdev_handle_complete_and_avsync(void *ctxt)
 
         if (tickdiff - c->tickframe >  5) c->ticksleep--;
         if (tickdiff - c->tickframe < -5) c->ticksleep++;
-        if (c->apts != -1 && c->vpts != -1) {
+        if (c->vpts != -1) {
                  if (avdiff >  500) c->ticksleep -= 3;
             else if (avdiff >  50 ) c->ticksleep -= 1;
             else if (avdiff < -500) c->ticksleep += 3;
