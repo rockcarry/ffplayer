@@ -108,13 +108,15 @@ static int interrupt_callback(void *param)
 //++ for filter graph
 static void vfilter_graph_init(PLAYER *player)
 {
+    if (!player->vcodec_context) return;
     AVFilter *filter_source  = avfilter_get_by_name("buffer");
     AVFilter *filter_yadif   = avfilter_get_by_name("yadif" );
     AVFilter *filter_rotate  = avfilter_get_by_name("rotate");
     AVFilter *filter_sink    = avfilter_get_by_name("buffersink");
     AVCodecContext *vdec_ctx = player->vcodec_context;
-    int  ow = player->vcodec_context->width ;
-    int  oh = player->vcodec_context->height;
+
+    int  ow = vdec_ctx->width ;
+    int  oh = vdec_ctx->height;
     char args[256];
     int  ret, i;
 
@@ -125,9 +127,8 @@ static void vfilter_graph_init(PLAYER *player)
     }
     //-- check if no filter used
 
-    if (!player->vcodec_context) return;
     player->vfilter_graph = avfilter_graph_alloc();
-    if (!player->vfilter_graph ) return;
+    if (!player->vfilter_graph) return;
 
     // in & out filter
     sprintf_s(args, "video_size=%dx%d:pix_fmt=%d:time_base=%d/%d:pixel_aspect=%d/%d",
@@ -145,10 +146,10 @@ static void vfilter_graph_init(PLAYER *player)
 
     // rotate filter
     if (player->init_params.video_rotate) {
-        ow = (int) ( abs(player->vcodec_context->width  * cos(player->init_params.video_rotate * M_PI / 180))
-                   + abs(player->vcodec_context->height * sin(player->init_params.video_rotate * M_PI / 180)));
-        oh = (int) ( abs(player->vcodec_context->width  * sin(player->init_params.video_rotate * M_PI / 180))
-                   + abs(player->vcodec_context->height * cos(player->init_params.video_rotate * M_PI / 180)));
+        ow = (int) ( abs(vdec_ctx->width  * cos(player->init_params.video_rotate * M_PI / 180))
+                   + abs(vdec_ctx->height * sin(player->init_params.video_rotate * M_PI / 180)));
+        oh = (int) ( abs(vdec_ctx->width  * sin(player->init_params.video_rotate * M_PI / 180))
+                   + abs(vdec_ctx->height * cos(player->init_params.video_rotate * M_PI / 180)));
         sprintf_s(args, "angle=%d*PI/180:ow=%d:oh=%d", player->init_params.video_rotate, ow, oh);
         avfilter_graph_create_filter(&player->vfilter_rotate_ctx, filter_rotate, "rotate", args, NULL, player->vfilter_graph);
     }
