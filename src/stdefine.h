@@ -8,6 +8,8 @@
 #include <windows.h>
 #include <inttypes.h>
 
+#pragma warning(disable:4996)
+
 // configs
 #define CONFIG_ENABLE_VEFFECT   1
 #define CONFIG_ENABLE_SNAPSHOT  1
@@ -22,8 +24,6 @@
 #include <utils/Log.h>
 
 #define MAX_PATH   PATH_MAX
-#define sprintf_s  sprintf
-#define strcpy_s   strcpy
 
 typedef struct {
     long left;

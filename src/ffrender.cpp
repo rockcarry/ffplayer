@@ -369,7 +369,7 @@ int render_snapshot(void *hrender, char *file, int w, int h, int waitt)
     }
 
     // copy snapshot file name
-    strcpy_s(render->snapfile, file);
+    strcpy(render->snapfile, file);
     render->snapwidth  = w;
     render->snapheight = h;
 

@@ -87,12 +87,11 @@ static void avlog_callback(void* ptr, int level, const char *fmt, va_list vl) {
     DO_USE_VAR(ptr);
     if (level <= av_log_get_level()) {
         char str[1024];
+        vsprintf(str, fmt, vl);
 #ifdef WIN32
-        vsprintf_s(str, 1024, fmt, vl);
         OutputDebugStringA(str);
 #endif
 #ifdef ANDROID
-        vsprintf(str, fmt, vl);
         ALOGD("%s", str);
 #endif
     }
@@ -131,7 +130,7 @@ static void vfilter_graph_init(PLAYER *player)
     if (!player->vfilter_graph) return;
 
     // in & out filter
-    sprintf_s(args, "video_size=%dx%d:pix_fmt=%d:time_base=%d/%d:pixel_aspect=%d/%d",
+    sprintf(args, "video_size=%dx%d:pix_fmt=%d:time_base=%d/%d:pixel_aspect=%d/%d",
             vdec_ctx->width, vdec_ctx->height, vdec_ctx->pix_fmt,
             vdec_ctx->time_base.num, vdec_ctx->time_base.den,
             vdec_ctx->sample_aspect_ratio.num, vdec_ctx->sample_aspect_ratio.den);
@@ -150,7 +149,7 @@ static void vfilter_graph_init(PLAYER *player)
                    + abs(vdec_ctx->height * sin(player->init_params.video_rotate * M_PI / 180)));
         oh = (int) ( abs(vdec_ctx->width  * sin(player->init_params.video_rotate * M_PI / 180))
                    + abs(vdec_ctx->height * cos(player->init_params.video_rotate * M_PI / 180)));
-        sprintf_s(args, "angle=%d*PI/180:ow=%d:oh=%d", player->init_params.video_rotate, ow, oh);
+        sprintf(args, "angle=%d*PI/180:ow=%d:oh=%d", player->init_params.video_rotate, ow, oh);
         avfilter_graph_create_filter(&player->vfilter_rotate_ctx, filter_rotate, "rotate", args, NULL, player->vfilter_graph);
     }
 
@@ -717,7 +716,7 @@ void* player_open(char *file, void *appdata, PLAYER_INIT_PARAMS *params)
     //-- for player init timeout
 
     //++ for player_prepare
-    strcpy_s(player->url, file);
+    strcpy(player->url, file);
 #ifdef WIN32
     player->appdata = appdata;
 #endif
@@ -955,3 +954,45 @@ void player_send_message(void *extra, int32_t msg, int64_t param) {
 #endif
 }
 
+//++ load player init params from string
+static int parse_params(const char *str, const char *key)
+{
+    char  t[12];
+    char *p = (char*)strstr(str, key);
+    int   i;
+
+    if (!p) return 0;
+    p += strlen(key);
+    if (*p == '\0') return 0;
+
+    while (1) {
+        if (*p != ' ' && *p != '=' && *p != ':') break;
+        else p++;
+    }
+
+    for (i=0; i<12; i++) {
+        if (*p == ',' || *p == ';' || *p == '\n' || *p == '\0') {
+            t[i] = '\0';
+            break;
+        } else {
+            t[i] = *p++;
+        }
+    }
+    t[11] = '\0';
+    return atoi(t);
+}
+
+void player_load_params(PLAYER_INIT_PARAMS *params, char *str)
+{
+    params->video_stream_cur    = parse_params(str, "video_stream_cur"   );
+    params->video_thread_count  = parse_params(str, "video_thread_count" );
+    params->video_hwaccel       = parse_params(str, "video_hwaccel"      );
+    params->video_deinterlace   = parse_params(str, "video_deinterlace"  );
+    params->video_rotate        = parse_params(str, "video_rotate"       );
+    params->audio_stream_cur    = parse_params(str, "audio_stream_cur"   );
+    params->subtitle_stream_cur = parse_params(str, "subtitle_stream_cur");
+    params->vdev_render_type    = parse_params(str, "vdev_render_type"   );
+    params->adev_render_type    = parse_params(str, "adev_render_type"   );
+    params->init_timeout        = parse_params(str, "init_timeout"       );
+}
+//-- load player init params from string
