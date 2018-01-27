@@ -51,13 +51,13 @@ void CplayerDlg::PlayerOpenFile(TCHAR *file)
     // open file dialog
     if (!file) {
         if (dlg.DoModal() == IDOK) {
-            wcscpy_s(str, dlg.GetPathName());
+            wcscpy(str, dlg.GetPathName());
         } else {
             OnOK();
             return;
         }
     } else {
-        wcscpy_s(str, file);
+        wcscpy(str, file);
     }
     WideCharToMultiByte(CP_ACP, 0, str, -1, m_strUrl, MAX_PATH, NULL, NULL);
 
