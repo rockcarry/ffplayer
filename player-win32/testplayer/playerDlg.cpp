@@ -2,7 +2,6 @@
 //
 
 #include "stdafx.h"
-#include "stdio.h"
 #include "player.h"
 #include "playerDlg.h"
 
@@ -13,69 +12,6 @@
 #define TIMER_ID_FIRST_DIALOG  1
 #define TIMER_ID_PROGRESS      2
 
-static void get_app_dir(char *path, int size)
-{
-    HMODULE handle = GetModuleHandle(NULL);
-    GetModuleFileNameA(handle, path, size);
-    char  *str = path + strlen(path);
-    while (*--str != '\\');
-    *str = '\0';
-}
-
-static void load_ffplayer_params(PLAYER_INIT_PARAMS *params)
-{
-    char  file[MAX_PATH];
-    FILE *fp = NULL;
-    char *buf= NULL;
-    int   len= 0;
-
-    // clear params
-    memset(params, 0, sizeof(PLAYER_INIT_PARAMS));
-
-    // open params file
-    get_app_dir(file, MAX_PATH);
-    strcat(file, "\\ffplayer.ini");
-    fp = fopen(file, "rb");
-
-    if (fp) {
-        fseek(fp, 0, SEEK_END);
-        len = ftell(fp);
-        buf = (char*)malloc(len);
-        if (buf) {
-            fseek(fp, 0, SEEK_SET);
-            fread(buf, len, 1, fp);
-            player_load_params(params, buf);
-            free(buf);
-        }
-        fclose(fp);
-    }
-}
-
-static void save_ffplayer_params(PLAYER_INIT_PARAMS *params)
-{
-    char  file[MAX_PATH];
-    FILE *fp = NULL;
-
-    // open params file
-    get_app_dir(file, MAX_PATH);
-    strcat(file, "\\ffplayer.ini");
-    fp = fopen(file, "wb");
-
-    if (fp) {
-        fprintf(fp, "video_stream_cur   = %d;\r\n", params->video_stream_cur   );
-        fprintf(fp, "video_thread_count = %d;\r\n", params->video_thread_count );
-        fprintf(fp, "video_hwaccel      = %d;\r\n", params->video_hwaccel      );
-        fprintf(fp, "video_deinterlace  = %d;\r\n", params->video_deinterlace  );
-        fprintf(fp, "video_rotate       = %d;\r\n", params->video_rotate       );
-        fprintf(fp, "audio_stream_cur   = %d;\r\n", params->audio_stream_cur   );
-        fprintf(fp, "subtitle_stream_cur= %d;\r\n", params->subtitle_stream_cur);
-        fprintf(fp, "vdev_render_type   = %d;\r\n", params->vdev_render_type   );
-        fprintf(fp, "adev_render_type   = %d;\r\n", params->adev_render_type   );
-        fprintf(fp, "init_timeout       = %d;\r\n", params->init_timeout       );
-        fclose(fp);
-    }
-}
-
 // CplayerDlg dialog
 CplayerDlg::CplayerDlg(CWnd* pParent /*=NULL*/)
     : CDialog(CplayerDlg::IDD, pParent)
@@ -84,6 +20,13 @@ CplayerDlg::CplayerDlg(CWnd* pParent /*=NULL*/)
     m_ffPlayer    = NULL;
     m_bLiveStream = FALSE;
     m_bResetPlayer= FALSE;
+
+    // set player init params
+    memset(&m_Params, 0, sizeof(m_Params));
+    m_Params.adev_render_type = ADEV_RENDER_TYPE_WAVEOUT;
+    m_Params.vdev_render_type = VDEV_RENDER_TYPE_D3D;
+//  m_Params.video_deinterlace= 1;
+//  m_Params.video_rotate     = 45;
 }
 
 void CplayerDlg::DoDataExchange(CDataExchange* pDX)
@@ -171,9 +114,6 @@ BOOL CplayerDlg::OnInitDialog()
     // get dc
     m_pDrawDC = GetDC();
 
-    // load ffplayer init params
-    load_ffplayer_params(&m_Params);
-
     // setup init timer
     SetTimer(TIMER_ID_FIRST_DIALOG, 100, NULL);
 
@@ -238,9 +178,6 @@ void CplayerDlg::OnDestroy()
     // close player
     player_close(m_ffPlayer);
     m_ffPlayer = NULL;
-
-    // save ffplayer init params
-    save_ffplayer_params(&m_Params);
 }
 
 void CplayerDlg::OnTimer(UINT_PTR nIDEvent)
