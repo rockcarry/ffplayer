@@ -487,12 +487,12 @@ static void* av_demux_thread_proc(void *param)
     if (retv != 0) goto done;
 
     while (!(player->player_status & PS_CLOSE)) {
-        //++ when demux pause ++//
+        //++ when player seek ++//
         if (player->player_status & PS_F_SEEK) {
             player->player_status &= ~PS_F_SEEK;
             player_handle_fseek_flag(player);
         }
-        //-- when demux pause --//
+        //-- when player seek --//
 
         packet = pktqueue_write_dequeue(player->pktqueue);
         if (packet == NULL) { av_usleep(20*1000); continue; }
