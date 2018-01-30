@@ -280,8 +280,11 @@ static int reinit_stream(PLAYER *player, enum AVMediaType type, int sel) {
         //- try android mediacodec hardware decoder
 
         if (!decoder) {
-            // try to set video decoding thread count
-            player->vcodec_context->thread_count = player->init_params.video_thread_count;
+            //+ try to set video decoding thread count
+            if (player->init_params.video_thread_count > 0) {
+                player->vcodec_context->thread_count = player->init_params.video_thread_count;
+            }
+            //- try to set video decoding thread count
             decoder = avcodec_find_decoder(player->vcodec_context->codec_id);
             if (decoder && avcodec_open2(player->vcodec_context, decoder, NULL) == 0) {
                 player->vstream_index = idx;
