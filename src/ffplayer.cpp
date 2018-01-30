@@ -219,9 +219,8 @@ static int vfilter_graph_output(PLAYER *player, AVFrame *frame)
 //-- for filter graph
 
 static int reinit_stream(PLAYER *player, enum AVMediaType type, int sel) {
-    AVCodecContext *lastctxt = NULL;
-    AVCodec        *decoder  = NULL;
-    int             idx = -1, cur = -1;
+    AVCodec *decoder = NULL;
+    int     idx = -1, cur = -1;
 
     for (int i=0; i<(int)player->avformat_context->nb_streams; i++) {
         if (player->avformat_context->streams[i]->codec->codec_type == type) {
