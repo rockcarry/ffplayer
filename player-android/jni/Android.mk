@@ -7,7 +7,7 @@ LOCAL_MODULE_TAGS := optional
 LOCAL_MODULE := libffplayer_jni
 
 LOCAL_SRC_FILES := \
-    com_rockcarry_ffplayer_player.cpp \
+    ffplayer_jni.cpp \
     ../../src/ffplayer.cpp \
     ../../src/ffrender.cpp \
     ../../src/pktqueue.cpp \

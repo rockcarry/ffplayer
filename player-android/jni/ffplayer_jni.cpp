@@ -2,7 +2,7 @@
 #include <gui/Surface.h>
 #include <android_runtime/android_view_Surface.h>
 #include <android_runtime/android_graphics_SurfaceTexture.h>
-#include "com_rockcarry_ffplayer_player.h"
+#include "ffplayer_jni.h"
 #include "ffplayer.h"
 #include "adev.h"
 #include "vdev.h"
@@ -39,53 +39,12 @@ static int parse_params(const char *str, const char *key)
     return atoi(t);
 }
 
-JavaVM* g_jvm = NULL;
-JNIEXPORT jint JNICALL JNI_OnLoad(JavaVM* vm, void* reserved)
-{
-    DO_USE_VAR(reserved);
-
-    JNIEnv* env = NULL;
-    if (vm->GetEnv((void**) &env, JNI_VERSION_1_4) != JNI_OK) {
-        ALOGE("ERROR: GetEnv failed\n");
-        return -1;
-    }
-    assert(env != NULL);
-
-    // for g_jvm
-    g_jvm = vm;
-    av_jni_set_java_vm(vm, NULL);
-    return JNI_VERSION_1_4;
-}
-
-JNIEXPORT JNIEnv* get_jni_env(void)
-{
-    JNIEnv *env;
-    int status;
-    if (NULL == g_jvm)
-    {
-        ALOGE("g_jvm == NULL !\n");
-        return NULL;
-    }
-    status = g_jvm->GetEnv((void **)&env, JNI_VERSION_1_4);
-    if (status != JNI_OK) {
-//      ALOGD("failed to get JNI environment assuming native thread !\n");
-        status = g_jvm->AttachCurrentThread(&env, NULL);
-        if (status != JNI_OK) {
-            ALOGE("failed to attach current thread !\n");
-            return NULL;
-        }
-    }
-    return env;
-}
-
-
 /*
  * Class:     com_rockcarry_ffplayer_MediaPlayer
  * Method:    nativeOpen
  * Signature: (Ljava/lang/String;Ljava/lang/Object;IILjava/lang/String;)J
  */
-JNIEXPORT jlong JNICALL Java_com_rockcarry_ffplayer_MediaPlayer_nativeOpen
-  (JNIEnv *env, jobject obj, jstring url, jobject jsurface, jint w, jint h, jstring params)
+static jlong JNICALL nativeOpen(JNIEnv *env, jobject obj, jstring url, jobject jsurface, jint w, jint h, jstring params)
 {
     DO_USE_VAR(obj);
     DO_USE_VAR(jsurface);
@@ -120,8 +79,7 @@ JNIEXPORT jlong JNICALL Java_com_rockcarry_ffplayer_MediaPlayer_nativeOpen
  * Method:    nativeClose
  * Signature: (J)V
  */
-JNIEXPORT void JNICALL Java_com_rockcarry_ffplayer_MediaPlayer_nativeClose
-  (JNIEnv *env, jobject obj, jlong hplayer)
+static void nativeClose(JNIEnv *env, jobject obj, jlong hplayer)
 {
     DO_USE_VAR(env);
     DO_USE_VAR(obj);
@@ -133,8 +91,7 @@ JNIEXPORT void JNICALL Java_com_rockcarry_ffplayer_MediaPlayer_nativeClose
  * Method:    nativePlay
  * Signature: (J)V
  */
-JNIEXPORT void JNICALL Java_com_rockcarry_ffplayer_MediaPlayer_nativePlay
-  (JNIEnv *env, jobject obj, jlong hplayer)
+static void JNICALL nativePlay(JNIEnv *env, jobject obj, jlong hplayer)
 {
     DO_USE_VAR(env);
     DO_USE_VAR(obj);
@@ -146,8 +103,7 @@ JNIEXPORT void JNICALL Java_com_rockcarry_ffplayer_MediaPlayer_nativePlay
  * Method:    nativePause
  * Signature: (J)V
  */
-JNIEXPORT void JNICALL Java_com_rockcarry_ffplayer_MediaPlayer_nativePause
-  (JNIEnv *env, jobject obj, jlong hplayer)
+static void JNICALL nativePause(JNIEnv *env, jobject obj, jlong hplayer)
 {
     DO_USE_VAR(env);
     DO_USE_VAR(obj);
@@ -159,8 +115,7 @@ JNIEXPORT void JNICALL Java_com_rockcarry_ffplayer_MediaPlayer_nativePause
  * Method:    nativeSeek
  * Signature: (JJ)V
  */
-JNIEXPORT void JNICALL Java_com_rockcarry_ffplayer_MediaPlayer_nativeSeek
-  (JNIEnv *env, jobject obj, jlong hplayer, jlong ms)
+static void JNICALL nativeSeek(JNIEnv *env, jobject obj, jlong hplayer, jlong ms)
 {
     DO_USE_VAR(env);
     DO_USE_VAR(obj);
@@ -172,8 +127,7 @@ JNIEXPORT void JNICALL Java_com_rockcarry_ffplayer_MediaPlayer_nativeSeek
  * Method:    nativeSetParam
  * Signature: (JIJ)V
  */
-JNIEXPORT void JNICALL Java_com_rockcarry_ffplayer_MediaPlayer_nativeSetParam
-  (JNIEnv *env, jobject obj, jlong hplayer, jint id, jlong value)
+static void JNICALL nativeSetParam(JNIEnv *env, jobject obj, jlong hplayer, jint id, jlong value)
 {
     DO_USE_VAR(env);
     DO_USE_VAR(obj);
@@ -185,8 +139,7 @@ JNIEXPORT void JNICALL Java_com_rockcarry_ffplayer_MediaPlayer_nativeSetParam
  * Method:    nativeGetParam
  * Signature: (JI)J
  */
-JNIEXPORT jlong JNICALL Java_com_rockcarry_ffplayer_MediaPlayer_nativeGetParam
-  (JNIEnv *env, jobject obj, jlong hplayer, jint id)
+static jlong JNICALL nativeGetParam(JNIEnv *env, jobject obj, jlong hplayer, jint id)
 {
     DO_USE_VAR(env);
     DO_USE_VAR(obj);
@@ -200,8 +153,7 @@ JNIEXPORT jlong JNICALL Java_com_rockcarry_ffplayer_MediaPlayer_nativeGetParam
  * Method:    nativeSetDisplaySurface
  * Signature: (JLjava/lang/Object;)V
  */
-JNIEXPORT void JNICALL Java_com_rockcarry_ffplayer_MediaPlayer_nativeSetDisplaySurface
-  (JNIEnv *env, jobject obj, jlong hplayer, jobject jsurface)
+static void JNICALL nativeSetDisplaySurface(JNIEnv *env, jobject obj, jlong hplayer, jobject jsurface)
 {
     DO_USE_VAR(obj);
     void *vdev = NULL;
@@ -222,8 +174,7 @@ JNIEXPORT void JNICALL Java_com_rockcarry_ffplayer_MediaPlayer_nativeSetDisplayS
  * Method:    nativeSetDisplayTexture
  * Signature: (JLjava/lang/Object;)V
  */
-JNIEXPORT void JNICALL Java_com_rockcarry_ffplayer_MediaPlayer_nativeSetDisplayTexture
-  (JNIEnv *env, jobject obj, jlong hplayer, jobject jtexture)
+static void JNICALL nativeSetDisplayTexture(JNIEnv *env, jobject obj, jlong hplayer, jobject jtexture)
 {
     DO_USE_VAR(obj);
     void *vdev = NULL;
@@ -239,4 +190,70 @@ JNIEXPORT void JNICALL Java_com_rockcarry_ffplayer_MediaPlayer_nativeSetDisplayT
     vdev_android_setwindow(vdev, gbp);
 }
 
+
+//++ jni register ++//
+static JavaVM* g_jvm = NULL;
+
+static const JNINativeMethod g_methods[] = {
+    { "nativeOpen"              , "(Ljava/lang/String;Ljava/lang/Object;IILjava/lang/String;)J", (void*)nativeOpen },
+    { "nativeClose"             , "(J)V"  , (void*)nativeClose    },
+    { "nativePlay"              , "(J)V"  , (void*)nativePlay     },
+    { "nativePause"             , "(J)V"  , (void*)nativePause    },
+    { "nativeSeek"              , "(JJ)V" , (void*)nativeSeek     },
+    { "nativeSetParam"          , "(JIJ)V", (void*)nativeSetParam },
+    { "nativeGetParam"          , "(JI)J" , (void*)nativeGetParam },
+    { "nativeSetDisplaySurface" , "(JLjava/lang/Object;)V", (void*)nativeSetDisplaySurface },
+    { "nativeSetDisplayTexture" , "(JLjava/lang/Object;)V", (void*)nativeSetDisplayTexture },
+};
+
+JNIEXPORT jint JNICALL JNI_OnLoad(JavaVM* vm, void* reserved)
+{
+    DO_USE_VAR(reserved);
+
+    JNIEnv* env = NULL;
+    if (vm->GetEnv((void**) &env, JNI_VERSION_1_4) != JNI_OK) {
+        ALOGE("ERROR: GetEnv failed\n");
+        return -1;
+    }
+    assert(env != NULL);
+
+    jclass cls = env->FindClass("com/rockcarry/ffplayer/MediaPlayer");
+    int ret = env->RegisterNatives(cls, g_methods, sizeof(g_methods)/sizeof(g_methods[0]));
+    if (ret != JNI_OK) {
+        ALOGE("ERROR: failed to register native methods !\n");
+        return -1;
+    }
+
+    // for g_jvm
+    g_jvm = vm;
+    av_jni_set_java_vm(vm, NULL);
+    return JNI_VERSION_1_4;
+}
+
+JNIEXPORT JavaVM* get_jni_jvm(void)
+{
+    return g_jvm;
+}
+
+JNIEXPORT JNIEnv* get_jni_env(void)
+{
+    JNIEnv *env;
+    int status;
+    if (NULL == g_jvm)
+    {
+        ALOGE("g_jvm == NULL !\n");
+        return NULL;
+    }
+    status = g_jvm->GetEnv((void **)&env, JNI_VERSION_1_4);
+    if (status != JNI_OK) {
+//      ALOGD("failed to get JNI environment assuming native thread !\n");
+        status = g_jvm->AttachCurrentThread(&env, NULL);
+        if (status != JNI_OK) {
+            ALOGE("failed to attach current thread !\n");
+            return NULL;
+        }
+    }
+    return env;
+}
+//-- jni register --//
 

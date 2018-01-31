@@ -17,7 +17,7 @@ extern "C" {
 
 #ifdef ANDROID
 #include <jni.h>
-extern    JavaVM* g_jvm;
+JNIEXPORT JavaVM* get_jni_jvm(void);
 JNIEXPORT JNIEnv* get_jni_env(void);
 #endif
 
@@ -525,7 +525,7 @@ static void* av_demux_thread_proc(void *param)
 done:
 #ifdef ANDROID
     // need call DetachCurrentThread
-    g_jvm->DetachCurrentThread();
+    get_jni_jvm()->DetachCurrentThread();
 #endif
     return NULL;
 }
