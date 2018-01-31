@@ -913,7 +913,7 @@ void player_getparam(void *hplayer, int id, void *param)
         if (*(int64_t*)param <= 0) *(int64_t*)param = 1;
         break;
     case PARAM_MEDIA_POSITION:
-        if (player->player_status & (PS_A_PAUSE|PS_V_PAUSE|PS_F_SEEK|PS_A_SEEK|PS_V_SEEK)) {
+        if ((player->player_status & PS_F_SEEK) || (player->player_status & (PS_A_SEEK|PS_V_SEEK)) == (PS_A_SEEK|PS_V_SEEK)) {
             *(int64_t*)param = player->seek_dest - player->start_pts;
         } else {
             int64_t pos = 0; render_getparam(player->render, id, &pos);
