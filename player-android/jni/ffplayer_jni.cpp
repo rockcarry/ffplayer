@@ -12,33 +12,6 @@ using namespace android;
 // this function defined in libavcodec/jni.h
 extern "C" int av_jni_set_java_vm(void *vm, void *log_ctx);
 
-static int parse_params(const char *str, const char *key)
-{
-    char  t[12];
-    char *p = strstr(str, key);
-    int   i;
-
-    if (!p) return 0;
-    p += strlen(key);
-    if (*p == '\0') return 0;
-
-    while (1) {
-        if (*p != ' ' && *p != '=' && *p != ':') break;
-        else p++;
-    }
-
-    for (i=0; i<12; i++) {
-        if (*p == ',' || *p == ';' || *p == '\n' || *p == '\0') {
-            t[i] = '\0';
-            break;
-        } else {
-            t[i] = *p++;
-        }
-    }
-    t[11] = '\0';
-    return atoi(t);
-}
-
 /*
  * Class:     com_rockcarry_ffplayer_MediaPlayer
  * Method:    nativeOpen
@@ -54,17 +27,8 @@ static jlong JNICALL nativeOpen(JNIEnv *env, jobject obj, jstring url, jobject j
     PLAYER_INIT_PARAMS playerparams;
     memset(&playerparams, 0, sizeof(playerparams));
     if (params != NULL) {
-        const char *strparams = env->GetStringUTFChars(params, NULL);
-        playerparams.video_stream_cur    = parse_params(strparams, "video_stream_cur");
-        playerparams.video_thread_count  = parse_params(strparams, "video_thread_count");
-        playerparams.video_hwaccel       = parse_params(strparams, "video_hwaccel");
-        playerparams.video_deinterlace   = parse_params(strparams, "video_deinterlace");
-        playerparams.video_rotate        = parse_params(strparams, "video_rotate");
-        playerparams.audio_stream_cur    = parse_params(strparams, "audio_stream_cur");
-        playerparams.subtitle_stream_cur = parse_params(strparams, "subtitle_stream_cur");
-        playerparams.vdev_render_type    = parse_params(strparams, "vdev_render_type");
-        playerparams.adev_render_type    = parse_params(strparams, "adev_render_type");
-        playerparams.init_timeout        = parse_params(strparams, "init_timeout");
+        char *strparams = (char*)env->GetStringUTFChars(params, NULL);
+        player_load_params(&playerparams, strparams);
         env->ReleaseStringUTFChars(params, strparams);
     }
 

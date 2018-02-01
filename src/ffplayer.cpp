@@ -1002,5 +1002,6 @@ void player_load_params(PLAYER_INIT_PARAMS *params, char *str)
     params->vdev_render_type    = parse_params(str, "vdev_render_type"   );
     params->adev_render_type    = parse_params(str, "adev_render_type"   );
     params->init_timeout        = parse_params(str, "init_timeout"       );
+    params->open_syncmode       = parse_params(str, "open_syncmode"      );
 }
 //-- load player init params from string
