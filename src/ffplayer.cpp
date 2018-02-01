@@ -457,7 +457,10 @@ static void player_handle_fseek_flag(PLAYER *player)
     player->player_status |= PAUSE_REQ;
     player->player_status &=~PAUSE_ACK;
     // wait for pause done
-    while ((player->player_status & PAUSE_ACK) != PAUSE_ACK) av_usleep(20*1000);
+    while ((player->player_status & PAUSE_ACK) != PAUSE_ACK) {
+        if (player->player_status & PS_CLOSE) return;
+        av_usleep(20*1000);
+    }
 
     // seek frame
     av_seek_frame(player->avformat_context, -1, player->seek_dest / 1000 * AV_TIME_BASE, AVSEEK_FLAG_BACKWARD);
