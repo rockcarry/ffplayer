@@ -121,6 +121,7 @@ typedef struct {
     int adev_render_type;         // w  adev 类型
 
     int init_timeout;             // w  播放器初始化超时，单位 ms，打开网络流媒体时设置用来防止卡死
+    int open_syncmode;            // w  播放器以同步方式打开，调用 player_open 将等待播放器初始化成功
 } PLAYER_INIT_PARAMS;
 
 // 函数声明

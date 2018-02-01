@@ -53,6 +53,7 @@ typedef struct {
     #define PS_V_SEEK     (1 << 5)  // seek video
     #define PS_CLOSE      (1 << 6)  // close player
     int              player_status;
+    int              seek_req ;
     int64_t          seek_dest;
     int64_t          start_pts;
 
@@ -387,6 +388,8 @@ static int player_prepare(PLAYER *player)
     // set current audio & video stream
     player->astream_index = -1; reinit_stream(player, AVMEDIA_TYPE_AUDIO, player->init_params.audio_stream_cur);
     player->vstream_index = -1; reinit_stream(player, AVMEDIA_TYPE_VIDEO, player->init_params.video_stream_cur);
+    if (player->astream_index != -1) player->seek_req |= PS_A_SEEK;
+    if (player->vstream_index != -1) player->seek_req |= PS_V_SEEK;
 
     // for audio
     if (player->astream_index != -1) {
@@ -464,12 +467,8 @@ static void player_handle_fseek_flag(PLAYER *player)
     pktqueue_reset(player->pktqueue); // reset pktqueue
     render_reset  (player->render  ); // reset render
 
-    //++ seek to dest pts
-    int SEEK_REQ = 0;
-    if (player->astream_index != -1) SEEK_REQ |= PS_A_SEEK;
-    if (player->vstream_index != -1) SEEK_REQ |= PS_V_SEEK;
-    player->player_status |= SEEK_REQ;
-    //-- seek to dest pts
+    // set seek request flags
+    player->player_status |= player->seek_req;
 
     // make audio & video decoding thread resume
     player->player_status &= ~(PAUSE_REQ|PAUSE_ACK);
@@ -481,9 +480,11 @@ static void* av_demux_thread_proc(void *param)
     AVPacket *packet = NULL;
     int       retv   = 0;
 
-    // prepare
-    retv = player_prepare(player);
-    if (retv != 0) goto done;
+    // async prepare player
+    if (!player->init_params.open_syncmode) {
+        retv = player_prepare(player);
+        if (retv != 0) goto done;
+    }
 
     while (!(player->player_status & PS_CLOSE)) {
         //++ when player seek ++//
@@ -727,6 +728,11 @@ void* player_open(char *file, void *appdata, PLAYER_INIT_PARAMS *params)
 #endif
     //-- for player_prepare
 
+    if (player->init_params.open_syncmode && player_prepare(player) == -1) {
+        av_log(NULL, AV_LOG_ERROR, "failed to prepare player !\n");
+        goto error_handler;
+    }
+
     // make sure player status paused
     player->player_status = (PS_A_PAUSE|PS_V_PAUSE|PS_R_PAUSE);
     pthread_create(&player->avdemux_thread, NULL, av_demux_thread_proc    , player);
@@ -913,7 +919,7 @@ void player_getparam(void *hplayer, int id, void *param)
         if (*(int64_t*)param <= 0) *(int64_t*)param = 1;
         break;
     case PARAM_MEDIA_POSITION:
-        if ((player->player_status & PS_F_SEEK) || (player->player_status & (PS_A_SEEK|PS_V_SEEK)) == (PS_A_SEEK|PS_V_SEEK)) {
+        if ((player->player_status & PS_F_SEEK) || (player->player_status & player->seek_req) == player->seek_req) {
             *(int64_t*)param = player->seek_dest - player->start_pts;
         } else {
             int64_t pos = 0; render_getparam(player->render, id, &pos);
