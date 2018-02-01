@@ -122,7 +122,8 @@ void CplayerDlg::PlayerOpenFile(TCHAR *file)
     SetWindowText(TEXT("testplayer - loading"));
 
     // player open file
-    if (strstr(m_strUrl, "rtmp://") == m_strUrl || strstr(m_strUrl, "http://") == m_strUrl && strstr(m_strUrl, ".m3u8")) {
+    if (  strstr(m_strUrl, "rtmp://") == m_strUrl || strstr(m_strUrl, "http://") == m_strUrl && strstr(m_strUrl, ".m3u8")
+       || strstr(m_strUrl, "gdigrab://") == m_strUrl || strcmp(m_strUrl, "vfwcap") == 0 ) {
         m_bLiveStream = TRUE;
     } else {
         m_bLiveStream = FALSE;
