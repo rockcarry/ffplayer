@@ -423,17 +423,15 @@ void render_setparam(void *hrender, int id, void *param)
 void render_getparam(void *hrender, int id, void *param)
 {
     if (!hrender) return;
-    RENDER *render = (RENDER*)hrender;
+    RENDER         *render = (RENDER*)hrender;
+    VDEV_COMMON_CTXT *vdev = (VDEV_COMMON_CTXT*)render->vdev;
     switch (id)
     {
     case PARAM_MEDIA_POSITION:
-        if (((VDEV_COMMON_CTXT*)render->vdev)->status & VDEV_COMPLETED) {
+        if (vdev->status & VDEV_COMPLETED) {
             *(int64_t*)param  = -1; // means completed
         } else {
-            int64_t *papts, *pvpts, pos;
-            vdev_getavpts(render->vdev, &papts, &pvpts);
-            pos = (*papts > *pvpts ? *papts : *pvpts);
-            *(int64_t*)param  = pos > 0 ? pos : 0;
+            *(int64_t*)param = vdev->apts > vdev->vpts ? vdev->apts : vdev->vpts;
         }
         break;
     case PARAM_AUDIO_VOLUME:

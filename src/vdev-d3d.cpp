@@ -55,7 +55,6 @@ static void* video_render_thread_proc(void *param)
             vdev_refresh_background(c);
         }
 
-        int64_t apts = c->apts;
         int64_t vpts = c->vpts = c->ppts[c->head];
         if (vpts != -1) {
             d3d_draw_surf(c, c->pSurfs[c->head]);

@@ -44,9 +44,6 @@ void adev_syncapts(void *ctxt, int64_t *apts)
     if (!ctxt) return;
     ADEV_COMMON_CTXT *c = (ADEV_COMMON_CTXT*)ctxt;
     c->apts = apts;
-    if (c->apts) {
-        *c->apts = -1;
-    }
 }
 
 void adev_curdata(void *ctxt, void **buf, int *len)

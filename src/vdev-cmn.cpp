@@ -33,7 +33,7 @@ void vdev_reset(void *ctxt)
     }
     c->head   = c->tail =  0;
 #endif//-- no need to reset vdev buffer queue
-//  c->apts   = c->vpts = -1; // no need to reset to -1
+    c->apts   = c->vpts = AV_NOPTS_VALUE;
     c->status = 0;
 }
 
@@ -208,9 +208,9 @@ void vdev_handle_complete_and_avsync(void *ctxt)
         //-- play completed --//
 
         //++ frame rate & av sync control ++//
-        tickcur      = av_gettime_relative() / 1000;
-        tickdiff     = (int)(tickcur - c->ticklast);
-        c->ticklast  = tickcur;
+        tickcur     = av_gettime_relative() / 1000;
+        tickdiff    = (int)(tickcur - c->ticklast);
+        c->ticklast = tickcur;
 
         // re-calculate start_pts & start_tick if needed
         if (c->start_pts == AV_NOPTS_VALUE) {

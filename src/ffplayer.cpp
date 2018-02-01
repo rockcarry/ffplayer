@@ -562,7 +562,7 @@ static void* audio_decode_thread_proc(void *param)
         }
 
         //++ decode audio packet ++//
-        apts = -1; // make it -1
+        apts = AV_NOPTS_VALUE;
         while (packet->size > 0 && !(player->player_status & (PS_A_PAUSE|PS_CLOSE))) {
             int consumed = 0;
             int gotaudio = 0;
@@ -575,7 +575,7 @@ static void* audio_decode_thread_proc(void *param)
 
             if (gotaudio) {
                 AVRational tb_sample_rate = { 1, player->acodec_context->sample_rate };
-                if (apts == -1) {
+                if (apts == AV_NOPTS_VALUE) {
                     apts  = av_rescale_q(aframe->pts, av_codec_get_pkt_timebase(player->acodec_context), tb_sample_rate);
                 } else {
                     apts += aframe->nb_samples;
@@ -594,6 +594,7 @@ static void* audio_decode_thread_proc(void *param)
                 if (!(player->player_status & PS_A_SEEK)) render_audio(player->render, aframe);
             }
 
+            aframe->pts   = AV_NOPTS_VALUE;
             packet->data += consumed;
             packet->size -= consumed;
         }
@@ -664,6 +665,7 @@ static void* video_decode_thread_proc(void *param)
                 } while (player->vfilter_graph);
             }
 
+            vframe->pts   = AV_NOPTS_VALUE;
             packet->data += consumed;
             packet->size -= consumed;
         }
@@ -926,10 +928,10 @@ void player_getparam(void *hplayer, int id, void *param)
             *(int64_t*)param = player->seek_dest - player->start_pts;
         } else {
             int64_t pos = 0; render_getparam(player->render, id, &pos);
-            if (pos == -1) {
-                *(int64_t*)param = -1;
-            } else {
-                *(int64_t*)param = pos - player->start_pts < 0 ? 0 : pos - player->start_pts;
+            switch (pos) {
+            case -1:             *(int64_t*)param = -1; break;
+            case AV_NOPTS_VALUE: *(int64_t*)param = player->seek_dest - player->start_pts; break;
+            default:             *(int64_t*)param = pos - player->start_pts; break;
             }
         }
         break;

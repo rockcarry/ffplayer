@@ -209,7 +209,7 @@ public class MainActivity extends Activity {
                     if (!mIsLive) {
                         if (progress >= 0) mSeek.setProgress(progress);
                     } else {
-                        mBuffering.setVisibility(progress <= 0 ? View.VISIBLE : View.INVISIBLE);
+                        mBuffering.setVisibility(progress == -1 ? View.VISIBLE : View.INVISIBLE);
                     }
                 }
                 break;

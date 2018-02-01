@@ -54,7 +54,6 @@ static void* video_render_thread_proc(void *param)
         sem_wait(&c->semr);
         if (c->status & VDEV_CLOSE) break;
 
-        int64_t apts = c->apts;
         int64_t vpts = c->vpts = c->ppts[c->head];
 #if CLEAR_VDEV_WHEN_COMPLETED
         if (vpts != -1 && !(c->status & VDEV_COMPLETED)) {
