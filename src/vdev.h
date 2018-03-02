@@ -110,8 +110,6 @@ void  vdev_handle_complete_and_avsync(void *ctxt);
 
 #ifdef ANDROID
 #include <jni.h>
-#include <android/native_window.h>
-#include <android/native_window_jni.h>
 void vdev_android_setwindow(void *ctxt, jobject surface);
 #endif
 

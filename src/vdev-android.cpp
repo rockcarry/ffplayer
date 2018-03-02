@@ -1,4 +1,6 @@
 // 包含头文件
+#include <android/native_window.h>
+#include <android/native_window_jni.h>
 #include "vdev.h"
 
 extern "C" {
