@@ -27,10 +27,36 @@ LOCAL_CXXFLAGS += -DHAVE_PTHREADS
 LOCAL_LDLIBS   += -lz -llog -landroid
 
 LOCAL_STATIC_LIBRARIES += libavformat libavcodec libavdevice libavfilter libswresample libswscale libavutil libx264
+LOCAL_SHARED_LIBRARIES += libutils libui libgui libandroid_runtime
 
 LOCAL_MULTILIB := 32
 
 include $(BUILD_SHARED_LIBRARY)
+
+
+
+#++ android prebuilt share libraries
+include $(CLEAR_VARS)
+LOCAL_MODULE := libutils
+LOCAL_SRC_FILES := ndk-build-files/lib/libutils.so
+include $(PREBUILT_SHARED_LIBRARY)
+
+include $(CLEAR_VARS)
+LOCAL_MODULE := libui
+LOCAL_SRC_FILES := ndk-build-files/lib/libui.so
+include $(PREBUILT_SHARED_LIBRARY)
+
+include $(CLEAR_VARS)
+LOCAL_MODULE := libgui
+LOCAL_SRC_FILES := ndk-build-files/lib/libgui.so
+include $(PREBUILT_SHARED_LIBRARY)
+
+include $(CLEAR_VARS)
+LOCAL_MODULE := libandroid_runtime
+LOCAL_SRC_FILES := ndk-build-files/lib/libandroid_runtime.so
+include $(PREBUILT_SHARED_LIBRARY)
+#-- android prebuilt share libraries
+
 
 
 #++ ffmpeg prebuilt static libraries

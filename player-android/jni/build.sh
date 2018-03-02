@@ -10,7 +10,11 @@ echo ""
 export PATH=$PATH:$NDK_HOME
 ndk-build
 
-cp -r $BASEDIR/../libs/* $BASEDIR/../apk/app/src/main/jniLibs/
+cd $BASEDIR/../libs/
+mkdir -p $BASEDIR/../apk/app/src/main/jniLibs/
+find -name libffplayer_jni.so | xargs -i cp -arf --parent {} $BASEDIR/../apk/app/src/main/jniLibs/
+cd -
+
 rm -rf $BASEDIR/../libs/ $BASEDIR/../obj/
 
 echo ""

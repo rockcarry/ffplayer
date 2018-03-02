@@ -19,6 +19,17 @@ or
 常见问题
 --------
 
+android 6.0 以上 GraphicBufferMapper.h 和 libui.so 这两个库有差异，必须替换后重新编译，
+才能在 6.0 上正常运行，否则会报错。ndk-build-files/6.0 这个路径下是 6.0 的相关文件
+
+
+有的 android 设备不支持 HAL_PIXEL_FORMAT_YCrCb_420_SP 这个渲染格式，可能会导致报错，或者视频显示绿屏花屏
+可修改 vdev-android.cpp 中的宏定义：
+
+#define DEF_WIN_PIX_FMT HAL_PIXEL_FORMAT_YCrCb_420_SP // HAL_PIXEL_FORMAT_RGBX_8888 or HAL_PIXEL_FORMAT_RGB_565 or
+                                                      // HAL_PIXEL_FORMAT_YCrCb_420_SP or HAL_PIXEL_FORMAT_YV12
+
+
 有的 android 设备不支持 mediacodec 的硬件解码，可能会导致视频显示绿屏。
 可在 player open 的时候禁用硬件加速参数：
 
