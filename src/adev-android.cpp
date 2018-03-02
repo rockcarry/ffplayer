@@ -1,10 +1,9 @@
 // 包含头文件
 #include <jni.h>
+#include <unistd.h>
 #include <pthread.h>
 #include <semaphore.h>
 #include "adev.h"
-
-using namespace android;
 
 // for jni
 JNIEXPORT JavaVM* get_jni_jvm(void);

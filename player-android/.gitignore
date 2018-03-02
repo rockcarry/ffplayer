@@ -1,2 +1,3 @@
 !.gitignore
-/libs
+/apk/.gradle/
+/apk/build/

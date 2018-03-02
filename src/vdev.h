@@ -110,10 +110,9 @@ void  vdev_handle_complete_and_avsync(void *ctxt);
 
 #ifdef ANDROID
 #include <jni.h>
-#include <gui/Surface.h>
-#include <ui/GraphicBufferMapper.h>
-using namespace android;
-void vdev_android_setwindow(void *ctxt, const sp<IGraphicBufferProducer>& gbp);
+#include <android/native_window.h>
+#include <android/native_window_jni.h>
+void vdev_android_setwindow(void *ctxt, jobject surface);
 #endif
 
 #endif

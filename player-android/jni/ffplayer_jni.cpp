@@ -1,13 +1,8 @@
 // 包含头文件
-#include <gui/Surface.h>
-#include <android_runtime/android_view_Surface.h>
-#include <android_runtime/android_graphics_SurfaceTexture.h>
 #include "ffplayer_jni.h"
 #include "ffplayer.h"
 #include "adev.h"
 #include "vdev.h"
-
-using namespace android;
 
 // this function defined in libavcodec/jni.h
 extern "C" int av_jni_set_java_vm(void *vm, void *log_ctx);
@@ -117,41 +112,12 @@ static jlong JNICALL nativeGetParam(JNIEnv *env, jobject obj, jlong hplayer, jin
  * Method:    nativeSetDisplaySurface
  * Signature: (JLjava/lang/Object;)V
  */
-static void JNICALL nativeSetDisplaySurface(JNIEnv *env, jobject obj, jlong hplayer, jobject jsurface)
+static void JNICALL nativeSetDisplaySurface(JNIEnv *env, jobject obj, jlong hplayer, jobject surface)
 {
     DO_USE_VAR(obj);
     void *vdev = NULL;
     player_getparam((void*)hplayer, PARAM_VDEV_GET_CONTEXT, &vdev);
-    sp<IGraphicBufferProducer> gbp;
-    sp<Surface> surface;
-    if (jsurface) {
-        surface = android_view_Surface_getSurface(env, jsurface);
-        if (surface != NULL) {
-            gbp = surface->getIGraphicBufferProducer();
-        }
-    }
-    vdev_android_setwindow(vdev, gbp);
-}
-
-/*
- * Class:     com_rockcarry_ffplayer_MediaPlayer
- * Method:    nativeSetDisplayTexture
- * Signature: (JLjava/lang/Object;)V
- */
-static void JNICALL nativeSetDisplayTexture(JNIEnv *env, jobject obj, jlong hplayer, jobject jtexture)
-{
-    DO_USE_VAR(obj);
-    void *vdev = NULL;
-    player_getparam((void*)hplayer, PARAM_VDEV_GET_CONTEXT, &vdev);
-    sp<IGraphicBufferProducer> gbp = NULL;
-    if (jtexture != NULL) {
-        gbp = SurfaceTexture_getProducer(env, jtexture);
-        if (gbp == NULL) {
-            ALOGW("SurfaceTexture already released in setPreviewTexture !");
-            return;
-        }
-    }
-    vdev_android_setwindow(vdev, gbp);
+    vdev_android_setwindow(vdev, surface);
 }
 
 
@@ -167,7 +133,6 @@ static const JNINativeMethod g_methods[] = {
     { "nativeSetParam"          , "(JIJ)V", (void*)nativeSetParam },
     { "nativeGetParam"          , "(JI)J" , (void*)nativeGetParam },
     { "nativeSetDisplaySurface" , "(JLjava/lang/Object;)V", (void*)nativeSetDisplaySurface },
-    { "nativeSetDisplayTexture" , "(JLjava/lang/Object;)V", (void*)nativeSetDisplayTexture },
 };
 
 JNIEXPORT jint JNICALL JNI_OnLoad(JavaVM* vm, void* reserved)
@@ -175,16 +140,15 @@ JNIEXPORT jint JNICALL JNI_OnLoad(JavaVM* vm, void* reserved)
     DO_USE_VAR(reserved);
 
     JNIEnv* env = NULL;
-    if (vm->GetEnv((void**) &env, JNI_VERSION_1_4) != JNI_OK) {
-        ALOGE("ERROR: GetEnv failed\n");
+    if (vm->GetEnv((void**) &env, JNI_VERSION_1_4) != JNI_OK || !env) {
+        __android_log_print(ANDROID_LOG_ERROR, "ffplayer_jni", "ERROR: GetEnv failed\n");
         return -1;
     }
-    assert(env != NULL);
 
     jclass cls = env->FindClass("com/rockcarry/ffplayer/MediaPlayer");
     int ret = env->RegisterNatives(cls, g_methods, sizeof(g_methods)/sizeof(g_methods[0]));
     if (ret != JNI_OK) {
-        ALOGE("ERROR: failed to register native methods !\n");
+        __android_log_print(ANDROID_LOG_ERROR, "ffplayer_jni", "ERROR: failed to register native methods !\n");
         return -1;
     }
 
@@ -205,15 +169,15 @@ JNIEXPORT JNIEnv* get_jni_env(void)
     int status;
     if (NULL == g_jvm)
     {
-        ALOGE("g_jvm == NULL !\n");
+        __android_log_print(ANDROID_LOG_ERROR, "ffplayer_jni", "g_jvm == NULL !\n");
         return NULL;
     }
     status = g_jvm->GetEnv((void **)&env, JNI_VERSION_1_4);
     if (status != JNI_OK) {
-//      ALOGD("failed to get JNI environment assuming native thread !\n");
+//      __android_log_print(ANDROID_LOG_DEBUG, "ffplayer_jni", "failed to get JNI environment assuming native thread !\n");
         status = g_jvm->AttachCurrentThread(&env, NULL);
         if (status != JNI_OK) {
-            ALOGE("failed to attach current thread !\n");
+            __android_log_print(ANDROID_LOG_ERROR, "ffplayer_jni", "failed to attach current thread !\n");
             return NULL;
         }
     }

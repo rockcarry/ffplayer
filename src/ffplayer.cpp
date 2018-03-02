@@ -87,13 +87,13 @@ static const AVRational TIMEBASE_MS = { 1, 1000 };
 static void avlog_callback(void* ptr, int level, const char *fmt, va_list vl) {
     DO_USE_VAR(ptr);
     if (level <= av_log_get_level()) {
+#ifdef WIN32
         char str[1024];
         vsprintf(str, fmt, vl);
-#ifdef WIN32
         OutputDebugStringA(str);
 #endif
 #ifdef ANDROID
-        ALOGD("%s", str);
+        __android_log_vprint(ANDROID_LOG_DEBUG, "ffplayer", fmt, vl);
 #endif
     }
 }
