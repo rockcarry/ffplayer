@@ -126,31 +126,31 @@ void vdev_destroy(void *ctxt)
 #endif
 }
 
-void vdev_dequeue(void *ctxt, uint8_t *buffer[8], int linesize[8])
+void vdev_lock(void *ctxt, uint8_t *buffer[8], int linesize[8])
 {
     VDEV_COMMON_CTXT *c = (VDEV_COMMON_CTXT*)ctxt;
 #ifdef WIN32
     switch (c->type) {
-    case VDEV_RENDER_TYPE_GDI: vdev_gdi_dequeue(ctxt, buffer, linesize); break;
-    case VDEV_RENDER_TYPE_D3D: vdev_d3d_dequeue(ctxt, buffer, linesize); break;
+    case VDEV_RENDER_TYPE_GDI: vdev_gdi_lock(ctxt, buffer, linesize); break;
+    case VDEV_RENDER_TYPE_D3D: vdev_d3d_lock(ctxt, buffer, linesize); break;
     }
 #endif
 #ifdef ANDROID
-    vdev_android_dequeue(ctxt, buffer, linesize);
+    vdev_android_lock(ctxt, buffer, linesize);
 #endif
 }
 
-void vdev_enqueue(void *ctxt, int64_t pts)
+void vdev_unlock(void *ctxt, int64_t pts)
 {
     VDEV_COMMON_CTXT *c = (VDEV_COMMON_CTXT*)ctxt;
 #ifdef WIN32
     switch (c->type) {
-    case VDEV_RENDER_TYPE_GDI: vdev_gdi_enqueue(ctxt, pts); break;
-    case VDEV_RENDER_TYPE_D3D: vdev_d3d_enqueue(ctxt, pts); break;
+    case VDEV_RENDER_TYPE_GDI: vdev_gdi_unlock(ctxt, pts); break;
+    case VDEV_RENDER_TYPE_D3D: vdev_d3d_unlock(ctxt, pts); break;
     }
 #endif
 #ifdef ANDROID
-    vdev_android_enqueue(ctxt, pts);
+    vdev_android_unlock(ctxt, pts);
 #endif
 }
 

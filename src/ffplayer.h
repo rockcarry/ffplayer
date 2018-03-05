@@ -126,6 +126,7 @@ typedef struct {
 
 // 函数声明
 void* player_open    (char *file, void *appdata, PLAYER_INIT_PARAMS *params);
+void* player_open_hls(char *m3u8, char *key, void *appdata, PLAYER_INIT_PARAMS *params);
 void  player_close   (void *hplayer);
 void  player_play    (void *hplayer);
 void  player_pause   (void *hplayer);

@@ -89,14 +89,14 @@ void pktqueue_reset(void *ctxt)
     PKTQUEUE *ppq    = (PKTQUEUE*)ctxt;
     AVPacket *packet = NULL;
 
-    while (NULL != (packet = pktqueue_read_dequeue_a(ctxt))) {
+    while (NULL != (packet = pktqueue_audio_dequeue(ctxt))) {
         av_packet_unref(packet);
-        pktqueue_read_enqueue_a(ctxt, packet);
+        pktqueue_free_enqueue(ctxt, packet);
     }
 
-    while (NULL != (packet = pktqueue_read_dequeue_v(ctxt))) {
+    while (NULL != (packet = pktqueue_video_dequeue(ctxt))) {
         av_packet_unref(packet);
-        pktqueue_read_enqueue_v(ctxt, packet);
+        pktqueue_free_enqueue(ctxt, packet);
     }
 
     ppq->fhead = ppq->ftail = 0;
@@ -104,67 +104,59 @@ void pktqueue_reset(void *ctxt)
     ppq->vhead = ppq->vtail = 0;
 }
 
-AVPacket* pktqueue_write_dequeue(void *ctxt)
+void pktqueue_free_enqueue(void *ctxt, AVPacket *pkt)
+{
+    PKTQUEUE *ppq = (PKTQUEUE*)ctxt;
+    pthread_mutex_lock  (&ppq->lock);
+    ppq->fpkts[ppq->ftail++ & (ppq->fsize - 1)] = pkt;
+    pthread_mutex_unlock(&ppq->lock);
+    sem_post(&ppq->fsem);
+}
+
+AVPacket* pktqueue_free_dequeue(void *ctxt)
 {
     PKTQUEUE *ppq = (PKTQUEUE*)ctxt;
     if (0 != sem_trywait(&ppq->fsem)) return NULL;
     return ppq->fpkts[ppq->fhead++ & (ppq->fsize - 1)];
 }
 
-void pktqueue_write_enqueue_a(void *ctxt, AVPacket *pkt)
+void pktqueue_free_cancel(void *ctxt, AVPacket *pkt)
+{
+    PKTQUEUE *ppq = (PKTQUEUE*)ctxt;
+    pthread_mutex_lock  (&ppq->lock);
+    ppq->fpkts[ppq->ftail++ & (ppq->fsize - 1)] = pkt;
+    pthread_mutex_unlock(&ppq->lock);
+    sem_post(&ppq->fsem);
+}
+
+void pktqueue_audio_enqueue(void *ctxt, AVPacket *pkt)
 {
     PKTQUEUE *ppq = (PKTQUEUE*)ctxt;
     ppq->apkts[ppq->atail++ & (ppq->asize - 1)] = pkt;
     sem_post(&ppq->asem);
 }
 
-void pktqueue_write_enqueue_v(void *ctxt, AVPacket *pkt)
-{
-    PKTQUEUE *ppq = (PKTQUEUE*)ctxt;
-    ppq->vpkts[ppq->vtail++ & (ppq->vsize - 1)] = pkt;
-    sem_post(&ppq->vsem);
-}
-
-void pktqueue_write_cancel(void *ctxt, AVPacket *pkt)
-{
-    PKTQUEUE *ppq = (PKTQUEUE*)ctxt;
-    pthread_mutex_lock  (&ppq->lock);
-    ppq->fpkts[ppq->ftail++ & (ppq->fsize - 1)] = pkt;
-    pthread_mutex_unlock(&ppq->lock);
-    sem_post(&ppq->fsem);
-}
-
-AVPacket* pktqueue_read_dequeue_a(void *ctxt)
+AVPacket* pktqueue_audio_dequeue(void *ctxt)
 {
     PKTQUEUE *ppq = (PKTQUEUE*)ctxt;
     if (0 != sem_trywait(&ppq->asem)) return NULL;
     return ppq->apkts[ppq->ahead++ & (ppq->asize - 1)];
 }
 
-void pktqueue_read_enqueue_a(void *ctxt, AVPacket *pkt)
+void pktqueue_video_enqueue(void *ctxt, AVPacket *pkt)
 {
     PKTQUEUE *ppq = (PKTQUEUE*)ctxt;
-    pthread_mutex_lock  (&ppq->lock);
-    ppq->fpkts[ppq->ftail++ & (ppq->fsize - 1)] = pkt;
-    pthread_mutex_unlock(&ppq->lock);
-    sem_post(&ppq->fsem);
+    ppq->vpkts[ppq->vtail++ & (ppq->vsize - 1)] = pkt;
+    sem_post(&ppq->vsem);
 }
 
-AVPacket* pktqueue_read_dequeue_v(void *ctxt)
+AVPacket* pktqueue_video_dequeue(void *ctxt)
 {
     PKTQUEUE *ppq = (PKTQUEUE*)ctxt;
     if (0 != sem_trywait(&ppq->vsem)) return NULL;
     return ppq->vpkts[ppq->vhead++ & (ppq->vsize - 1)];
 }
 
-void pktqueue_read_enqueue_v(void *ctxt, AVPacket *pkt)
-{
-    PKTQUEUE *ppq = (PKTQUEUE*)ctxt;
-    pthread_mutex_lock  (&ppq->lock);
-    ppq->fpkts[ppq->ftail++ & (ppq->fsize - 1)] = pkt;
-    pthread_mutex_unlock(&ppq->lock);
-    sem_post(&ppq->fsem);
-}
 
 
 
