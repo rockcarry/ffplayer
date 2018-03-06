@@ -152,10 +152,10 @@ static void vfilter_graph_init(PLAYER *player)
 
     // rotate filter
     if (player->init_params.video_rotate) {
-        ow = (int) ( abs(vdec_ctx->width  * cos(player->init_params.video_rotate * M_PI / 180))
-                   + abs(vdec_ctx->height * sin(player->init_params.video_rotate * M_PI / 180)));
-        oh = (int) ( abs(vdec_ctx->width  * sin(player->init_params.video_rotate * M_PI / 180))
-                   + abs(vdec_ctx->height * cos(player->init_params.video_rotate * M_PI / 180)));
+        ow = abs(int(vdec_ctx->width  * cos(player->init_params.video_rotate * M_PI / 180)))
+           + abs(int(vdec_ctx->height * sin(player->init_params.video_rotate * M_PI / 180)));
+        oh = abs(int(vdec_ctx->width  * sin(player->init_params.video_rotate * M_PI / 180)))
+           + abs(int(vdec_ctx->height * cos(player->init_params.video_rotate * M_PI / 180)));
         sprintf(args, "angle=%d*PI/180:ow=%d:oh=%d", player->init_params.video_rotate, ow, oh);
         avfilter_graph_create_filter(&player->vfilter_rotate_ctx, filter_rotate, "rotate", args, NULL, player->vfilter_graph);
     }
