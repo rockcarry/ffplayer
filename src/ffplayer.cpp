@@ -2,8 +2,9 @@
 #include <pthread.h>
 #include "pktqueue.h"
 #include "ffrender.h"
-#include "ffplayer.h"
 #include "recorder.h"
+#include "dxva2hwa.h"
+#include "ffplayer.h"
 
 extern "C" {
 #include "libavutil/time.h"
@@ -257,6 +258,9 @@ static int reinit_stream(PLAYER *player, enum AVMediaType type, int sel) {
     case AVMEDIA_TYPE_VIDEO:
         // get last codec context
         if (player->vcodec_context) avcodec_close(player->vcodec_context);
+#ifdef WIN32
+        if (player->vcodec_context) dxva2hwa_free(player->vcodec_context);
+#endif
 
         // get new vcodec_context & vstream_timebase
         player->vcodec_context   = player->avformat_context->streams[idx]->codec;
@@ -265,6 +269,7 @@ static int reinit_stream(PLAYER *player, enum AVMediaType type, int sel) {
         //++ reopen codec
         //+ try android mediacodec hardware decoder
         if (player->init_params.video_hwaccel) {
+#ifdef ANDROID
             switch (player->vcodec_context->codec_id) {
             case AV_CODEC_ID_H264      : decoder = avcodec_find_decoder_by_name("h264_mediacodec" ); break;
             case AV_CODEC_ID_HEVC      : decoder = avcodec_find_decoder_by_name("hevc_mediacodec" ); break;
@@ -282,6 +287,12 @@ static int reinit_stream(PLAYER *player, enum AVMediaType type, int sel) {
                 decoder = NULL;
             }
             player->init_params.video_hwaccel = decoder ? 1 : 0;
+#endif
+#ifdef WIN32
+            if (dxva2hwa_init(player->vcodec_context) != 0) {
+                player->init_params.video_hwaccel = 0;
+            }
+#endif
         }
         //- try android mediacodec hardware decoder
 
@@ -893,6 +904,9 @@ void player_close(void *hplayer)
     if (player->render          ) render_close (player->render);
     if (player->acodec_context  ) avcodec_close(player->acodec_context);
     if (player->vcodec_context  ) avcodec_close(player->vcodec_context);
+#ifdef WIN32
+    if (player->vcodec_context  ) dxva2hwa_free(player->vcodec_context);
+#endif
     if (player->avformat_context) avformat_close_input(&player->avformat_context);
     if (player->recorder        ) recorder_free(player->recorder);
 

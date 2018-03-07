@@ -191,6 +191,10 @@
 				>
 			</File>
 			<File
+				RelativePath="..\..\src\dxva2hwa.cpp"
+				>
+			</File>
+			<File
 				RelativePath="..\..\src\ffplayer.cpp"
 				>
 			</File>
@@ -234,6 +238,10 @@
 			>
 			<File
 				RelativePath="..\..\src\adev.h"
+				>
+			</File>
+			<File
+				RelativePath="..\..\src\dxva2hwa.h"
 				>
 			</File>
 			<File
