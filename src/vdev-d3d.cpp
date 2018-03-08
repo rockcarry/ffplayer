@@ -101,6 +101,32 @@ static void vdev_d3d_unlock(void *ctxt, int64_t pts)
     sem_post(&c->semr);
 }
 
+void vdev_d3d_setparam(void *ctxt, int id, void *param)
+{
+    if (!ctxt || !param) return;
+    VDEVD3DCTXT *c = (VDEVD3DCTXT*)ctxt;
+    switch (id) {
+    case PARAM_VDEV_POST_D3DSURF:
+        sem_wait(&c->semw);
+        c->pSurfs[c->tail] = (LPDIRECT3DSURFACE9)((AVFrame*)param)->data[3];
+        c->ppts  [c->tail] = ((AVFrame*)param)->pts;
+        if (++c->tail == c->bufnum) c->tail = 0;
+        sem_post(&c->semr);
+        break;
+    }
+}
+
+void vdev_d3d_getparam(void *ctxt, int id, void *param)
+{
+    if (!ctxt || !param) return;
+    VDEVD3DCTXT *c = (VDEVD3DCTXT*)ctxt;
+    switch (id) {
+    case PARAM_VDEV_GET_D3DDEV:
+        *(LPDIRECT3DDEVICE9*)param = c->pD3DDev;
+        break;
+    }
+}
+
 static void vdev_d3d_destroy(void *ctxt)
 {
     int i;
@@ -153,6 +179,8 @@ void* vdev_d3d_create(void *surface, int bufnum, int w, int h, int frate)
     ctxt->vpts      = -1;
     ctxt->lock      = vdev_d3d_lock;
     ctxt->unlock    = vdev_d3d_unlock;
+    ctxt->setparam  = vdev_d3d_setparam;
+    ctxt->getparam  = vdev_d3d_getparam;
     ctxt->destroy   = vdev_d3d_destroy;
 
     // alloc buffer & semaphore

@@ -279,11 +279,15 @@ void render_video(void *hrender, AVFrame *video)
                 SWS_FAST_BILINEAR, 0, 0, 0);
         }
 
-        vdev_lock(render->vdev, picture.data, picture.linesize);
-        if (picture.data[0] && video->pts != -1) {
-            sws_scale(render->sws_context, video->data, video->linesize, 0, render->video_height, picture.data, picture.linesize);
+        if (video->format == AV_PIX_FMT_DXVA2_VLD) {
+            vdev_setparam(render->vdev, PARAM_VDEV_POST_D3DSURF, video);
+        } else {
+            vdev_lock(render->vdev, picture.data, picture.linesize);
+            if (picture.data[0] && video->pts != -1) {
+                sws_scale(render->sws_context, video->data, video->linesize, 0, render->video_height, picture.data, picture.linesize);
+            }
+            vdev_unlock(render->vdev, video->pts);
         }
-        vdev_unlock(render->vdev, video->pts);
 
 #if CONFIG_ENABLE_SNAPSHOT
         if (render->render_status & RENDER_SNAPSHOT) {

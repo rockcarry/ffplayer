@@ -99,6 +99,7 @@ void vdev_setparam(void *ctxt, int id, void *param)
         c->tickavdiff = *(int*)param;
         break;
     }
+    if (c->setparam) c->setparam(c, id, param);
 }
 
 void vdev_getparam(void *ctxt, int id, void *param)
@@ -114,6 +115,7 @@ void vdev_getparam(void *ctxt, int id, void *param)
         *(int*)param = c->tickavdiff;
         break;
     }
+    if (c->getparam) c->getparam(c, id, param);
 }
 
 void vdev_refresh_background(void *ctxt)

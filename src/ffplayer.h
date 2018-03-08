@@ -85,6 +85,8 @@ enum {
     //++ for vdev
     PARAM_VDEV_GET_CONTEXT = 0x3000,
     PARAM_VDEV_FRAME_RATE,
+    PARAM_VDEV_GET_D3DDEV,
+    PARAM_VDEV_POST_D3DSURF,
     //-- for vdev
 
     //++ for render

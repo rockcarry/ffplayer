@@ -52,10 +52,12 @@ extern "C" {
     /* used to sync video to system clock */  \
     int64_t   start_pts;                      \
     int64_t   start_tick;                     \
-    void  (*lock   )(void *ctxt, uint8_t *buffer[8], int linesize[8]); \
-    void  (*unlock )(void *ctxt, int64_t pts);                         \
-    void  (*setrect)(void *ctxt, int x, int y, int w, int h);          \
-    void  (*destroy)(void *ctxt);
+    void (*lock    )(void *ctxt, uint8_t *buffer[8], int linesize[8]); \
+    void (*unlock  )(void *ctxt, int64_t pts);                         \
+    void (*setrect )(void *ctxt, int x, int y, int w, int h);          \
+    void (*setparam)(void *ctxt, int id, void *param);                 \
+    void (*getparam)(void *ctxt, int id, void *param);                 \
+    void (*destroy )(void *ctxt);
 //-- vdev context common members
 
 // 类型定义
