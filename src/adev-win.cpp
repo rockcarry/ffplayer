@@ -6,7 +6,7 @@
 
 // 内部常量定义
 #define DEF_ADEV_BUF_NUM  6
-#define DEF_ADEV_BUF_LEN  8192
+#define DEF_ADEV_BUF_LEN  2048
 
 // 内部类型定义
 typedef struct
