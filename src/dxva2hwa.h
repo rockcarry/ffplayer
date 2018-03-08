@@ -9,7 +9,7 @@ extern "C" {
 #include "libavcodec/avcodec.h"
 
 // º¯ÊýÉùÃ÷
-int  dxva2hwa_init(AVCodecContext *ctxt);
+int  dxva2hwa_init(AVCodecContext *ctxt, void *d3ddev);
 void dxva2hwa_free(AVCodecContext *ctxt);
 
 #ifdef __cplusplus

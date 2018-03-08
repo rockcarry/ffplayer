@@ -74,19 +74,9 @@ void vdev_getparam(void *ctxt, int id, void *param)
     }
 }
 
-void* vdev_create(int type, void *surface, int bufnum, int w, int h, int frate, void *params)
+void* vdev_create(int type, void *surface, int bufnum, int w, int h, int frate)
 {
-    VDEV_COMMON_CTXT *p = (VDEV_COMMON_CTXT*)params;
     VDEV_COMMON_CTXT *c = NULL;
-
-    if (p) {
-        surface= p->surface;
-        bufnum = p->bufnum;
-        w      = p->w;
-        h      = p->h;
-        frate  = 1000 / p->tickframe;
-    }
-
 #ifdef WIN32
     switch (type) {
     case VDEV_RENDER_TYPE_GDI: c = (VDEV_COMMON_CTXT*)vdev_gdi_create(surface, bufnum, w, h, frate); break;
@@ -97,18 +87,6 @@ void* vdev_create(int type, void *surface, int bufnum, int w, int h, int frate, 
     c = (VDEV_COMMON_CTXT*)vdev_android_create(surface, bufnum, w, h, frate);
 #endif
     if (c) c->type = type;
-
-    if (p) {
-        c->apts       = p->apts;
-        c->vpts       = p->vpts;
-        c->tickavdiff = p->tickavdiff;
-        c->tickframe  = p->tickframe;
-        c->ticksleep  = p->ticksleep;
-        c->ticklast   = p->ticklast;
-        c->status     = p->status;
-        vdev_setrect(c, p->x, p->y, w, h);
-    }
-
     return c;
 }
 

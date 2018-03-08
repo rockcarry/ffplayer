@@ -35,7 +35,7 @@ static void CALLBACK waveOutProc(HWAVEOUT hwo, UINT uMsg, DWORD dwInstance, DWOR
 }
 
 // 接口函数实现
-void* adev_create(int type, int bufnum, int buflen, void *params)
+void* adev_create(int type, int bufnum, int buflen)
 {
     ADEV_CONTEXT *ctxt = NULL;
     WAVEFORMATEX  wfx  = {0};

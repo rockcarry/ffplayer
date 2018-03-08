@@ -95,7 +95,7 @@ void  vdev_getavpts(void *ctxt, int64_t **ppapts, int64_t **ppvpts);
 void  vdev_setparam(void *ctxt, int id, void *param);
 void  vdev_getparam(void *ctxt, int id, void *param);
 
-void* vdev_create  (int type, void *app, int bufnum, int w, int h, int frate, void *params);
+void* vdev_create  (int type, void *app, int bufnum, int w, int h, int frate);
 void  vdev_destroy (void *ctxt);
 void  vdev_lock    (void *ctxt, uint8_t *buffer[8], int linesize[8]);
 void  vdev_unlock  (void *ctxt, int64_t pts);
