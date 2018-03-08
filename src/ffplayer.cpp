@@ -355,13 +355,13 @@ static int get_stream_current(PLAYER *player, enum AVMediaType type) {
 static int read_buffer(void *opaque, uint8_t *buf, int size)
 {
     uint8_t *srcbuf = *(uint8_t**)((uint8_t*)opaque + sizeof(int));
-    int      srclen = *(int    * )((uint8_t*)opaque + sizeof(int) + sizeof(char*));
-    int      srcoff = *(int    * )((uint8_t*)opaque + sizeof(int) + sizeof(char*) + sizeof(int));
+    int      srclen = *(int    * )((uint8_t*)opaque + sizeof(int) + sizeof(uint8_t*));
+    int      srcoff = *(int    * )((uint8_t*)opaque + sizeof(int) + sizeof(uint8_t*) + sizeof(int));
     int      readn  = srcoff < srclen ? srclen - srcoff : 0;
     if (readn == 0) return -1;
 
     memcpy(buf, srcbuf + srcoff, readn);
-    *(int*)((uint8_t*)opaque + sizeof(int) + sizeof(char*) + sizeof(int)) += readn;
+    *(int*)((uint8_t*)opaque + sizeof(int) + sizeof(uint8_t*) + sizeof(int)) += readn;
     return readn;
 }
 
