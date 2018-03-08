@@ -13,8 +13,7 @@ extern "C" {
 #define DEF_VDEV_BUF_NUM  3
 
 // 内部类型定义
-typedef struct
-{
+typedef struct {
     // common members
     VDEV_COMMON_MEMBERS
 
@@ -29,11 +28,9 @@ typedef struct
 static void d3d_draw_surf(VDEVD3DCTXT *c, LPDIRECT3DSURFACE9 surf)
 {
     IDirect3DSurface9 *pBackBuffer = NULL;
-    if (SUCCEEDED(c->pD3DDev->GetBackBuffer(0, 0, D3DBACKBUFFER_TYPE_MONO, &pBackBuffer)))
-    {
+    if (SUCCEEDED(c->pD3DDev->GetBackBuffer(0, 0, D3DBACKBUFFER_TYPE_MONO, &pBackBuffer))) {
         if (pBackBuffer) {
-            if (SUCCEEDED(c->pD3DDev->StretchRect(surf, NULL, pBackBuffer, NULL, D3DTEXF_LINEAR)))
-            {
+            if (SUCCEEDED(c->pD3DDev->StretchRect(surf, NULL, pBackBuffer, NULL, D3DTEXF_LINEAR))) {
                 RECT rect = { c->x, c->y, c->x + c->w, c->y + c->h };
                 c->pD3DDev->Present(NULL, &rect, NULL, NULL);
             }
@@ -64,11 +61,73 @@ static void* video_render_thread_proc(void *param)
         if (++c->head == c->bufnum) c->head = 0;
         sem_post(&c->semw);
 
-        // handle complete, av-sync & frame rate control
-        vdev_handle_complete_and_avsync(c);
+        // handle av-sync & frame rate & complete
+        vdev_avsync_and_complete(c);
     }
 
     return NULL;
+}
+
+static void vdev_d3d_lock(void *ctxt, uint8_t *buffer[8], int linesize[8])
+{
+    VDEVD3DCTXT *c = (VDEVD3DCTXT*)ctxt;
+
+    sem_wait(&c->semw);
+
+    if (!c->pSurfs[c->tail]) {
+        // create surface
+        if (FAILED(c->pD3DDev->CreateOffscreenPlainSurface(c->sw, c->sh, (D3DFORMAT)c->d3dfmt,
+                    D3DPOOL_DEFAULT, &c->pSurfs[c->tail], NULL)))
+        {
+            av_log(NULL, AV_LOG_ERROR, "failed to create d3d off screen plain surface !\n");
+            exit(0);
+        }
+    }
+
+    // lock texture rect
+    D3DLOCKED_RECT d3d_rect;
+    c->pSurfs[c->tail]->LockRect(&d3d_rect, NULL, D3DLOCK_DISCARD);
+
+    if (buffer  ) buffer[0]   = (uint8_t*)d3d_rect.pBits;
+    if (linesize) linesize[0] = d3d_rect.Pitch;
+}
+
+static void vdev_d3d_unlock(void *ctxt, int64_t pts)
+{
+    VDEVD3DCTXT *c = (VDEVD3DCTXT*)ctxt;
+    c->pSurfs[c->tail]->UnlockRect();
+    c->ppts[c->tail] = pts;
+    if (++c->tail == c->bufnum) c->tail = 0;
+    sem_post(&c->semr);
+}
+
+static void vdev_d3d_destroy(void *ctxt)
+{
+    int i;
+    VDEVD3DCTXT *c = (VDEVD3DCTXT*)ctxt;
+
+    // make visual effect & rendering thread safely exit
+    c->status = VDEV_CLOSE;
+    sem_post(&c->semr);
+    pthread_join(c->thread, NULL);
+
+    for (i=0; i<c->bufnum; i++) {
+        if (c->pSurfs[i]) {
+            c->pSurfs[i]->Release();
+        }
+    }
+
+    c->pD3DDev->Release();
+    c->pD3D9  ->Release();
+
+    // close semaphore
+    sem_destroy(&c->semr);
+    sem_destroy(&c->semw);
+
+    // free memory
+    free(c->ppts  );
+    free(c->pSurfs);
+    free(c);
 }
 
 // 接口函数实现
@@ -92,6 +151,9 @@ void* vdev_d3d_create(void *surface, int bufnum, int w, int h, int frate)
     ctxt->ticksleep = ctxt->tickframe;
     ctxt->apts      = -1;
     ctxt->vpts      = -1;
+    ctxt->lock      = vdev_d3d_lock;
+    ctxt->unlock    = vdev_d3d_unlock;
+    ctxt->destroy   = vdev_d3d_destroy;
 
     // alloc buffer & semaphore
     ctxt->ppts   = (int64_t*)calloc(bufnum, sizeof(int64_t));
@@ -155,74 +217,3 @@ void* vdev_d3d_create(void *surface, int bufnum, int w, int h, int frate)
     return ctxt;
 }
 
-void vdev_d3d_destroy(void *ctxt)
-{
-    int i;
-    VDEVD3DCTXT *c = (VDEVD3DCTXT*)ctxt;
-
-    // make visual effect & rendering thread safely exit
-    c->status = VDEV_CLOSE;
-    sem_post(&c->semr);
-    pthread_join(c->thread, NULL);
-
-    for (i=0; i<c->bufnum; i++) {
-        if (c->pSurfs[i]) {
-            c->pSurfs[i]->Release();
-        }
-    }
-
-    c->pD3DDev->Release();
-    c->pD3D9  ->Release();
-
-    // close semaphore
-    sem_destroy(&c->semr);
-    sem_destroy(&c->semw);
-
-    // free memory
-    free(c->ppts  );
-    free(c->pSurfs);
-    free(c);
-}
-
-void vdev_d3d_lock(void *ctxt, uint8_t *buffer[8], int linesize[8])
-{
-    VDEVD3DCTXT *c = (VDEVD3DCTXT*)ctxt;
-
-    sem_wait(&c->semw);
-
-    if (!c->pSurfs[c->tail]) {
-        // create surface
-        if (FAILED(c->pD3DDev->CreateOffscreenPlainSurface(c->sw, c->sh, (D3DFORMAT)c->d3dfmt,
-                    D3DPOOL_DEFAULT, &c->pSurfs[c->tail], NULL)))
-        {
-            av_log(NULL, AV_LOG_ERROR, "failed to create d3d off screen plain surface !\n");
-            exit(0);
-        }
-    }
-
-    // lock texture rect
-    D3DLOCKED_RECT d3d_rect;
-    c->pSurfs[c->tail]->LockRect(&d3d_rect, NULL, D3DLOCK_DISCARD);
-
-    if (buffer  ) buffer[0]   = (uint8_t*)d3d_rect.pBits;
-    if (linesize) linesize[0] = d3d_rect.Pitch;
-}
-
-
-void vdev_d3d_unlock(void *ctxt, int64_t pts)
-{
-    VDEVD3DCTXT *c = (VDEVD3DCTXT*)ctxt;
-    c->pSurfs[c->tail]->UnlockRect();
-    c->ppts[c->tail] = pts;
-    if (++c->tail == c->bufnum) c->tail = 0;
-    sem_post(&c->semr);
-}
-
-void vdev_d3d_setrect(void *ctxt, int x, int y, int w, int h)
-{
-    VDEV_COMMON_CTXT *c = (VDEV_COMMON_CTXT*)ctxt;
-    c->x  = x; c->y  = y;
-    c->w  = w; c->h  = h;
-//  c->sw = w; c->sh = h; // remove for d3d vdev
-    c->refresh_flag  = 1;
-}
