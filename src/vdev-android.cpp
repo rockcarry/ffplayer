@@ -138,7 +138,7 @@ void vdev_android_destroy(void *ctxt)
     delete(c);
 }
 
-void vdev_android_dequeue(void *ctxt, uint8_t *buffer[8], int linesize[8])
+void vdev_android_lock(void *ctxt, uint8_t *buffer[8], int linesize[8])
 {
     VDEVCTXT *c = (VDEVCTXT*)ctxt;
 
@@ -189,7 +189,7 @@ void vdev_android_dequeue(void *ctxt, uint8_t *buffer[8], int linesize[8])
     }
 }
 
-void vdev_android_enqueue(void *ctxt, int64_t pts)
+void vdev_android_unlock(void *ctxt, int64_t pts)
 {
     VDEVCTXT *c = (VDEVCTXT*)ctxt;
 

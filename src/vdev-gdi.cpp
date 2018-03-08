@@ -126,7 +126,7 @@ void vdev_gdi_destroy(void *ctxt)
     free(c);
 }
 
-void vdev_gdi_dequeue(void *ctxt, uint8_t *buffer[8], int linesize[8])
+void vdev_gdi_lock(void *ctxt, uint8_t *buffer[8], int linesize[8])
 {
     VDEVGDICTXT *c = (VDEVGDICTXT*)ctxt;
 
@@ -162,7 +162,7 @@ void vdev_gdi_dequeue(void *ctxt, uint8_t *buffer[8], int linesize[8])
     if (linesize) linesize[0] = bitmap.bmWidthBytes ;
 }
 
-void vdev_gdi_enqueue(void *ctxt, int64_t pts)
+void vdev_gdi_unlock(void *ctxt, int64_t pts)
 {
     VDEVGDICTXT *c = (VDEVGDICTXT*)ctxt;
     c->ppts[c->tail] = pts;

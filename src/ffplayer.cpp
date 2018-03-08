@@ -2,8 +2,9 @@
 #include <pthread.h>
 #include "pktqueue.h"
 #include "ffrender.h"
-#include "ffplayer.h"
 #include "recorder.h"
+#include "dxva2hwa.h"
+#include "ffplayer.h"
 
 extern "C" {
 #include "libavutil/time.h"
@@ -146,10 +147,10 @@ static void vfilter_graph_init(PLAYER *player)
 
     // rotate filter
     if (player->init_params.video_rotate) {
-        ow = (int) ( abs(vdec_ctx->width  * cos(player->init_params.video_rotate * M_PI / 180))
-                   + abs(vdec_ctx->height * sin(player->init_params.video_rotate * M_PI / 180)));
-        oh = (int) ( abs(vdec_ctx->width  * sin(player->init_params.video_rotate * M_PI / 180))
-                   + abs(vdec_ctx->height * cos(player->init_params.video_rotate * M_PI / 180)));
+        ow = abs(int(vdec_ctx->width  * cos(player->init_params.video_rotate * M_PI / 180)))
+           + abs(int(vdec_ctx->height * sin(player->init_params.video_rotate * M_PI / 180)));
+        oh = abs(int(vdec_ctx->width  * sin(player->init_params.video_rotate * M_PI / 180)))
+           + abs(int(vdec_ctx->height * cos(player->init_params.video_rotate * M_PI / 180)));
         sprintf(args, "angle=%d*PI/180:ow=%d:oh=%d", player->init_params.video_rotate, ow, oh);
         avfilter_graph_create_filter(&player->vfilter_rotate_ctx, filter_rotate, "rotate", args, NULL, player->vfilter_graph);
     }
@@ -251,6 +252,9 @@ static int reinit_stream(PLAYER *player, enum AVMediaType type, int sel) {
     case AVMEDIA_TYPE_VIDEO:
         // get last codec context
         if (player->vcodec_context) avcodec_close(player->vcodec_context);
+#ifdef WIN32
+        if (player->vcodec_context) dxva2hwa_free(player->vcodec_context);
+#endif
 
         // get new vcodec_context & vstream_timebase
         player->vcodec_context   = player->avformat_context->streams[idx]->codec;
@@ -259,6 +263,7 @@ static int reinit_stream(PLAYER *player, enum AVMediaType type, int sel) {
         //++ reopen codec
         //+ try android mediacodec hardware decoder
         if (player->init_params.video_hwaccel) {
+#ifdef ANDROID
             switch (player->vcodec_context->codec_id) {
             case AV_CODEC_ID_H264      : decoder = avcodec_find_decoder_by_name("h264_mediacodec" ); break;
             case AV_CODEC_ID_HEVC      : decoder = avcodec_find_decoder_by_name("hevc_mediacodec" ); break;
@@ -276,6 +281,12 @@ static int reinit_stream(PLAYER *player, enum AVMediaType type, int sel) {
                 decoder = NULL;
             }
             player->init_params.video_hwaccel = decoder ? 1 : 0;
+#endif
+#ifdef WIN32
+            if (dxva2hwa_init(player->vcodec_context) != 0) {
+                player->init_params.video_hwaccel = 0;
+            }
+#endif
         }
         //- try android mediacodec hardware decoder
 
@@ -497,32 +508,32 @@ static void* av_demux_thread_proc(void *param)
         }
         //-- when player seek --//
 
-        packet = pktqueue_write_dequeue(player->pktqueue);
+        packet = pktqueue_free_dequeue(player->pktqueue);
         if (packet == NULL) { av_usleep(20*1000); continue; }
 
         retv = av_read_frame(player->avformat_context, packet);
         if (retv < 0) {
             av_packet_unref(packet); // free packet
-            pktqueue_write_cancel(player->pktqueue, packet);
+            pktqueue_free_cancel(player->pktqueue, packet);
             av_usleep(20*1000); continue;
         }
 
         // audio
         if (packet->stream_index == player->astream_index) {
             recorder_packet(player->recorder, packet);
-            pktqueue_write_enqueue_a(player->pktqueue, packet);
+            pktqueue_audio_enqueue(player->pktqueue, packet);
         }
 
         // video
         if (packet->stream_index == player->vstream_index) {
             recorder_packet(player->recorder, packet);
-            pktqueue_write_enqueue_v(player->pktqueue, packet);
+            pktqueue_video_enqueue(player->pktqueue, packet);
         }
 
         if (  packet->stream_index != player->astream_index
            && packet->stream_index != player->vstream_index) {
             av_packet_unref(packet); // free packet
-            pktqueue_write_cancel(player->pktqueue, packet);
+            pktqueue_free_cancel(player->pktqueue, packet);
         }
     }
 
@@ -554,8 +565,8 @@ static void* audio_decode_thread_proc(void *param)
         }
         //-- when audio decode pause --//
 
-        // read packet
-        packet = pktqueue_read_dequeue_a(player->pktqueue);
+        // dequeue audio packet
+        packet = pktqueue_audio_dequeue(player->pktqueue);
         if (packet == NULL) {
 //          render_audio(player->render, aframe);
             av_usleep(20*1000); continue;
@@ -603,7 +614,7 @@ static void* audio_decode_thread_proc(void *param)
         // free packet
         av_packet_unref(packet);
 
-        pktqueue_read_enqueue_a(player->pktqueue, packet);
+        pktqueue_free_enqueue(player->pktqueue, packet);
     }
 
     av_frame_free(&aframe);
@@ -628,8 +639,8 @@ static void* video_decode_thread_proc(void *param)
         }
         //-- when video decode pause --//
 
-        // read packet
-        packet = pktqueue_read_dequeue_v(player->pktqueue);
+        // dequeue video packet
+        packet = pktqueue_video_dequeue(player->pktqueue);
         if (packet == NULL) {
             render_video(player->render, vframe);
             av_usleep(20*1000); continue;
@@ -674,7 +685,7 @@ static void* video_decode_thread_proc(void *param)
         // free packet
         av_packet_unref(packet);
 
-        pktqueue_read_enqueue_v(player->pktqueue, packet);
+        pktqueue_free_enqueue(player->pktqueue, packet);
     }
 
     av_frame_free(&vframe);
@@ -784,6 +795,9 @@ void player_close(void *hplayer)
     if (player->render          ) render_close (player->render);
     if (player->acodec_context  ) avcodec_close(player->acodec_context);
     if (player->vcodec_context  ) avcodec_close(player->vcodec_context);
+#ifdef WIN32
+    if (player->vcodec_context  ) dxva2hwa_free(player->vcodec_context);
+#endif
     if (player->avformat_context) avformat_close_input(&player->avformat_context);
     if (player->recorder        ) recorder_free(player->recorder);
 
