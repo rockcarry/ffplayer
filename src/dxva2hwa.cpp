@@ -72,9 +72,24 @@ typedef struct DXVA2Context {
 typedef struct {
     void  *hwaccel_d3ddev;
     void  *hwaccel_ctx;
+    int           (*hwaccel_get_buffer)(AVCodecContext *s, AVFrame *frame, int flags);
+    AVPixelFormat (*hwaccel_get_format)(AVCodecContext *s, const AVPixelFormat *fmts);
 } HWACCEL;
 
 // 内部函数实现
+static int dxva2_get_buffer(AVCodecContext *s, AVFrame *frame, int flags)
+{
+    HWACCEL      *hwa = (HWACCEL     *)s->opaque;
+    DXVA2Context *ctx = (DXVA2Context*)hwa->hwaccel_ctx;
+
+    return av_hwframe_get_buffer(ctx->hw_frames_ctx, frame, 0);
+}
+
+static AVPixelFormat dxva2_get_format(AVCodecContext *s, const AVPixelFormat *fmts)
+{
+    return AV_PIX_FMT_DXVA2_VLD;
+}
+
 static int dxva2_alloc(AVCodecContext *s)
 {
     HWACCEL *hwa = (HWACCEL*)s->opaque;
@@ -92,6 +107,8 @@ static int dxva2_alloc(AVCodecContext *s)
     }
 
     hwa->hwaccel_ctx = ctx;
+    hwa->hwaccel_get_buffer = dxva2_get_buffer;
+    hwa->hwaccel_get_format = dxva2_get_format;
     ret = av_hwdevice_ctx_create(&ctx->hw_device_ctx, AV_HWDEVICE_TYPE_DXVA2,
                                  (char*)hwa->hwaccel_d3ddev, NULL, 0);
     if (ret < 0) {
@@ -370,6 +387,8 @@ int dxva2hwa_init(AVCodecContext *s, void *d3ddev)
     }
 
     s->thread_safe_callbacks = 1;
+    s->get_buffer2           = hwa->hwaccel_get_buffer;
+    s->get_format            = hwa->hwaccel_get_format;
     return 0;
 }
 
@@ -378,6 +397,9 @@ void dxva2hwa_free(AVCodecContext *s)
     HWACCEL      *hwa = (HWACCEL*)s->opaque;
     DXVA2Context *ctx = NULL;
     if (!hwa) return;
+
+    hwa->hwaccel_get_buffer = NULL;
+    hwa->hwaccel_get_format = NULL;
 
     ctx = (DXVA2Context*)hwa->hwaccel_ctx;
     if (ctx->decoder_service) {
