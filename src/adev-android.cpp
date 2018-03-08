@@ -74,14 +74,13 @@ static void* audio_render_thread_proc(void *param)
 }
 
 // 接口函数实现
-void* adev_create(int type, int bufnum, int buflen, void *params)
+void* adev_create(int type, int bufnum, int buflen)
 {
     JNIEnv       *env  = get_jni_env();
     ADEV_CONTEXT *ctxt = NULL;
     int           i;
 
-    DO_USE_VAR(type  );
-    DO_USE_VAR(params);
+    DO_USE_VAR(type);
 
     // allocate adev context
     ctxt = (ADEV_CONTEXT*)calloc(1, sizeof(ADEV_CONTEXT));
