@@ -147,12 +147,12 @@ void vdev_avsync_and_complete(void *ctxt)
 
     if (!(c->status & VDEV_PAUSE)) {
         //++ play completed ++//
-        if (c->completed_apts != c->apts || c->completed_vpts != c->vpts || c->vpts < 0) {
+        if (c->completed_apts != c->apts || c->completed_vpts != c->vpts) {
             c->completed_apts = c->apts;
             c->completed_vpts = c->vpts;
             c->completed_counter = 0;
             c->status &=~VDEV_COMPLETED;
-        } else if (++c->completed_counter == COMPLETE_COUNTER) {
+        } else if ((c->vpts == -1 || c->vpts == AV_NOPTS_VALUE) && ++c->completed_counter == COMPLETE_COUNTER) {
             c->status |= VDEV_COMPLETED;
             player_send_message(c->surface, MSG_PLAY_COMPLETED, 0);
         }
