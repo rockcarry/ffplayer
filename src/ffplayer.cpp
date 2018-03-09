@@ -533,7 +533,7 @@ static void* av_demux_thread_proc(void *param)
 
 done:
 #ifdef ANDROID
-    // need call DetachCurrentThread
+    // need detach current thread
     get_jni_jvm()->DetachCurrentThread();
 #endif
     return NULL;
@@ -612,6 +612,10 @@ static void* audio_decode_thread_proc(void *param)
     }
 
     av_frame_free(&aframe);
+#ifdef ANDROID
+    // need detach current thread
+    get_jni_jvm()->DetachCurrentThread();
+#endif
     return NULL;
 }
 
@@ -683,6 +687,10 @@ static void* video_decode_thread_proc(void *param)
     }
 
     av_frame_free(&vframe);
+#ifdef ANDROID
+    // need detach current thread
+    get_jni_jvm()->DetachCurrentThread();
+#endif
     return NULL;
 }
 

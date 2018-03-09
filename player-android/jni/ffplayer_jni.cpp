@@ -168,8 +168,7 @@ JNIEXPORT JNIEnv* get_jni_env(void)
 {
     JNIEnv *env;
     int status;
-    if (NULL == g_jvm)
-    {
+    if (NULL == g_jvm) {
         __android_log_print(ANDROID_LOG_ERROR, "ffplayer_jni", "g_jvm == NULL !\n");
         return NULL;
     }

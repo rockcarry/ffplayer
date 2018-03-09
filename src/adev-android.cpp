@@ -68,7 +68,7 @@ static void* audio_render_thread_proc(void *param)
     // close audiotrack
     env->CallVoidMethod(c->jobj_at, c->jmid_at_close);
 
-    // need call DetachCurrentThread
+    // need detach current thread
     get_jni_jvm()->DetachCurrentThread();
     return NULL;
 }
@@ -140,7 +140,6 @@ void* adev_create(int type, int bufnum, int buflen)
 
     // create audio rendering thread
     pthread_create(&ctxt->thread, NULL, audio_render_thread_proc, ctxt);
-
     return ctxt;
 }
 
