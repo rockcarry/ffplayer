@@ -424,9 +424,7 @@ static int player_prepare(PLAYER *player)
     if (player->vstream_index == -1) {
         int effect = VISUAL_EFFECT_WAVEFORM;
         render_setparam(player->render, PARAM_VISUAL_EFFECT, &effect);
-    }
-
-    if (player->init_params.video_hwaccel) {
+    } else if (player->init_params.video_hwaccel) {
 #ifdef WIN32
         void *d3ddev = NULL;
         render_getparam(player->render, PARAM_VDEV_GET_D3DDEV, &d3ddev);
