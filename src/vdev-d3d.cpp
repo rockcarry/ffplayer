@@ -19,7 +19,7 @@ typedef struct {
 
     LPDIRECT3D9           pD3D9;
     LPDIRECT3DDEVICE9     pD3DDev;
-    LPDIRECT3DSURFACE9   *pSurfs;
+    LPDIRECT3DSURFACE9   *surfs;
     D3DPRESENT_PARAMETERS d3dpp;
     D3DFORMAT             d3dfmt;
 } VDEVD3DCTXT;
@@ -54,7 +54,7 @@ static void* video_render_thread_proc(void *param)
 
         int64_t vpts = c->vpts = c->ppts[c->head];
         if (vpts != -1) {
-            d3d_draw_surf(c, c->pSurfs[c->head]);
+            d3d_draw_surf(c, c->surfs[c->head]);
         }
 
         av_log(NULL, AV_LOG_DEBUG, "vpts: %lld\n", vpts);
@@ -74,10 +74,10 @@ static void vdev_d3d_lock(void *ctxt, uint8_t *buffer[8], int linesize[8])
 
     sem_wait(&c->semw);
 
-    if (!c->pSurfs[c->tail]) {
+    if (!c->surfs[c->tail]) {
         // create surface
         if (FAILED(c->pD3DDev->CreateOffscreenPlainSurface(c->sw, c->sh, (D3DFORMAT)c->d3dfmt,
-                    D3DPOOL_DEFAULT, &c->pSurfs[c->tail], NULL)))
+                   D3DPOOL_DEFAULT, &c->surfs[c->tail], NULL)))
         {
             av_log(NULL, AV_LOG_ERROR, "failed to create d3d off screen plain surface !\n");
             exit(0);
@@ -86,7 +86,7 @@ static void vdev_d3d_lock(void *ctxt, uint8_t *buffer[8], int linesize[8])
 
     // lock texture rect
     D3DLOCKED_RECT d3d_rect;
-    c->pSurfs[c->tail]->LockRect(&d3d_rect, NULL, D3DLOCK_DISCARD);
+    c->surfs[c->tail]->LockRect(&d3d_rect, NULL, D3DLOCK_DISCARD);
 
     if (buffer  ) buffer[0]   = (uint8_t*)d3d_rect.pBits;
     if (linesize) linesize[0] = d3d_rect.Pitch;
@@ -95,8 +95,8 @@ static void vdev_d3d_lock(void *ctxt, uint8_t *buffer[8], int linesize[8])
 static void vdev_d3d_unlock(void *ctxt, int64_t pts)
 {
     VDEVD3DCTXT *c = (VDEVD3DCTXT*)ctxt;
-    c->pSurfs[c->tail]->UnlockRect();
-    c->ppts[c->tail] = pts;
+    c->surfs[c->tail]->UnlockRect();
+    c->ppts [c->tail] = pts;
     if (++c->tail == c->bufnum) c->tail = 0;
     sem_post(&c->semr);
 }
@@ -107,11 +107,9 @@ void vdev_d3d_setparam(void *ctxt, int id, void *param)
     VDEVD3DCTXT *c = (VDEVD3DCTXT*)ctxt;
     switch (id) {
     case PARAM_VDEV_POST_SURFACE:
-        sem_wait(&c->semw);
-        c->pSurfs[c->tail] = (LPDIRECT3DSURFACE9)((AVFrame*)param)->data[3];
-        c->ppts  [c->tail] = ((AVFrame*)param)->pts;
-        if (++c->tail == c->bufnum) c->tail = 0;
-        sem_post(&c->semr);
+        d3d_draw_surf(c, (LPDIRECT3DSURFACE9)((AVFrame*)param)->data[3]);
+        c->vpts = ((AVFrame*)param)->pts;
+        vdev_avsync_and_complete(c);
         break;
     }
 }
@@ -138,8 +136,8 @@ static void vdev_d3d_destroy(void *ctxt)
     pthread_join(c->thread, NULL);
 
     for (i=0; i<c->bufnum; i++) {
-        if (c->pSurfs[i]) {
-            c->pSurfs[i]->Release();
+        if (c->surfs[i]) {
+            c->surfs[i]->Release();
         }
     }
 
@@ -151,8 +149,8 @@ static void vdev_d3d_destroy(void *ctxt)
     sem_destroy(&c->semw);
 
     // free memory
-    free(c->ppts  );
-    free(c->pSurfs);
+    free(c->ppts );
+    free(c->surfs);
     free(c);
 }
 
@@ -184,8 +182,8 @@ void* vdev_d3d_create(void *surface, int bufnum, int w, int h, int frate)
     ctxt->destroy   = vdev_d3d_destroy;
 
     // alloc buffer & semaphore
-    ctxt->ppts   = (int64_t*)calloc(bufnum, sizeof(int64_t));
-    ctxt->pSurfs = (LPDIRECT3DSURFACE9*)calloc(bufnum, sizeof(LPDIRECT3DSURFACE9));
+    ctxt->ppts  = (int64_t*)calloc(bufnum, sizeof(int64_t));
+    ctxt->surfs = (LPDIRECT3DSURFACE9*)calloc(bufnum, sizeof(LPDIRECT3DSURFACE9));
 
     // create semaphore
     sem_init(&ctxt->semr, 0, 0     );
@@ -193,7 +191,7 @@ void* vdev_d3d_create(void *surface, int bufnum, int w, int h, int frate)
 
     // create d3d
     ctxt->pD3D9 = Direct3DCreate9(D3D_SDK_VERSION);
-    if (!ctxt->ppts || !ctxt->pSurfs || !ctxt->semr || !ctxt->semw || !ctxt->pD3D9) {
+    if (!ctxt->ppts || !ctxt->surfs || !ctxt->semr || !ctxt->semw || !ctxt->pD3D9) {
         av_log(NULL, AV_LOG_ERROR, "failed to allocate resources for vdev-d3d !\n");
         exit(0);
     }
@@ -225,19 +223,19 @@ void* vdev_d3d_create(void *surface, int bufnum, int w, int h, int frate)
 
     //++ try pixel format
     if (SUCCEEDED(ctxt->pD3DDev->CreateOffscreenPlainSurface(1, 1, D3DFMT_YUY2,
-            D3DPOOL_DEFAULT, &ctxt->pSurfs[0], NULL))) {
+            D3DPOOL_DEFAULT, &ctxt->surfs[0], NULL))) {
         ctxt->d3dfmt = D3DFMT_YUY2;
         ctxt->pixfmt = AV_PIX_FMT_YUYV422;
     } else if (SUCCEEDED(ctxt->pD3DDev->CreateOffscreenPlainSurface(1, 1, D3DFMT_UYVY,
-            D3DPOOL_DEFAULT, &ctxt->pSurfs[0], NULL))) {
+            D3DPOOL_DEFAULT, &ctxt->surfs[0], NULL))) {
         ctxt->d3dfmt = D3DFMT_UYVY;
         ctxt->pixfmt = AV_PIX_FMT_UYVY422;
     } else {
         ctxt->d3dfmt = D3DFMT_X8R8G8B8;
         ctxt->pixfmt = AV_PIX_FMT_RGB32;
     }
-    ctxt->pSurfs[0]->Release();
-    ctxt->pSurfs[0] = NULL;
+    ctxt->surfs[0]->Release();
+    ctxt->surfs[0] = NULL;
     //-- try pixel format
 
     // create video rendering thread
