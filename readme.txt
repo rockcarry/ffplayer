@@ -26,6 +26,8 @@ features
 10.very fast (async) seek operation taking 0ms delay
 11.support video rotation by ffmpeg avfilter
 12.support step seek forward operation
+13.support mediacodec hardware decoding on android
+14.support dxva2 hardware acceleration on windows
 
 
 testplayer
