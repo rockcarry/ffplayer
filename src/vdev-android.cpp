@@ -21,8 +21,9 @@ typedef struct {
     // common members
     VDEV_COMMON_MEMBERS
 
-    ANativeWindow *win;
-    SwsContext    *sws;
+    ANativeWindow *wincur;
+    ANativeWindow *winnew;
+    SwsContext    *swsctxt;
 } VDEVCTXT;
 
 // 内部函数实现
@@ -45,20 +46,25 @@ void vdev_android_setparam(void *ctxt, int id, void *param)
     case PARAM_VDEV_POST_SURFACE:
         {
             AVFrame *picture = (AVFrame*)param;
-            if (c->sws == NULL) {
-                c->sws = sws_getContext(
+            if (c->swsctxt == NULL) {
+                c->swsctxt = sws_getContext(
                     c->sw, c->sh, (AVPixelFormat)picture->format,
                     c->sw, c->sh, (AVPixelFormat)c->pixfmt,
                     SWS_FAST_BILINEAR, 0, 0, 0);
             }
 
-            if (c->win) {
+            if (c->wincur != c->winnew) {
+                c->wincur = c->winnew;
+                ANativeWindow_setBuffersGeometry(c->winnew, c->sw, c->sh, DEF_WIN_PIX_FMT);
+            }
+
+            if (c->wincur) {
                 ANativeWindow_Buffer winbuf;
-                ANativeWindow_lock(c->win, &winbuf, NULL);
+                ANativeWindow_lock(c->wincur, &winbuf, NULL);
                 uint8_t *data[8]     = { (uint8_t*)winbuf.bits };
                 int      linesize[8] = { winbuf.stride * 4 };
-                sws_scale(c->sws, picture->data, picture->linesize, 0, c->sh, data, linesize);
-                ANativeWindow_unlockAndPost(c->win);
+                sws_scale(c->swsctxt, picture->data, picture->linesize, 0, c->sh, data, linesize);
+                ANativeWindow_unlockAndPost(c->wincur);
             }
 
             c->vpts = picture->pts;
@@ -72,12 +78,9 @@ static void vdev_android_destroy(void *ctxt)
 {
     VDEVCTXT *c = (VDEVCTXT*)ctxt;
 
-    // release android native window
-    if (c->win) ANativeWindow_release(c->win);
-
     // free sws context
-    if (c->sws) {
-        sws_freeContext(c->sws);
+    if (c->swsctxt) {
+        sws_freeContext(c->swsctxt);
     }
 
     free(c);
@@ -115,18 +118,5 @@ void vdev_android_setwindow(void *ctxt, jobject surface)
     if (!ctxt) return;
     VDEVCTXT *c = (VDEVCTXT*)ctxt;
     JNIEnv *env = get_jni_env();
-
-    ANativeWindow *win = c->win;
-    c->win = NULL;
-
-    // release old native window
-    if (win) ANativeWindow_release(win);
-
-    // create new native window
-    win = surface ? ANativeWindow_fromSurface(env, surface) : NULL;
-    if (win) {
-        ANativeWindow_acquire(win);
-        ANativeWindow_setBuffersGeometry(win, c->sw, c->sh, DEF_WIN_PIX_FMT);
-    }
-    c->win = win;
+    c->winnew   = surface ? ANativeWindow_fromSurface(env, surface) : NULL;
 }
