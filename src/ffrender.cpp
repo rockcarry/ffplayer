@@ -279,7 +279,7 @@ void render_video(void *hrender, AVFrame *video)
                 SWS_FAST_BILINEAR, 0, 0, 0);
         }
 
-        if (video->format == AV_PIX_FMT_DXVA2_VLD || vdev->type == VDEV_RENDER_TYPE_ANDROID) {
+        if (video->format == AV_PIX_FMT_DXVA2_VLD) {
             vdev_setparam(render->vdev, PARAM_VDEV_POST_SURFACE, video);
         } else {
             vdev_lock(render->vdev, picture.data, picture.linesize);

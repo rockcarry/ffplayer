@@ -5,7 +5,6 @@
 
 extern "C" {
 #include "libavformat/avformat.h"
-#include "libswscale/swscale.h"
 }
 
 // for jni
@@ -13,7 +12,6 @@ JNIEXPORT JavaVM* get_jni_jvm(void);
 JNIEXPORT JNIEnv* get_jni_env(void);
 
 // 内部常量定义
-#define DEF_VDEV_BUF_NUM  3
 #define DEF_WIN_PIX_FMT   WINDOW_FORMAT_RGBX_8888
 
 // 内部类型定义
@@ -23,7 +21,6 @@ typedef struct {
 
     ANativeWindow *wincur;
     ANativeWindow *winnew;
-    SwsContext    *swsctxt;
 } VDEVCTXT;
 
 // 内部函数实现
@@ -38,52 +35,34 @@ inline int android_pixfmt_to_ffmpeg_pixfmt(int srcfmt)
     return dst_fmt;
 }
 
-void vdev_android_setparam(void *ctxt, int id, void *param)
+static void vdev_android_lock(void *ctxt, uint8_t *buffer[8], int linesize[8])
 {
-    if (!ctxt || !param) return;
     VDEVCTXT *c = (VDEVCTXT*)ctxt;
-    switch (id) {
-    case PARAM_VDEV_POST_SURFACE:
-        {
-            AVFrame *picture = (AVFrame*)param;
-            if (c->swsctxt == NULL) {
-                c->swsctxt = sws_getContext(
-                    c->sw, c->sh, (AVPixelFormat)picture->format,
-                    c->sw, c->sh, (AVPixelFormat)c->pixfmt,
-                    SWS_FAST_BILINEAR, 0, 0, 0);
-            }
 
-            if (c->wincur != c->winnew) {
-                c->wincur = c->winnew;
-                ANativeWindow_setBuffersGeometry(c->winnew, c->sw, c->sh, DEF_WIN_PIX_FMT);
-            }
-
-            if (c->wincur) {
-                ANativeWindow_Buffer winbuf;
-                ANativeWindow_lock(c->wincur, &winbuf, NULL);
-                uint8_t *data[8]     = { (uint8_t*)winbuf.bits };
-                int      linesize[8] = { winbuf.stride * 4 };
-                sws_scale(c->swsctxt, picture->data, picture->linesize, 0, c->sh, data, linesize);
-                ANativeWindow_unlockAndPost(c->wincur);
-            }
-
-            c->vpts = picture->pts;
-            vdev_avsync_and_complete(c);
-        }
-        break;
+    if (c->wincur != c->winnew) {
+        c->wincur = c->winnew;
+        if (c->winnew) ANativeWindow_setBuffersGeometry(c->winnew, c->sw, c->sh, DEF_WIN_PIX_FMT);
     }
+
+    if (c->wincur) {
+        ANativeWindow_Buffer winbuf;
+        ANativeWindow_lock(c->wincur, &winbuf, NULL);
+        if (buffer  ) buffer  [0] = (uint8_t*)winbuf.bits;
+        if (linesize) linesize[0] = winbuf.stride * 4;
+    }
+}
+
+static void vdev_android_unlock(void *ctxt, int64_t pts)
+{
+    VDEVCTXT *c = (VDEVCTXT*)ctxt;
+    if (c->wincur) ANativeWindow_unlockAndPost(c->wincur);
+    c->vpts = pts;
+    vdev_avsync_and_complete(c);
 }
 
 static void vdev_android_destroy(void *ctxt)
 {
-    VDEVCTXT *c = (VDEVCTXT*)ctxt;
-
-    // free sws context
-    if (c->swsctxt) {
-        sws_freeContext(c->swsctxt);
-    }
-
-    free(c);
+    free(ctxt);
 }
 
 // 接口函数实现
@@ -107,9 +86,9 @@ void* vdev_android_create(void *surface, int bufnum, int w, int h, int frate)
     ctxt->apts      = -1;
     ctxt->vpts      = -1;
     ctxt->tickavdiff= -ctxt->tickframe * 4; // 4 should equals to (DEF_ADEV_BUF_NUM - 1)
-    ctxt->setparam  = vdev_android_setparam;
+    ctxt->lock      = vdev_android_lock;
+    ctxt->unlock    = vdev_android_unlock;
     ctxt->destroy   = vdev_android_destroy;
-
     return ctxt;
 }
 

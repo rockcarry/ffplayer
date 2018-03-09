@@ -22,7 +22,6 @@ void* vdev_create(int type, void *surface, int bufnum, int w, int h, int frate)
 #ifdef ANDROID
     c = (VDEV_COMMON_CTXT*)vdev_android_create(surface, bufnum, w, h, frate);
 #endif
-    c->type = type;
     return c;
 }
 

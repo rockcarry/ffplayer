@@ -17,7 +17,6 @@ extern "C" {
 
 //++ vdev context common members
 #define VDEV_COMMON_MEMBERS \
-    int       type;   \
     int       bufnum; \
     int       pixfmt; \
     int       x;   /* video display rect x */ \
