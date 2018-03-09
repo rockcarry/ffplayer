@@ -106,7 +106,7 @@ void vdev_d3d_setparam(void *ctxt, int id, void *param)
     if (!ctxt || !param) return;
     VDEVD3DCTXT *c = (VDEVD3DCTXT*)ctxt;
     switch (id) {
-    case PARAM_VDEV_POST_D3DSURF:
+    case PARAM_VDEV_POST_SURFACE:
         sem_wait(&c->semw);
         c->pSurfs[c->tail] = (LPDIRECT3DSURFACE9)((AVFrame*)param)->data[3];
         c->ppts  [c->tail] = ((AVFrame*)param)->pts;

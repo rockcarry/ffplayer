@@ -255,6 +255,7 @@ void render_video(void *hrender, AVFrame *video)
 
     if (!render || !render->vdev) return;
     do {
+        VDEV_COMMON_CTXT *vdev = (VDEV_COMMON_CTXT*)render->vdev;
         if (  render->render_xcur != render->render_xnew
            || render->render_ycur != render->render_ynew
            || render->render_wcur != render->render_wnew
@@ -272,15 +273,14 @@ void render_video(void *hrender, AVFrame *video)
             if (!render->sws_context) {
                 sws_freeContext(render->sws_context);
             }
-            VDEV_COMMON_CTXT *vdev = (VDEV_COMMON_CTXT*)render->vdev;
             render->sws_context = sws_getContext(
                 render->video_width, render->video_height, render->pixel_fmt,
                 vdev->sw, vdev->sh, (AVPixelFormat)vdev->pixfmt,
                 SWS_FAST_BILINEAR, 0, 0, 0);
         }
 
-        if (video->format == AV_PIX_FMT_DXVA2_VLD) {
-            vdev_setparam(render->vdev, PARAM_VDEV_POST_D3DSURF, video);
+        if (video->format == AV_PIX_FMT_DXVA2_VLD || vdev->type == VDEV_RENDER_TYPE_ANDROID) {
+            vdev_setparam(render->vdev, PARAM_VDEV_POST_SURFACE, video);
         } else {
             vdev_lock(render->vdev, picture.data, picture.linesize);
             if (picture.data[0] && video->pts != -1) {
@@ -399,7 +399,7 @@ void render_setparam(void *hrender, int id, void *param)
     switch (id)
     {
     case PARAM_AUDIO_VOLUME:
-        adev_setparam(render->adev, PARAM_AUDIO_VOLUME, param);
+        adev_setparam(render->adev, id, param);
         break;
     case PARAM_PLAY_SPEED:
         render_setspeed(render, *(int*)param);
@@ -416,7 +416,7 @@ void render_setparam(void *hrender, int id, void *param)
         break;
 #endif
     case PARAM_AVSYNC_TIME_DIFF:
-    case PARAM_VDEV_POST_D3DSURF:
+    case PARAM_VDEV_POST_SURFACE:
         vdev_setparam(render->vdev, id, param);
         break;
     case PARAM_RENDER_SEEK_STEP:
@@ -440,7 +440,7 @@ void render_getparam(void *hrender, int id, void *param)
         }
         break;
     case PARAM_AUDIO_VOLUME:
-        adev_getparam(render->adev, PARAM_AUDIO_VOLUME, param);
+        adev_getparam(render->adev, id, param);
         break;
     case PARAM_PLAY_SPEED:
         *(int*)param = render->render_speed_cur;

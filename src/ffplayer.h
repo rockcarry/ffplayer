@@ -26,6 +26,7 @@ enum {
 enum {
     VDEV_RENDER_TYPE_GDI,
     VDEV_RENDER_TYPE_D3D,
+    VDEV_RENDER_TYPE_ANDROID,
     VDEV_RENDER_TYPE_MAX_NUM,
 };
 
@@ -85,8 +86,8 @@ enum {
     //++ for vdev
     PARAM_VDEV_GET_CONTEXT = 0x3000,
     PARAM_VDEV_FRAME_RATE,
+    PARAM_VDEV_POST_SURFACE,
     PARAM_VDEV_GET_D3DDEV,
-    PARAM_VDEV_POST_D3DSURF,
     //-- for vdev
 
     //++ for render

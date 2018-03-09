@@ -21,11 +21,8 @@ typedef struct {
     // common members
     VDEV_COMMON_MEMBERS
 
-    // android natvie window
     ANativeWindow *win;
-
-    AVFrame    *frames;
-    SwsContext *swsctxt;
+    SwsContext    *sws;
 } VDEVCTXT;
 
 // 内部函数实现
@@ -40,89 +37,49 @@ inline int android_pixfmt_to_ffmpeg_pixfmt(int srcfmt)
     return dst_fmt;
 }
 
-static void* video_render_thread_proc(void *param)
+void vdev_android_setparam(void *ctxt, int id, void *param)
 {
-    VDEVCTXT *c = (VDEVCTXT*)param;
+    if (!ctxt || !param) return;
+    VDEVCTXT *c = (VDEVCTXT*)ctxt;
+    switch (id) {
+    case PARAM_VDEV_POST_SURFACE:
+        {
+            AVFrame *picture = (AVFrame*)param;
+            if (c->sws == NULL) {
+                c->sws = sws_getContext(
+                    c->sw, c->sh, (AVPixelFormat)picture->format,
+                    c->sw, c->sh, (AVPixelFormat)c->pixfmt,
+                    SWS_FAST_BILINEAR, 0, 0, 0);
+            }
 
-    while (1) {
-        sem_wait(&c->semr);
-        if (c->status & VDEV_CLOSE) break;
+            if (c->win) {
+                ANativeWindow_Buffer winbuf;
+                ANativeWindow_lock(c->win, &winbuf, NULL);
+                uint8_t *data[8]     = { (uint8_t*)winbuf.bits };
+                int      linesize[8] = { winbuf.stride * 4 };
+                sws_scale(c->sws, picture->data, picture->linesize, 0, c->sh, data, linesize);
+                ANativeWindow_unlockAndPost(c->win);
+            }
 
-        int64_t vpts = c->vpts = c->ppts[c->head];
-        if (vpts != -1 && c->win) {
-            AVFrame *picture = &c->frames[c->head];
-            ANativeWindow_Buffer winbuf;
-            ANativeWindow_lock(c->win, &winbuf, NULL);
-            uint8_t *data[8]     = { (uint8_t*)winbuf.bits };
-            int      linesize[8] = { winbuf.stride * 4 };
-            sws_scale(c->swsctxt, picture->data, picture->linesize, 0, c->sh, data, linesize);
-            ANativeWindow_unlockAndPost(c->win);
+            c->vpts = picture->pts;
+            vdev_avsync_and_complete(c);
         }
-
-        av_log(NULL, AV_LOG_DEBUG, "vpts: %lld\n", vpts);
-        if (++c->head == c->bufnum) c->head = 0;
-        sem_post(&c->semw);
-
-        // handle av-sync & frame rate & complete
-        vdev_avsync_and_complete(c);
+        break;
     }
-
-    // need call DetachCurrentThread
-    get_jni_jvm()->DetachCurrentThread();
-    return NULL;
-}
-
-static void vdev_android_lock(void *ctxt, uint8_t *buffer[8], int linesize[8])
-{
-    VDEVCTXT *c = (VDEVCTXT*)ctxt;
-    AVFrame  *p = NULL;
-    sem_wait(&c->semw);
-    p = &c->frames[c->tail];
-    memcpy(buffer  , p->data    , 8 * sizeof(uint8_t*));
-    memcpy(linesize, p->linesize, 8 * sizeof(int     ));
-}
-
-static void vdev_android_unlock(void *ctxt, int64_t pts)
-{
-    VDEVCTXT *c = (VDEVCTXT*)ctxt;
-
-    c->ppts[c->tail] = pts;
-    if (++c->tail == c->bufnum) c->tail = 0;
-    sem_post(&c->semr);
 }
 
 static void vdev_android_destroy(void *ctxt)
 {
     VDEVCTXT *c = (VDEVCTXT*)ctxt;
-    JNIEnv *env = get_jni_env();
-    int       i;
-
-    // make visual effect & rendering thread safely exit
-    c->status = VDEV_CLOSE;
-    sem_post(&c->semr);
-    pthread_join(c->thread, NULL);
 
     // release android native window
     if (c->win) ANativeWindow_release(c->win);
 
-    // close semaphore
-    sem_destroy(&c->semr);
-    sem_destroy(&c->semw);
-
-    // unref frames
-    for (i=0; i<c->bufnum; i++) {
-        av_frame_unref(&c->frames[i]);
-    }
-
     // free sws context
-    if (c->swsctxt) {
-        sws_freeContext(c->swsctxt);
+    if (c->sws) {
+        sws_freeContext(c->sws);
     }
-    //-- video --//
 
-    // free memory
-    free(c->ppts  );
-    free(c->frames);
     free(c);
 }
 
@@ -137,9 +94,6 @@ void* vdev_android_create(void *surface, int bufnum, int w, int h, int frate)
     }
 
     // init vdev context
-    bufnum          = bufnum ? bufnum : DEF_VDEV_BUF_NUM;
-    ctxt->surface   = surface;
-    ctxt->bufnum    = bufnum;
     ctxt->pixfmt    = android_pixfmt_to_ffmpeg_pixfmt(DEF_WIN_PIX_FMT);
     ctxt->w         = w ? w : 1;
     ctxt->h         = h ? h : 1;
@@ -150,39 +104,9 @@ void* vdev_android_create(void *surface, int bufnum, int w, int h, int frate)
     ctxt->apts      = -1;
     ctxt->vpts      = -1;
     ctxt->tickavdiff= -ctxt->tickframe * 4; // 4 should equals to (DEF_ADEV_BUF_NUM - 1)
-    ctxt->lock      = vdev_android_lock;
-    ctxt->unlock    = vdev_android_unlock;
+    ctxt->setparam  = vdev_android_setparam;
     ctxt->destroy   = vdev_android_destroy;
 
-    // alloc buffer & semaphore
-    ctxt->ppts   = (int64_t*)calloc(bufnum, sizeof(int64_t));
-    ctxt->frames = (AVFrame*)calloc(bufnum, sizeof(AVFrame));
-    if (!ctxt->ppts || !ctxt->frames) {
-        av_log(NULL, AV_LOG_ERROR, "failed to allocate memory for ppts & frames !\n");
-        exit(0);
-    }
-
-    for (i=0; i<ctxt->bufnum; i++) {
-        ctxt->frames[i].format = ctxt->pixfmt;
-        ctxt->frames[i].width  = ctxt->sw;
-        ctxt->frames[i].height = ctxt->sh;
-        ret = av_frame_get_buffer(&ctxt->frames[i], 32);
-        if (ret < 0) {
-            av_log(NULL, AV_LOG_ERROR, "could not allocate frame data.\n");
-            exit(0);
-        }
-    }
-    ctxt->swsctxt = sws_getContext(
-                ctxt->sw, ctxt->sh, (enum AVPixelFormat)ctxt->pixfmt,
-                ctxt->sw, ctxt->sh, (enum AVPixelFormat)ctxt->pixfmt,
-                SWS_FAST_BILINEAR, 0, 0, 0);
-
-    // create semaphore
-    sem_init(&ctxt->semr, 0, 0     );
-    sem_init(&ctxt->semw, 0, bufnum);
-
-    // create video rendering thread
-    pthread_create(&ctxt->thread, NULL, video_render_thread_proc, ctxt);
     return ctxt;
 }
 

@@ -22,25 +22,26 @@ void* vdev_create(int type, void *surface, int bufnum, int w, int h, int frate)
 #ifdef ANDROID
     c = (VDEV_COMMON_CTXT*)vdev_android_create(surface, bufnum, w, h, frate);
 #endif
+    c->type = type;
     return c;
 }
 
 void vdev_destroy(void *ctxt)
 {
     VDEV_COMMON_CTXT *c = (VDEV_COMMON_CTXT*)ctxt;
-    c->destroy(c);
+    if (c->destroy) c->destroy(c);
 }
 
 void vdev_lock(void *ctxt, uint8_t *buffer[8], int linesize[8])
 {
     VDEV_COMMON_CTXT *c = (VDEV_COMMON_CTXT*)ctxt;
-    c->lock(c, buffer, linesize);
+    if (c->lock) c->lock(c, buffer, linesize);
 }
 
 void vdev_unlock(void *ctxt, int64_t pts)
 {
     VDEV_COMMON_CTXT *c = (VDEV_COMMON_CTXT*)ctxt;
-    c->unlock(c, pts);
+    if (c->unlock) c->unlock(c, pts);
 }
 
 void vdev_setrect(void *ctxt, int x, int y, int w, int h)
