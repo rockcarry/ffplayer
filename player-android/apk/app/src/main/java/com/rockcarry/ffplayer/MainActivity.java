@@ -26,7 +26,6 @@ public class MainActivity extends Activity {
     private MediaPlayer  mPlayer    = null;
     private playerView   mRoot      = null;
     private SurfaceView  mVideo     = null;
-    private Surface      mSurface   = null;
     private SeekBar      mSeek      = null;
     private ProgressBar  mBuffering = null;
     private ImageView    mPause     = null;
@@ -82,25 +81,17 @@ public class MainActivity extends Activity {
             new Callback() {
                 @Override
                 public void surfaceChanged(SurfaceHolder holder, int format, int width, int height) {
+//                  mPlayer.setDisplaySurface(holder.getSurface());
                 }
 
                 @Override
                 public void surfaceCreated(SurfaceHolder holder) {
-                    mSurface = holder.getSurface();
-                    //++ fix crash issue
-                    mHandler.post(new Runnable() {
-                        @Override
-                        public void run() {
-                            mPlayer.setDisplaySurface(mSurface);
-                        }
-                    });
-                    //-- fix crash issue
+                    mPlayer.setDisplaySurface(holder.getSurface());
                 }
 
                 @Override
                 public void surfaceDestroyed(SurfaceHolder holder) {
-//                  mPlayer.setDisplaySurface(null); // we need call this in onPause to avoid crash
-                    mSurface = null;
+                    mPlayer.setDisplaySurface(null);
                 }
             }
         );
@@ -147,13 +138,11 @@ public class MainActivity extends Activity {
     @Override
     public void onResume() {
         super.onResume();
-        mPlayer.setDisplaySurface(mSurface);
         if (!mIsLive) testPlayerPlay(true);
     }
 
     @Override
     public void onPause() {
-        mPlayer.setDisplaySurface(null);
         if (!mIsLive) testPlayerPlay(false);
         super.onPause();
     }
