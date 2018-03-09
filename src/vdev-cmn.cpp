@@ -147,7 +147,7 @@ void vdev_avsync_and_complete(void *ctxt)
 
     if (!(c->status & VDEV_PAUSE)) {
         //++ play completed ++//
-        if (c->completed_apts != c->apts || c->completed_vpts != c->vpts) {
+        if (c->completed_apts != c->apts || c->completed_vpts != c->vpts || c->vpts < 0) {
             c->completed_apts = c->apts;
             c->completed_vpts = c->vpts;
             c->completed_counter = 0;
@@ -175,7 +175,7 @@ void vdev_avsync_and_complete(void *ctxt)
 
         if (tickdiff - c->tickframe >  5) c->ticksleep--;
         if (tickdiff - c->tickframe < -5) c->ticksleep++;
-        if (c->vpts != -1 && c->vpts != AV_NOPTS_VALUE) {
+        if (c->vpts >= 0) {
                  if (avdiff >  500) c->ticksleep -= 3;
             else if (avdiff >  50 ) c->ticksleep -= 1;
             else if (avdiff < -500) c->ticksleep += 3;
