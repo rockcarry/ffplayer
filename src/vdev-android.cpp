@@ -15,9 +15,9 @@ JNIEXPORT JavaVM* get_jni_jvm(void);
 JNIEXPORT JNIEnv* get_jni_env(void);
 
 // 内部常量定义
-#define DEF_VDEV_BUF_NUM        3
-#define DEF_WIN_PIX_FMT         HAL_PIXEL_FORMAT_YCrCb_420_SP // HAL_PIXEL_FORMAT_RGBX_8888 or HAL_PIXEL_FORMAT_RGB_565 or HAL_PIXEL_FORMAT_YCrCb_420_SP or HAL_PIXEL_FORMAT_YV12
-#define VDEV_GRALLOC_USAGE      (GRALLOC_USAGE_SW_READ_NEVER | GRALLOC_USAGE_SW_WRITE_NEVER | GRALLOC_USAGE_HW_TEXTURE)
+#define DEF_VDEV_BUF_NUM    3
+#define DEF_WIN_PIX_FMT     HAL_PIXEL_FORMAT_YCrCb_420_SP // HAL_PIXEL_FORMAT_RGBX_8888 or HAL_PIXEL_FORMAT_RGB_565 or HAL_PIXEL_FORMAT_YCrCb_420_SP or HAL_PIXEL_FORMAT_YV12
+#define VDEV_GRALLOC_USAGE  (GRALLOC_USAGE_SW_READ_NEVER | GRALLOC_USAGE_SW_WRITE_NEVER | GRALLOC_USAGE_HW_TEXTURE)
 
 // 内部类型定义
 typedef struct
@@ -26,7 +26,8 @@ typedef struct
     VDEV_COMMON_MEMBERS
 
     // android natvie window
-    sp<ANativeWindow> win;
+    sp<ANativeWindow> wincur;
+    sp<ANativeWindow> winnew;
 
     // android natvie window buffer
     ANativeWindowBuffer **bufs;
@@ -61,9 +62,9 @@ static void* video_render_thread_proc(void *param)
 
         int64_t vpts = c->vpts = c->ppts[c->head];
         if (vpts != -1) {
-            if (c->bufs[c->head] && c->win.get()) c->win->queueBuffer (c->win.get(), c->bufs[c->head], -1);
+            if (c->bufs[c->head] && c->wincur.get()) c->wincur->queueBuffer (c->wincur.get(), c->bufs[c->head], -1);
         } else {
-            if (c->bufs[c->head] && c->win.get()) c->win->cancelBuffer(c->win.get(), c->bufs[c->head], -1);
+            if (c->bufs[c->head] && c->wincur.get()) c->wincur->cancelBuffer(c->wincur.get(), c->bufs[c->head], -1);
         }
         // set to null
         c->bufs[c->head] = NULL;
@@ -72,8 +73,8 @@ static void* video_render_thread_proc(void *param)
         if (++c->head == c->bufnum) c->head = 0;
         sem_post(&c->semw);
 
-        // handle complete, av-sync & frame rate control
-        vdev_handle_complete_and_avsync(c);
+        // handle av-sync & frame rate & complete
+        vdev_avsync_and_complete(c);
     }
 
     // need call DetachCurrentThread
@@ -81,72 +82,27 @@ static void* video_render_thread_proc(void *param)
     return NULL;
 }
 
-// 接口函数实现
-void* vdev_android_create(void *surface, int bufnum, int w, int h, int frate)
-{
-    VDEVCTXT *ctxt = new VDEVCTXT();
-    if (!ctxt) {
-        av_log(NULL, AV_LOG_ERROR, "failed to allocate vdev context !\n");
-        exit(0);
-    }
-
-    // init vdev context
-    bufnum          = bufnum ? bufnum : DEF_VDEV_BUF_NUM;
-    ctxt->surface   = surface;
-    ctxt->bufnum    = bufnum;
-    ctxt->pixfmt    = android_pixfmt_to_ffmpeg_pixfmt(DEF_WIN_PIX_FMT);
-    ctxt->w         = w ? w : 1;
-    ctxt->h         = h ? h : 1;
-    ctxt->sw        = w ? w : 1;
-    ctxt->sh        = h ? h : 1;
-    ctxt->tickframe = 1000 / frate;
-    ctxt->ticksleep = ctxt->tickframe;
-    ctxt->apts      = -1;
-    ctxt->vpts      = -1;
-    ctxt->tickavdiff= -ctxt->tickframe * 4; // 4 should equals to (DEF_ADEV_BUF_NUM - 1)
-
-    // alloc buffer & semaphore
-    ctxt->ppts = (int64_t*)calloc(bufnum, sizeof(int64_t));
-    ctxt->bufs = (ANativeWindowBuffer**)calloc(bufnum, sizeof(ANativeWindowBuffer*));
-
-    // create semaphore
-    sem_init(&ctxt->semr, 0, 0     );
-    sem_init(&ctxt->semw, 0, bufnum);
-
-    // create video rendering thread
-    pthread_create(&ctxt->thread, NULL, video_render_thread_proc, ctxt);
-    return ctxt;
-}
-
-void vdev_android_destroy(void *ctxt)
-{
-    VDEVCTXT *c = (VDEVCTXT*)ctxt;
-    JNIEnv *env = get_jni_env();
-
-    // make visual effect & rendering thread safely exit
-    c->status = VDEV_CLOSE;
-    sem_post(&c->semr);
-    pthread_join(c->thread, NULL);
-
-    // close semaphore
-    sem_destroy(&c->semr);
-    sem_destroy(&c->semw);
-
-    // free memory
-    free(c->ppts);
-    free(c->bufs);
-    delete(c);
-}
-
-void vdev_android_lock(void *ctxt, uint8_t *buffer[8], int linesize[8])
+static void vdev_android_lock(void *ctxt, uint8_t *buffer[8], int linesize[8])
 {
     VDEVCTXT *c = (VDEVCTXT*)ctxt;
 
     sem_wait(&c->semw);
     ANativeWindowBuffer *buf = NULL;
     uint8_t             *dst = NULL;
-    c->bufs[c->tail] = NULL;
-    if (c->win.get() && 0 == native_window_dequeue_buffer_and_wait(c->win.get(), &buf)) {
+
+    if (c->wincur.get() != c->winnew.get()) {
+        c->wincur = c->winnew;
+        if (c->winnew.get()) {
+            native_window_set_usage             (c->winnew.get(), VDEV_GRALLOC_USAGE);
+            native_window_set_buffer_count      (c->winnew.get(), c->bufnum + 1);
+            native_window_set_buffers_format    (c->winnew.get(), DEF_WIN_PIX_FMT);
+            native_window_set_buffers_dimensions(c->winnew.get(), c->sw, c->sh);
+            native_window_set_scaling_mode      (c->winnew.get(), NATIVE_WINDOW_SCALING_MODE_SCALE_TO_WINDOW);
+        }
+    }
+    if (!c->wincur.get()) return;
+
+    if (0 == native_window_dequeue_buffer_and_wait(c->wincur.get(), &buf)) {
         Rect bounds(buf->width, buf->height);
         if (0 != GraphicBufferMapper::get().lock(buf->handle, GRALLOC_USAGE_SW_WRITE_OFTEN, bounds, (void**)&dst)) {
             av_log(NULL, AV_LOG_WARNING, "ANativeWindow failed to lock buffer !\n");
@@ -154,8 +110,7 @@ void vdev_android_lock(void *ctxt, uint8_t *buffer[8], int linesize[8])
             c->bufs[c->tail] = buf;
         }
     } else {
-        if (c->win.get()) av_log(NULL, AV_LOG_WARNING, "ANativeWindow failed to dequeue buffer !\n");
-        buffer[0] = NULL; return;
+        av_log(NULL, AV_LOG_WARNING, "ANativeWindow failed to dequeue buffer !\n");
     }
 
     int yheight = buf->height;
@@ -189,7 +144,7 @@ void vdev_android_lock(void *ctxt, uint8_t *buffer[8], int linesize[8])
     }
 }
 
-void vdev_android_unlock(void *ctxt, int64_t pts)
+static void vdev_android_unlock(void *ctxt, int64_t pts)
 {
     VDEVCTXT *c = (VDEVCTXT*)ctxt;
 
@@ -201,13 +156,64 @@ void vdev_android_unlock(void *ctxt, int64_t pts)
     sem_post(&c->semr);
 }
 
-void vdev_android_setrect(void *ctxt, int x, int y, int w, int h)
+static void vdev_android_destroy(void *ctxt)
 {
-    DO_USE_VAR(ctxt);
-    DO_USE_VAR(x   );
-    DO_USE_VAR(y   );
-    DO_USE_VAR(w   );
-    DO_USE_VAR(h   );
+    VDEVCTXT *c = (VDEVCTXT*)ctxt;
+    JNIEnv *env = get_jni_env();
+
+    // make visual effect & rendering thread safely exit
+    c->status = VDEV_CLOSE;
+    sem_post(&c->semr);
+    pthread_join(c->thread, NULL);
+
+    // close semaphore
+    sem_destroy(&c->semr);
+    sem_destroy(&c->semw);
+
+    // free memory
+    free(c->ppts);
+    free(c->bufs);
+    delete(c);
+}
+
+// 接口函数实现
+void* vdev_android_create(void *surface, int bufnum, int w, int h, int frate)
+{
+    VDEVCTXT *ctxt = new VDEVCTXT();
+    if (!ctxt) {
+        av_log(NULL, AV_LOG_ERROR, "failed to allocate vdev context !\n");
+        exit(0);
+    }
+
+    // init vdev context
+    bufnum          = bufnum ? bufnum : DEF_VDEV_BUF_NUM;
+    ctxt->surface   = surface;
+    ctxt->bufnum    = bufnum;
+    ctxt->pixfmt    = android_pixfmt_to_ffmpeg_pixfmt(DEF_WIN_PIX_FMT);
+    ctxt->w         = w ? w : 1;
+    ctxt->h         = h ? h : 1;
+    ctxt->sw        = w ? w : 1;
+    ctxt->sh        = h ? h : 1;
+    ctxt->tickframe = 1000 / frate;
+    ctxt->ticksleep = ctxt->tickframe;
+    ctxt->apts      = -1;
+    ctxt->vpts      = -1;
+    ctxt->tickavdiff= -ctxt->tickframe * 4; // 4 should equals to (DEF_ADEV_BUF_NUM - 1)
+    ctxt->lock      = vdev_android_lock;
+    ctxt->unlock    = vdev_android_unlock;
+    ctxt->destroy   = vdev_android_destroy;
+
+    // alloc buffer & semaphore
+    ctxt->ppts = (int64_t*)calloc(bufnum, sizeof(int64_t));
+    ctxt->bufs = (ANativeWindowBuffer**)calloc(bufnum, sizeof(ANativeWindowBuffer*));
+
+    // create semaphore
+    sem_init(&ctxt->semr, 0, 0     );
+    sem_init(&ctxt->semw, 0, bufnum);
+
+    // create video rendering thread
+    pthread_create(&ctxt->thread, NULL, video_render_thread_proc, ctxt);
+    return ctxt;
 }
 
 void vdev_android_setwindow(void *ctxt, jobject surface)
@@ -215,16 +221,6 @@ void vdev_android_setwindow(void *ctxt, jobject surface)
     if (!ctxt) return;
     VDEVCTXT *c = (VDEVCTXT*)ctxt;
     JNIEnv *env = get_jni_env();
-
-    // create new native window
-    sp<ANativeWindow> win = surface ? android_view_Surface_getSurface(env, surface) : NULL;
-    if (win.get()) {
-        native_window_set_usage             (win.get(), VDEV_GRALLOC_USAGE);
-        native_window_set_buffer_count      (win.get(), c->bufnum + 1);
-        native_window_set_buffers_format    (win.get(), DEF_WIN_PIX_FMT);
-        native_window_set_buffers_dimensions(win.get(), c->sw, c->sh);
-        native_window_set_scaling_mode      (win.get(), NATIVE_WINDOW_SCALING_MODE_SCALE_TO_WINDOW);
-    }
-    c->win = win;
+    c->winnew   = surface ? android_view_Surface_getSurface(env, surface) : NULL;
 }
 

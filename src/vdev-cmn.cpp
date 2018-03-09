@@ -10,6 +10,48 @@ extern "C" {
 #define COMPLETE_COUNTER  30
 
 // º¯ÊýÊµÏÖ
+void* vdev_create(int type, void *surface, int bufnum, int w, int h, int frate)
+{
+    VDEV_COMMON_CTXT *c = NULL;
+#ifdef WIN32
+    switch (type) {
+    case VDEV_RENDER_TYPE_GDI: c = (VDEV_COMMON_CTXT*)vdev_gdi_create(surface, bufnum, w, h, frate); break;
+    case VDEV_RENDER_TYPE_D3D: c = (VDEV_COMMON_CTXT*)vdev_d3d_create(surface, bufnum, w, h, frate); break;
+    }
+#endif
+#ifdef ANDROID
+    c = (VDEV_COMMON_CTXT*)vdev_android_create(surface, bufnum, w, h, frate);
+#endif
+    return c;
+}
+
+void vdev_destroy(void *ctxt)
+{
+    VDEV_COMMON_CTXT *c = (VDEV_COMMON_CTXT*)ctxt;
+    if (c->destroy) c->destroy(c);
+}
+
+void vdev_lock(void *ctxt, uint8_t *buffer[8], int linesize[8])
+{
+    VDEV_COMMON_CTXT *c = (VDEV_COMMON_CTXT*)ctxt;
+    if (c->lock) c->lock(c, buffer, linesize);
+}
+
+void vdev_unlock(void *ctxt, int64_t pts)
+{
+    VDEV_COMMON_CTXT *c = (VDEV_COMMON_CTXT*)ctxt;
+    if (c->unlock) c->unlock(c, pts);
+}
+
+void vdev_setrect(void *ctxt, int x, int y, int w, int h)
+{
+    VDEV_COMMON_CTXT *c = (VDEV_COMMON_CTXT*)ctxt;
+    c->x  = x; c->y  = y;
+    c->w  = w; c->h  = h;
+    c->refresh_flag  = 1;
+    if (c->setrect) c->setrect(c, x, y, w, h);
+}
+
 void vdev_pause(void *ctxt, int pause)
 {
     VDEV_COMMON_CTXT *c = (VDEV_COMMON_CTXT*)ctxt;
@@ -57,6 +99,7 @@ void vdev_setparam(void *ctxt, int id, void *param)
         c->tickavdiff = *(int*)param;
         break;
     }
+    if (c->setparam) c->setparam(c, id, param);
 }
 
 void vdev_getparam(void *ctxt, int id, void *param)
@@ -72,100 +115,7 @@ void vdev_getparam(void *ctxt, int id, void *param)
         *(int*)param = c->tickavdiff;
         break;
     }
-}
-
-void* vdev_create(int type, void *surface, int bufnum, int w, int h, int frate, void *params)
-{
-    VDEV_COMMON_CTXT *p = (VDEV_COMMON_CTXT*)params;
-    VDEV_COMMON_CTXT *c = NULL;
-
-    if (p) {
-        surface= p->surface;
-        bufnum = p->bufnum;
-        w      = p->w;
-        h      = p->h;
-        frate  = 1000 / p->tickframe;
-    }
-
-#ifdef WIN32
-    switch (type) {
-    case VDEV_RENDER_TYPE_GDI: c = (VDEV_COMMON_CTXT*)vdev_gdi_create(surface, bufnum, w, h, frate); break;
-    case VDEV_RENDER_TYPE_D3D: c = (VDEV_COMMON_CTXT*)vdev_d3d_create(surface, bufnum, w, h, frate); break;
-    }
-#endif
-#ifdef ANDROID
-    c = (VDEV_COMMON_CTXT*)vdev_android_create(surface, bufnum, w, h, frate);
-#endif
-    if (c) c->type = type;
-
-    if (p) {
-        c->apts       = p->apts;
-        c->vpts       = p->vpts;
-        c->tickavdiff = p->tickavdiff;
-        c->tickframe  = p->tickframe;
-        c->ticksleep  = p->ticksleep;
-        c->ticklast   = p->ticklast;
-        c->status     = p->status;
-        vdev_setrect(c, p->x, p->y, w, h);
-    }
-
-    return c;
-}
-
-void vdev_destroy(void *ctxt)
-{
-    VDEV_COMMON_CTXT *c = (VDEV_COMMON_CTXT*)ctxt;
-#ifdef WIN32
-    switch (c->type) {
-    case VDEV_RENDER_TYPE_GDI: vdev_gdi_destroy(ctxt); break;
-    case VDEV_RENDER_TYPE_D3D: vdev_d3d_destroy(ctxt); break;
-    }
-#endif
-#ifdef ANDROID
-    vdev_android_destroy(ctxt);
-#endif
-}
-
-void vdev_lock(void *ctxt, uint8_t *buffer[8], int linesize[8])
-{
-    VDEV_COMMON_CTXT *c = (VDEV_COMMON_CTXT*)ctxt;
-#ifdef WIN32
-    switch (c->type) {
-    case VDEV_RENDER_TYPE_GDI: vdev_gdi_lock(ctxt, buffer, linesize); break;
-    case VDEV_RENDER_TYPE_D3D: vdev_d3d_lock(ctxt, buffer, linesize); break;
-    }
-#endif
-#ifdef ANDROID
-    vdev_android_lock(ctxt, buffer, linesize);
-#endif
-}
-
-void vdev_unlock(void *ctxt, int64_t pts)
-{
-    VDEV_COMMON_CTXT *c = (VDEV_COMMON_CTXT*)ctxt;
-#ifdef WIN32
-    switch (c->type) {
-    case VDEV_RENDER_TYPE_GDI: vdev_gdi_unlock(ctxt, pts); break;
-    case VDEV_RENDER_TYPE_D3D: vdev_d3d_unlock(ctxt, pts); break;
-    }
-#endif
-#ifdef ANDROID
-    vdev_android_unlock(ctxt, pts);
-#endif
-}
-
-void vdev_setrect(void *ctxt, int x, int y, int w, int h)
-{
-    VDEV_COMMON_CTXT *c = (VDEV_COMMON_CTXT*)ctxt;
-#ifdef WIN32
-    switch (c->type) {
-    case VDEV_RENDER_TYPE_GDI: vdev_gdi_setrect(ctxt, x, y, w, h); break;
-    case VDEV_RENDER_TYPE_D3D: vdev_d3d_setrect(ctxt, x, y, w, h); break;
-    }
-#endif
-#ifdef ANDROID
-    vdev_android_setrect(ctxt, x, y, w, h);
-#endif
+    if (c->getparam) c->getparam(c, id, param);
 }
 
 void vdev_refresh_background(void *ctxt)
@@ -188,7 +138,7 @@ void vdev_refresh_background(void *ctxt)
 #endif
 }
 
-void vdev_handle_complete_and_avsync(void *ctxt)
+void vdev_avsync_and_complete(void *ctxt)
 {
     VDEV_COMMON_CTXT *c = (VDEV_COMMON_CTXT*)ctxt;
     int     tickdiff, scdiff, avdiff = -1;
@@ -201,7 +151,7 @@ void vdev_handle_complete_and_avsync(void *ctxt)
             c->completed_vpts = c->vpts;
             c->completed_counter = 0;
             c->status &=~VDEV_COMPLETED;
-        } else if (++c->completed_counter == COMPLETE_COUNTER) {
+        } else if ((c->vpts == -1 || c->vpts == AV_NOPTS_VALUE) && ++c->completed_counter == COMPLETE_COUNTER) {
             c->status |= VDEV_COMPLETED;
             player_send_message(c->surface, MSG_PLAY_COMPLETED, 0);
         }
@@ -224,7 +174,7 @@ void vdev_handle_complete_and_avsync(void *ctxt)
 
         if (tickdiff - c->tickframe >  5) c->ticksleep--;
         if (tickdiff - c->tickframe < -5) c->ticksleep++;
-        if (c->vpts != -1 && c->vpts != AV_NOPTS_VALUE) {
+        if (c->vpts >= 0) {
                  if (avdiff >  500) c->ticksleep -= 3;
             else if (avdiff >  50 ) c->ticksleep -= 1;
             else if (avdiff < -500) c->ticksleep += 3;

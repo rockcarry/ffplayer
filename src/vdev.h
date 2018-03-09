@@ -17,7 +17,6 @@ extern "C" {
 
 //++ vdev context common members
 #define VDEV_COMMON_MEMBERS \
-    int       type;   \
     int       bufnum; \
     int       pixfmt; \
     int       x;   /* video display rect x */ \
@@ -52,7 +51,13 @@ extern "C" {
                                               \
     /* used to sync video to system clock */  \
     int64_t   start_pts;                      \
-    int64_t   start_tick;
+    int64_t   start_tick;                     \
+    void (*lock    )(void *ctxt, uint8_t *buffer[8], int linesize[8]); \
+    void (*unlock  )(void *ctxt, int64_t pts);                         \
+    void (*setrect )(void *ctxt, int x, int y, int w, int h);          \
+    void (*setparam)(void *ctxt, int id, void *param);                 \
+    void (*getparam)(void *ctxt, int id, void *param);                 \
+    void (*destroy )(void *ctxt);
 //-- vdev context common members
 
 // 类型定义
@@ -61,48 +66,29 @@ typedef struct {
 } VDEV_COMMON_CTXT;
 
 #ifdef WIN32
-// vdev-gdi
-void* vdev_gdi_create (void *surface, int bufnum, int w, int h, int frate);
-void  vdev_gdi_destroy(void *ctxt);
-void  vdev_gdi_lock   (void *ctxt, uint8_t *buffer[8], int linesize[8]);
-void  vdev_gdi_unlock (void *ctxt, int64_t pts);
-void  vdev_gdi_setrect(void *ctxt, int x, int y, int w, int h);
-
-// vdev-d3d
-void* vdev_d3d_create (void *surface, int bufnum, int w, int h, int frate);
-void  vdev_d3d_destroy(void *ctxt);
-void  vdev_d3d_lock   (void *ctxt, uint8_t *buffer[8], int linesize[8]);
-void  vdev_d3d_unlock (void *ctxt, int64_t pts);
-void  vdev_d3d_setrect(void *ctxt, int x, int y, int w, int h);
-
+void* vdev_gdi_create(void *surface, int bufnum, int w, int h, int frate);
+void* vdev_d3d_create(void *surface, int bufnum, int w, int h, int frate);
 void  DEF_PLAYER_CALLBACK_WINDOWS(void *vdev, int32_t msg, int64_t param);
 #endif
 
 #ifdef ANDROID
-void* vdev_android_create (void *surface, int bufnum, int w, int h, int frate);
-void  vdev_android_destroy(void *ctxt);
-void  vdev_android_lock   (void *ctxt, uint8_t *buffer[8], int linesize[8]);
-void  vdev_android_unlock (void *ctxt, int64_t pts);
-void  vdev_android_setrect(void *ctxt, int x, int y, int w, int h);
-
+void* vdev_android_create(void *surface, int bufnum, int w, int h, int frate);
 void  DEF_PLAYER_CALLBACK_ANDROID(void *vdev, int32_t msg, int64_t param);
 #endif
 
 // 函数声明
+void* vdev_create  (int type, void *app, int bufnum, int w, int h, int frate);
+void  vdev_destroy (void *ctxt);
+void  vdev_lock    (void *ctxt, uint8_t *buffer[8], int linesize[8]);
+void  vdev_unlock  (void *ctxt, int64_t pts);
+void  vdev_setrect (void *ctxt, int x, int y, int w, int h);
 void  vdev_pause   (void *ctxt, int pause);
 void  vdev_reset   (void *ctxt);
 void  vdev_getavpts(void *ctxt, int64_t **ppapts, int64_t **ppvpts);
 void  vdev_setparam(void *ctxt, int id, void *param);
 void  vdev_getparam(void *ctxt, int id, void *param);
-
-void* vdev_create  (int type, void *app, int bufnum, int w, int h, int frate, void *params);
-void  vdev_destroy (void *ctxt);
-void  vdev_lock    (void *ctxt, uint8_t *buffer[8], int linesize[8]);
-void  vdev_unlock  (void *ctxt, int64_t pts);
-void  vdev_setrect (void *ctxt, int x, int y, int w, int h);
-
-void  vdev_refresh_background(void *ctxt);
-void  vdev_handle_complete_and_avsync(void *ctxt);
+void  vdev_refresh_background (void *ctxt);
+void  vdev_avsync_and_complete(void *ctxt);
 
 #ifdef __cplusplus
 }

@@ -148,8 +148,8 @@ void* render_open(int adevtype, int srate, AVSampleFormat sndfmt, int64_t ch_lay
 #endif
 
     // create adev & vdev
-    render->adev = adev_create(adevtype, 0, (int)((double)ADEV_SAMPLE_RATE * frate.den / frate.num + 0.5) * 4, NULL);
-    render->vdev = vdev_create(vdevtype, surface, 0, w, h, (int)((double)frate.num / frate.den + 0.5), NULL);
+    render->adev = adev_create(adevtype, 0, (int)((double)ADEV_SAMPLE_RATE * frate.den / frate.num + 0.5) * 4);
+    render->vdev = vdev_create(vdevtype, surface, 0, w, h, (int)((double)frate.num / frate.den + 0.5));
 
     // make adev & vdev sync together
     int64_t *papts = NULL;
@@ -255,6 +255,7 @@ void render_video(void *hrender, AVFrame *video)
 
     if (!render || !render->vdev) return;
     do {
+        VDEV_COMMON_CTXT *vdev = (VDEV_COMMON_CTXT*)render->vdev;
         if (  render->render_xcur != render->render_xnew
            || render->render_ycur != render->render_ynew
            || render->render_wcur != render->render_wnew
@@ -272,18 +273,21 @@ void render_video(void *hrender, AVFrame *video)
             if (!render->sws_context) {
                 sws_freeContext(render->sws_context);
             }
-            VDEV_COMMON_CTXT *vdev = (VDEV_COMMON_CTXT*)render->vdev;
             render->sws_context = sws_getContext(
                 render->video_width, render->video_height, render->pixel_fmt,
                 vdev->sw, vdev->sh, (AVPixelFormat)vdev->pixfmt,
                 SWS_FAST_BILINEAR, 0, 0, 0);
         }
 
-        vdev_lock(render->vdev, picture.data, picture.linesize);
-        if (picture.data[0] && video->pts != -1) {
-            sws_scale(render->sws_context, video->data, video->linesize, 0, render->video_height, picture.data, picture.linesize);
+        if (video->format == AV_PIX_FMT_DXVA2_VLD) {
+            vdev_setparam(render->vdev, PARAM_VDEV_POST_SURFACE, video);
+        } else {
+            vdev_lock(render->vdev, picture.data, picture.linesize);
+            if (picture.data[0] && video->pts != -1) {
+                sws_scale(render->sws_context, video->data, video->linesize, 0, render->video_height, picture.data, picture.linesize);
+            }
+            vdev_unlock(render->vdev, video->pts);
         }
-        vdev_unlock(render->vdev, video->pts);
 
 #if CONFIG_ENABLE_SNAPSHOT
         if (render->render_status & RENDER_SNAPSHOT) {
@@ -395,7 +399,7 @@ void render_setparam(void *hrender, int id, void *param)
     switch (id)
     {
     case PARAM_AUDIO_VOLUME:
-        adev_setparam(render->adev, PARAM_AUDIO_VOLUME, param);
+        adev_setparam(render->adev, id, param);
         break;
     case PARAM_PLAY_SPEED:
         render_setspeed(render, *(int*)param);
@@ -412,7 +416,8 @@ void render_setparam(void *hrender, int id, void *param)
         break;
 #endif
     case PARAM_AVSYNC_TIME_DIFF:
-        vdev_setparam(render->vdev, PARAM_AVSYNC_TIME_DIFF, param);
+    case PARAM_VDEV_POST_SURFACE:
+        vdev_setparam(render->vdev, id, param);
         break;
     case PARAM_RENDER_SEEK_STEP:
         render->render_status |= RENDER_SEEKSTEP;
@@ -435,7 +440,7 @@ void render_getparam(void *hrender, int id, void *param)
         }
         break;
     case PARAM_AUDIO_VOLUME:
-        adev_getparam(render->adev, PARAM_AUDIO_VOLUME, param);
+        adev_getparam(render->adev, id, param);
         break;
     case PARAM_PLAY_SPEED:
         *(int*)param = render->render_speed_cur;
@@ -446,7 +451,8 @@ void render_getparam(void *hrender, int id, void *param)
         break;
 #endif
     case PARAM_AVSYNC_TIME_DIFF:
-        vdev_getparam(render->vdev, PARAM_AVSYNC_TIME_DIFF, param);
+    case PARAM_VDEV_GET_D3DDEV:
+        vdev_getparam(render->vdev, id, param);
         break;
     case PARAM_ADEV_GET_CONTEXT:
         *(void**)param = render->adev;

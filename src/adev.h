@@ -42,7 +42,7 @@ typedef struct {
 } ADEV_COMMON_CTXT;
 
 // º¯ÊıÉùÃ÷
-void* adev_create  (int type, int bufnum, int buflen, void *params);
+void* adev_create  (int type, int bufnum, int buflen);
 void  adev_destroy (void *ctxt);
 void  adev_lock    (void *ctxt, AUDIOBUF **ppab);
 void  adev_unlock  (void *ctxt, int64_t pts);

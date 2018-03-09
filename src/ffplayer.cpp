@@ -220,7 +220,7 @@ static int vfilter_graph_output(PLAYER *player, AVFrame *frame)
 }
 //-- for filter graph
 
-static int reinit_stream(PLAYER *player, enum AVMediaType type, int sel) {
+static int init_stream(PLAYER *player, enum AVMediaType type, int sel) {
     AVCodec *decoder = NULL;
     int     idx = -1, cur = -1;
 
@@ -233,9 +233,6 @@ static int reinit_stream(PLAYER *player, enum AVMediaType type, int sel) {
 
     switch (type) {
     case AVMEDIA_TYPE_AUDIO:
-        // get last codec context
-        if (player->acodec_context) avcodec_close(player->acodec_context);
-
         // get new acodec_context & astream_timebase
         player->acodec_context   = player->avformat_context->streams[idx]->codec;
         player->astream_timebase = player->avformat_context->streams[idx]->time_base;
@@ -250,17 +247,11 @@ static int reinit_stream(PLAYER *player, enum AVMediaType type, int sel) {
         break;
 
     case AVMEDIA_TYPE_VIDEO:
-        // get last codec context
-        if (player->vcodec_context) avcodec_close(player->vcodec_context);
-#ifdef WIN32
-        if (player->vcodec_context) dxva2hwa_free(player->vcodec_context);
-#endif
-
         // get new vcodec_context & vstream_timebase
         player->vcodec_context   = player->avformat_context->streams[idx]->codec;
         player->vstream_timebase = player->avformat_context->streams[idx]->time_base;
 
-        //++ reopen codec
+        //++ open codec
         //+ try android mediacodec hardware decoder
         if (player->init_params.video_hwaccel) {
 #ifdef ANDROID
@@ -282,11 +273,6 @@ static int reinit_stream(PLAYER *player, enum AVMediaType type, int sel) {
             }
             player->init_params.video_hwaccel = decoder ? 1 : 0;
 #endif
-#ifdef WIN32
-            if (dxva2hwa_init(player->vcodec_context) != 0) {
-                player->init_params.video_hwaccel = 0;
-            }
-#endif
         }
         //- try android mediacodec hardware decoder
 
@@ -305,7 +291,7 @@ static int reinit_stream(PLAYER *player, enum AVMediaType type, int sel) {
             // get the actual video decoding thread count
             player->init_params.video_thread_count = player->vcodec_context->thread_count;
         }
-        //-- reopen codec
+        //-- open codec
         break;
 
     case AVMEDIA_TYPE_SUBTITLE:
@@ -397,8 +383,8 @@ static int player_prepare(PLAYER *player)
     }
 
     // set current audio & video stream
-    player->astream_index = -1; reinit_stream(player, AVMEDIA_TYPE_AUDIO, player->init_params.audio_stream_cur);
-    player->vstream_index = -1; reinit_stream(player, AVMEDIA_TYPE_VIDEO, player->init_params.video_stream_cur);
+    player->astream_index = -1; init_stream(player, AVMEDIA_TYPE_AUDIO, player->init_params.audio_stream_cur);
+    player->vstream_index = -1; init_stream(player, AVMEDIA_TYPE_VIDEO, player->init_params.video_stream_cur);
     if (player->astream_index != -1) player->seek_req |= PS_A_SEEK;
     if (player->vstream_index != -1) player->seek_req |= PS_V_SEEK;
 
@@ -438,6 +424,14 @@ static int player_prepare(PLAYER *player)
     if (player->vstream_index == -1) {
         int effect = VISUAL_EFFECT_WAVEFORM;
         render_setparam(player->render, PARAM_VISUAL_EFFECT, &effect);
+    } else if (player->init_params.video_hwaccel) {
+#ifdef WIN32
+        void *d3ddev = NULL;
+        render_getparam(player->render, PARAM_VDEV_GET_D3DDEV, &d3ddev);
+        if (dxva2hwa_init(player->vcodec_context, d3ddev) != 0) {
+            player->init_params.video_hwaccel = 0;
+        }
+#endif
     }
 
     // for player init params

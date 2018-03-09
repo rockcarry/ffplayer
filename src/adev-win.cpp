@@ -5,8 +5,8 @@
 #pragma warning(disable:4312)
 
 // 内部常量定义
-#define DEF_ADEV_BUF_NUM  6
-#define DEF_ADEV_BUF_LEN  8192
+#define DEF_ADEV_BUF_NUM  5
+#define DEF_ADEV_BUF_LEN  2048
 
 // 内部类型定义
 typedef struct
@@ -35,7 +35,7 @@ static void CALLBACK waveOutProc(HWAVEOUT hwo, UINT uMsg, DWORD dwInstance, DWOR
 }
 
 // 接口函数实现
-void* adev_create(int type, int bufnum, int buflen, void *params)
+void* adev_create(int type, int bufnum, int buflen)
 {
     ADEV_CONTEXT *ctxt = NULL;
     WAVEFORMATEX  wfx  = {0};

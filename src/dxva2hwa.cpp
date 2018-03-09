@@ -65,17 +65,15 @@ typedef struct DXVA2Context {
     DXVA2_ConfigPictureDecode    decoder_config;
     IDirectXVideoDecoderService *decoder_service;
 
-    AVFrame                     *tmp_frame;
     AVBufferRef                 *hw_device_ctx;
     AVBufferRef                 *hw_frames_ctx;
 } DXVA2Context;
 
 typedef struct {
-    char  *hwaccel_device;
+    void  *hwaccel_d3ddev;
     void  *hwaccel_ctx;
-    int           (*hwaccel_get_buffer   )(AVCodecContext *s, AVFrame *frame, int flags);
-    AVPixelFormat (*hwaccel_get_format   )(AVCodecContext *s, const AVPixelFormat *fmts);
-    int  (*hwaccel_retrieve_data)(AVCodecContext *s, AVFrame *frame);
+    int           (*hwaccel_get_buffer)(AVCodecContext *s, AVFrame *frame, int flags);
+    AVPixelFormat (*hwaccel_get_format)(AVCodecContext *s, const AVPixelFormat *fmts);
 } HWACCEL;
 
 // 内部函数实现
@@ -90,29 +88,6 @@ static int dxva2_get_buffer(AVCodecContext *s, AVFrame *frame, int flags)
 static AVPixelFormat dxva2_get_format(AVCodecContext *s, const AVPixelFormat *fmts)
 {
     return AV_PIX_FMT_DXVA2_VLD;
-}
-
-static int dxva2_retrieve_data(AVCodecContext *s, AVFrame *frame)
-{
-    HWACCEL      *hwa = (HWACCEL     *)s->opaque;
-    DXVA2Context *ctx = (DXVA2Context*)hwa->hwaccel_ctx;
-    int           ret;
-
-    ret = av_hwframe_transfer_data(ctx->tmp_frame, frame, 0);
-    if (ret < 0) {
-        return ret;
-    }
-
-    ret = av_frame_copy_props(ctx->tmp_frame, frame);
-    if (ret < 0) {
-        av_frame_unref(ctx->tmp_frame);
-        return ret;
-    }
-
-    av_frame_unref(frame);
-    av_frame_move_ref(frame, ctx->tmp_frame);
-
-    return 0;
 }
 
 static int dxva2_alloc(AVCodecContext *s)
@@ -131,13 +106,11 @@ static int dxva2_alloc(AVCodecContext *s)
         return AVERROR(ENOMEM);
     }
 
-    hwa->hwaccel_ctx           = ctx;
-    hwa->hwaccel_get_buffer    = dxva2_get_buffer;
-    hwa->hwaccel_get_format    = dxva2_get_format;
-    hwa->hwaccel_retrieve_data = dxva2_retrieve_data;
-
+    hwa->hwaccel_ctx = ctx;
+    hwa->hwaccel_get_buffer = dxva2_get_buffer;
+    hwa->hwaccel_get_format = dxva2_get_format;
     ret = av_hwdevice_ctx_create(&ctx->hw_device_ctx, AV_HWDEVICE_TYPE_DXVA2,
-                                 hwa->hwaccel_device, NULL, 0);
+                                 (char*)hwa->hwaccel_d3ddev, NULL, 0);
     if (ret < 0) {
         goto fail;
     }
@@ -157,11 +130,6 @@ static int dxva2_alloc(AVCodecContext *s)
     IDirect3DDeviceManager9_CloseDeviceHandle(device_hwctx->devmgr, device_handle);
     if (FAILED(hr)) {
         av_log(NULL, AV_LOG_INFO, "Failed to create IDirectXVideoDecoderService\n");
-        goto fail;
-    }
-
-    ctx->tmp_frame = av_frame_alloc();
-    if (!ctx->tmp_frame) {
         goto fail;
     }
 
@@ -378,7 +346,7 @@ fail:
     return AVERROR(EINVAL);
 }
 
-int dxva2hwa_init(AVCodecContext *s)
+int dxva2hwa_init(AVCodecContext *s, void *d3ddev)
 {
     HWACCEL      *hwa;
     DXVA2Context *ctx;
@@ -389,7 +357,7 @@ int dxva2hwa_init(AVCodecContext *s)
         av_log(NULL, AV_LOG_ERROR, "dxva2hwa_init:: failed to allocate memory for HWACCEL !\n");
         return AVERROR(ENOMEM);
     }
-    hwa->hwaccel_device = "dxva2";
+    hwa->hwaccel_d3ddev = d3ddev;
     s->opaque = hwa;
 
     if (!hwa->hwaccel_ctx) {
@@ -412,8 +380,6 @@ int dxva2hwa_init(AVCodecContext *s)
         return AVERROR(EINVAL);
     }
 
-    av_buffer_unref(&ctx->hw_frames_ctx);
-
     ret = dxva2_create_decoder(s);
     if (ret < 0) {
         av_log(NULL, AV_LOG_INFO, "Error creating the DXVA2 decoder\n");
@@ -432,8 +398,8 @@ void dxva2hwa_free(AVCodecContext *s)
     DXVA2Context *ctx = NULL;
     if (!hwa) return;
 
-    hwa->hwaccel_get_buffer    = NULL;
-    hwa->hwaccel_retrieve_data = NULL;
+    hwa->hwaccel_get_buffer = NULL;
+    hwa->hwaccel_get_format = NULL;
 
     ctx = (DXVA2Context*)hwa->hwaccel_ctx;
     if (ctx->decoder_service) {
@@ -442,8 +408,6 @@ void dxva2hwa_free(AVCodecContext *s)
 
     av_buffer_unref(&ctx->hw_frames_ctx);
     av_buffer_unref(&ctx->hw_device_ctx);
-
-    av_frame_free(&ctx->tmp_frame);
 
     av_freep(&hwa->hwaccel_ctx);
     av_freep(&s->hwaccel_context);
