@@ -122,8 +122,16 @@ void CplayerDlg::PlayerOpenFile(TCHAR *file)
     SetWindowText(TEXT("testplayer - loading"));
 
     // player open file
-    if (  strstr(m_strUrl, "rtmp://") == m_strUrl || strstr(m_strUrl, "http://") == m_strUrl && strstr(m_strUrl, ".m3u8")
-       || strstr(m_strUrl, "gdigrab://") == m_strUrl || strcmp(m_strUrl, "vfwcap") == 0 ) {
+    char ext[MAX_PATH]; _splitpath(m_strUrl, NULL, NULL, NULL, ext);
+    if (  strnicmp(m_strUrl, "http://", 7) == 0 && stricmp(ext, ".m3u8") == 0
+       || strnicmp(m_strUrl, "rtmp://", 7) == 0
+       || strnicmp(m_strUrl, "gdigrab://", 10) == 0
+       || strnicmp(m_strUrl, "vfwcap", 6) == 0
+       || stricmp(ext, ".bmp" ) == 0
+       || stricmp(ext, ".jpg" ) == 0
+       || stricmp(ext, ".jpeg") == 0
+       || stricmp(ext, ".png" ) == 0
+       || stricmp(ext, ".gif" ) == 0) {
         m_bLiveStream = TRUE;
     } else {
         m_bLiveStream = FALSE;
