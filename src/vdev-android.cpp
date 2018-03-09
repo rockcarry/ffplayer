@@ -77,6 +77,7 @@ void* vdev_android_create(void *surface, int bufnum, int w, int h, int frate)
 
     // init vdev context
     ctxt->pixfmt    = android_pixfmt_to_ffmpeg_pixfmt(DEF_WIN_PIX_FMT);
+    ctxt->surface   = surface;
     ctxt->w         = w ? w : 1;
     ctxt->h         = h ? h : 1;
     ctxt->sw        = w ? w : 1;
