@@ -350,7 +350,12 @@ int dxva2hwa_init(AVCodecContext *s, void *d3ddev)
 {
     HWACCEL      *hwa;
     DXVA2Context *ctx;
-    int ret;
+    int           ret;
+
+    if (!d3ddev) {
+        av_log(NULL, AV_LOG_ERROR, "dxva2hwa_init:: d3ddev is NULL !\n");
+        return AVERROR(ENODEV);
+    }
 
     hwa = (HWACCEL*)av_mallocz(sizeof(HWACCEL));
     if (!hwa) {
