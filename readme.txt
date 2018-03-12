@@ -1,3 +1,17 @@
+!!!!!!!!!!!!!!!!!!!!
+! important notice !
+!!!!!!!!!!!!!!!!!!!!
+
+due to git repo size become big, not convenient to clone. this project stop maintained.
+
+please goto our new project fanplayer:
+
+https://github.com/rockcarry/fanplayer
+
+from now on, all changes will be commit to fanplayer.
+ 
+
+
 ffplayer
 ========
 
